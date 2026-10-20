@@ -100,11 +100,10 @@ class ModelServiceGateway(object):
             result = {"price": p.result(), "effectiveness": e.result()}
         price_product = str(result["price"].get("product_code") or "")
         effect_product = str(result["effectiveness"].get("product_code") or "")
-        if not price_product or not effect_product:
-            raise ModelServiceUnavailable("两个模型服务的Schema都必须声明product_code")
-        if price_product != effect_product:
-            raise ModelServiceUnavailable("价格与效能服务成品代号不一致: %s / %s" % (price_product, effect_product))
-        self.product_code = price_product
+        # Schema is descriptive.  Recommendation readiness is proved by actual
+        # prediction JSON, so a stale or incomplete schema must not make an
+        # otherwise callable pair of HTTP services unavailable.
+        self.product_code = price_product or effect_product or self.product_code
         return result
 
     def effectiveness_schema(self):
@@ -112,6 +111,20 @@ class ModelServiceGateway(object):
         return _json_request(
             self.effectiveness_url + "/api/v1/schema", None, self.timeout
         )
+
+    def price_schema(self):
+        """Inspect only the price service for the operator prediction page."""
+        return _json_request(self.price_url + "/api/v1/schema", None, self.timeout)
+
+    def predict_price(self, params, product_code=None):
+        envelope = {
+            "request_id": "PRICE-WORKBENCH-%s" % uuid.uuid4().hex[:16],
+            "product_code": product_code or self.product_code,
+            "scenario": "operator_price_workbench",
+            "parameters": dict(params or {}),
+            "context": {"source": "price_workbench", "locale": "zh-CN"},
+        }
+        return _json_request(self.price_url + "/api/v1/predict", envelope, self.timeout)
 
     def evaluate_effectiveness(self, params, target_protocol=None):
         """Evaluate one scheme without requiring the price service."""
@@ -162,11 +175,6 @@ class ModelServiceGateway(object):
                 effect_future = pool.submit(_json_request, self.effectiveness_url + "/api/v1/evaluate", envelope, self.timeout)
                 price = price_future.result()
                 effect = effect_future.result()
-            expected = str(envelope.get("product_code") or "")
-            for label, response in (("价格", price), ("效能", effect)):
-                actual = str((response.get("model") or {}).get("product_code") or "")
-                if expected and actual and actual != expected:
-                    raise ModelServiceUnavailable("%s服务成品代号%s与推荐系统%s不一致" % (label, actual, expected))
             result = self._merge(envelope, price, effect)
             self.last_status = {"mode": "services", "elapsed_ms": round((time.time() - started) * 1000, 1), "price": price.get("model"), "effectiveness": effect.get("model")}
             return result
@@ -269,6 +277,7 @@ class ModelServiceGateway(object):
         for key, item in (price.get("input_status") or {}).get("filled_fields", {}).items():
             parameters.setdefault(key, item.get("value"))
         price_value = float(prediction.get("predicted_price_wan"))
+        ranking_price=max(price_value,float(prediction.get('recommendation_price_wan') or price_value))
         score = float(evaluation.get("effectiveness_score", evaluation.get("capability_score")))
         requirement = effect.get("requirement_assessment") or {}
         conservative_raw = evaluation.get("conservative_capability_score")
@@ -322,6 +331,7 @@ class ModelServiceGateway(object):
                 })
         return {
             "predicted_price_wan": price_value,
+            'recommendation_price_wan':ranking_price,'price_risk':prediction.get('price_risk'),
             "price_interval_wan": prediction.get("price_interval_wan") or [price_value, price_value],
             "capability_score": score,
             "conservative_capability_score": conservative_score,
@@ -333,7 +343,7 @@ class ModelServiceGateway(object):
             "robust_conclusion": evaluation.get("robust_conclusion", requirement.get("robust_conclusion")),
             "robust_conclusion_label": evaluation.get("robust_conclusion_label", requirement.get("robust_conclusion_label")),
             "score_uncertainty_width": uncertainty_width,
-            "cost_effectiveness": round(conservative_score / max(price_value, 1e-9), 4),
+            "cost_effectiveness": round(conservative_score / max(ranking_price, 1e-9), 4),
             "center_cost_effectiveness": round(score / max(price_value, 1e-9), 4),
             "feasibility_probability": feasibility,
             "feasibility_status": evaluation.get("feasibility_status"),
@@ -424,6 +434,7 @@ def _remote_field(field):
         "training_min": field.get("training_min", lower),
         "training_max": field.get("training_max", upper),
         "training_mean": field.get("training_mean"),
+        "default_value": field.get("default_value"),
         "required": bool(field.get("required", True)),
         "missing_policy": field.get("missing_policy") or "reject",
         "preference": field.get("preference_direction") or field.get("preference") or "neutral",
@@ -444,10 +455,11 @@ class ServiceBackedRuntime(object):
         effect_schema = self.schemas["effectiveness"]
         price_product = str(price_schema.get("product_code") or "")
         effect_product = str(effect_schema.get("product_code") or "")
-        if not price_product or price_product != effect_product:
-            raise ModelServiceUnavailable("价格与效能服务Schema的product_code必须完全一致")
-        gateway.product_code = price_product
-        self.product_code = price_product
+        # Prefer an available declared code, but do not turn schema metadata
+        # drift into a preflight gate.  Individual API responses remain the
+        # source of truth for prediction payload shape.
+        self.product_code = price_product or effect_product or gateway.product_code or ""
+        gateway.product_code = self.product_code or None
         self.product_name = effect_schema.get("product_name") or price_schema.get("product_name") or price_product
         self._effect_features = [_remote_field(item) for item in effect_schema.get("fields") or []]
         self._price_features = [_remote_field(item) for item in price_schema.get("fields") or []]

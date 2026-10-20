@@ -7,6 +7,15 @@ import math
 DEFAULT_FEASIBILITY_GATE = 0.65
 
 
+def effective_price(item):
+    base=float(item.get('predicted_price_wan',item.get('historical_price_wan',0)) or 0)
+    conservative=item.get('recommendation_price_wan',(item.get('evaluation') or {}).get('recommendation_price_wan',base))
+    try:
+        conservative=float(conservative)
+        return max(base,conservative) if math.isfinite(conservative) else base
+    except (ValueError,TypeError):return base
+
+
 def _number(value):
     try:
         if isinstance(value, str) and value.strip().upper().startswith("IP"):
@@ -103,7 +112,7 @@ def agreement_matches(item, request):
         # Model-only thresholds cannot be judged for this one legacy row. Keep
         # it visible with an explicit "service unavailable" badge instead.
         return True
-    price = float(item.get("predicted_price_wan", item.get("historical_price_wan", 0)) or 0)
+    price = effective_price(item)
     capability = conservative_capability(item)
     ce = float(item.get("cost_effectiveness", capability / max(price, 1e-9)) or 0)
     feasibility = float(item.get("feasibility_probability", 0) or 0)
@@ -145,7 +154,8 @@ def rank_agreements(items, request, tag_weights):
         capability = conservative_capability(item)
         item["conservative_capability_score"] = capability
         item["predicted_price_wan"] = round(price, 3)
-        item["cost_effectiveness"] = round(capability / max(price, 1e-9), 3)
+        item['recommendation_price_wan']=effective_price(item)
+        item["cost_effectiveness"] = round(capability / max(item['recommendation_price_wan'], 1e-9), 3)
         own_tags = set(item.get("tags") or [])
         item["matched_tags"] = [tag for tag in selected_tags if tag in own_tags]
         item["missing_tags"] = [tag for tag in selected_tags if tag not in own_tags]
@@ -158,12 +168,12 @@ def rank_agreements(items, request, tag_weights):
             item["feasibility_probability"] = None
     if not candidates:
         return []
-    prices = [float(item.get("predicted_price_wan") or item.get("historical_price_wan") or 0) for item in candidates]
+    prices = [effective_price(item) for item in candidates]
     ces = [float(item.get("cost_effectiveness") or 0) for item in candidates]
     pmin, pmax = min(prices), max(prices)
     cemin, cemax = min(ces), max(ces)
     for item in candidates:
-        numeric_price = float(item.get("predicted_price_wan") or item.get("historical_price_wan") or 0)
+        numeric_price = effective_price(item)
         numeric_ce = float(item.get("cost_effectiveness") or 0)
         price_score = 100.0 if pmax == pmin else 100.0 * (pmax - numeric_price) / (pmax - pmin)
         ce_score = 100.0 if cemax == cemin else 100.0 * (numeric_ce - cemin) / (cemax - cemin)
@@ -194,7 +204,7 @@ def rank_agreements(items, request, tag_weights):
     }
     key = key_map.get(sort_by, "comprehensive_score")
     reverse = sort_by != "price"
-    candidates.sort(key=lambda item: float(item.get(key) or 0), reverse=reverse)
+    candidates.sort(key=lambda item: effective_price(item) if sort_by=='price' else float(item.get(key) or 0), reverse=reverse)
     for index, item in enumerate(candidates, 1):
         item["rank"] = index
     return candidates

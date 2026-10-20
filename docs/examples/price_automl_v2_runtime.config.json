@@ -1,0 +1,146 @@
+{
+  "schema_version": "price-automl-v2-1.0",
+  "experts_from_workbook": true,
+  "models": [
+    "engineering_cost",
+    "engineering_residual",
+    "ridge",
+    "lasso",
+    "elasticnet",
+    "bayesian_ridge",
+    "huber",
+    "svr",
+    "kernel_ridge",
+    "knn",
+    "random_forest",
+    "extra_trees",
+    "gbdt"
+  ],
+  "search": {
+    "trials": 20,
+    "ensemble_trials": 4,
+    "promote": 6,
+    "seed": 2026,
+    "parameter_ranges": {}
+  },
+  "resources": {
+    "total_seconds": 300,
+    "fit_timeout_seconds": 30,
+    "cache_directory": null
+  },
+  "validation": {
+    "minimum_groups": 8,
+    "holdout_fraction": 0.2,
+    "holdout_seed": 20261002,
+    "folds": 2,
+    "repeats": 2,
+    "split_seed": 311,
+    "outer_folds": 2,
+    "outer_repeats": 2
+  },
+  "pipeline": {
+    "imputation": [
+      "median",
+      "mean"
+    ],
+    "scaler": [
+      "standard",
+      "robust",
+      "none"
+    ],
+    "numeric_transform": [
+      "identity"
+    ],
+    "target_transform": [
+      "identity",
+      "log"
+    ],
+    "select_k": [
+      "all",
+      3,
+      6
+    ],
+    "missing_indicator": [
+      false,
+      true
+    ],
+    "interaction_pairs": [
+      [
+        "rated_thrust_n",
+        "speed_mm_s"
+      ]
+    ]
+  },
+  "seed_bagging": {
+    "base": 101,
+    "milestones": [
+      4,
+      8,
+      16
+    ],
+    "stable_rounds": 2,
+    "prediction_change_percent": 0.1,
+    "mape_gain_percentage_points": 0.05
+  },
+  "ensemble": {
+    "mode": "performance_budget",
+    "alpha": 0.7,
+    "prior_strength": 0.01,
+    "max_mape_delta_pp": 0.1,
+    "max_r2_drop": 0.005,
+    "max_members": 6,
+    "top_k": 3,
+    "minimum_weight": 1e-08,
+    "family_priors": [
+      {
+        "family": "engineering",
+        "label": "工程知识模型",
+        "weight": 0.35,
+        "confidence": 0.85,
+        "lower_bound": 0.0,
+        "upper_bound": 1.0
+      },
+      {
+        "family": "linear",
+        "label": "正则化线性模型",
+        "weight": 0.35,
+        "confidence": 0.8,
+        "lower_bound": 0.0,
+        "upper_bound": 1.0
+      },
+      {
+        "family": "tree",
+        "label": "树模型",
+        "weight": 0.2,
+        "confidence": 0.7,
+        "lower_bound": 0.0,
+        "upper_bound": 1.0
+      },
+      {
+        "family": "kernel",
+        "label": "核与近邻模型",
+        "weight": 0.1,
+        "confidence": 0.65,
+        "lower_bound": 0.0,
+        "upper_bound": 1.0
+      }
+    ]
+  },
+  "engineering": {
+    "intercept_wan": 3.0,
+    "coefficients": {
+      "rated_thrust_n": 0.00042,
+      "speed_mm_s": 0.016,
+      "salt_spray_h": 0.003,
+      "protection_grade": 0.03,
+      "emergency_unlock": 0.65,
+      "self_test": 0.45,
+      "temp_high_c": 0.025
+    }
+  },
+  "quality": {
+    "mape_percent_max": 10.0,
+    "r2_min": 0.85,
+    "minimum_independent_groups_for_evidence": 30
+  }
+}

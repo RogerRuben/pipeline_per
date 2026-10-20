@@ -617,6 +617,7 @@ class SnapshotBackend(object):
                 "profile_version": self.profile_version, "algorithm_version": self.algorithm_version,
                 "state_sha256": self.state_sha256, "active_protocol": None,
                 "capabilities": {"dynamic_target_protocol": False, "counterfactual_improvement": False},
+                "coupling_models": list(self.bundle.couplings),
                 "evaluation_level": "configured_attribute_space"}
 
     def evaluate(self, params, target_protocol=None):

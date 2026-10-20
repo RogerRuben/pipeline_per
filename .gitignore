@@ -12,7 +12,11 @@ runtime/
 
 # Offline dependency bundles are delivered separately
 **/wheelhouse_win7/
+**/wheelhouse_*/
 *.whl
+*.zip
+*.7z
+/vendor/
 
 # Runtime state and operator-generated files
 logs/
@@ -20,6 +24,13 @@ backups/
 exports/
 uploads/
 runtime_state/
+/state/
+/input/
+/data/*.db
+/data/*.db-*
+/data/*.sqlite*
+/config/portable.json
+/config/price_*.json
 *.log
 *.tmp
 *.bak

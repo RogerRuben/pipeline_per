@@ -44,6 +44,8 @@ def _column_index(ref):
 
 
 def _decode_text(data):
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return data.decode("utf-16")
     for encoding in ("utf-8-sig", "utf-8", "gb18030"):
         try:
             return data.decode(encoding)
@@ -52,52 +54,35 @@ def _decode_text(data):
     raise ValueError("CSV编码无法识别，请保存为UTF-8或GB18030。")
 
 
+def read_csv_table(data):
+    text = _decode_text(data)
+    lines = text.splitlines(True)
+    offset, delimiter = 0, None
+    if lines and re.fullmatch(r"sep=([,;\t|])", lines[0].strip(), re.I):
+        delimiter = lines[0].strip()[4:]
+        text, offset = "".join(lines[1:]), 1
+    if delimiter is None:
+        try:
+            delimiter = csv.Sniffer().sniff(text[:8192], delimiters=",;\t|").delimiter
+        except csv.Error:
+            delimiter = ","
+    reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+    rows, numbers, previous = [], [], offset
+    for row in reader:
+        rows.append(list(row))
+        numbers.append(previous + 1)
+        previous = reader.line_num + offset
+    return {"rows": rows, "row_numbers": numbers, "delimiter": delimiter}
+
+
 def read_csv_bytes(data):
-    return [list(row) for row in csv.reader(io.StringIO(_decode_text(data)))]
+    return read_csv_table(data)["rows"]
 
 
 def read_xlsx_bytes(data):
-    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-          "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships"}
-    with zipfile.ZipFile(io.BytesIO(data), "r") as zf:
-        shared = []
-        if "xl/sharedStrings.xml" in zf.namelist():
-            root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
-            for si in root.findall("m:si", ns):
-                shared.append("".join((node.text or "") for node in si.findall(".//m:t", ns)))
-        workbook = ET.fromstring(zf.read("xl/workbook.xml"))
-        rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
-        relmap = dict((rel.attrib["Id"], rel.attrib["Target"]) for rel in rels)
-        sheet = workbook.find("m:sheets/m:sheet", ns)
-        if sheet is None:
-            return []
-        rid = sheet.attrib.get("{%s}id" % ns["r"])
-        target = relmap[rid].lstrip("/")
-        if not target.startswith("xl/"):
-            target = "xl/" + target
-        root = ET.fromstring(zf.read(target))
-        rows = []
-        for row in root.findall(".//m:sheetData/m:row", ns):
-            values = {}
-            for cell in row.findall("m:c", ns):
-                idx = _column_index(cell.attrib.get("r", "A1"))
-                cell_type = cell.attrib.get("t")
-                value_node = cell.find("m:v", ns)
-                inline = cell.find("m:is", ns)
-                if cell_type == "s" and value_node is not None:
-                    try: value = shared[int(value_node.text)]
-                    except Exception: value = ""
-                elif cell_type == "inlineStr" and inline is not None:
-                    value = "".join((node.text or "") for node in inline.findall(".//m:t", ns))
-                elif cell_type == "b" and value_node is not None:
-                    value = "1" if value_node.text == "1" else "0"
-                else:
-                    value = value_node.text if value_node is not None else ""
-                values[idx] = value
-            if values:
-                width = max(values) + 1
-                rows.append([values.get(i, "") for i in range(width)])
-        return rows
+    from .xlsx_utils import read_workbook_details
+    sheets = read_workbook_details(data)
+    return next((sheet["rows"] for sheet in sheets if sheet["state"] == "visible"), [])
 
 
 def read_table_bytes(filename, data):

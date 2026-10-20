@@ -178,6 +178,7 @@ class Application(object):
         # because the server starts. Local deployments still validate schema.
         self.model_data_sync_error = None
         self.model_data_sync_warnings = []
+        self.model_parameter_coverage = {}
         if not self.demo_read_only:
             self._refresh_model_data_readiness(raise_local=True)
         self.sessions = GeneratedSessions()
@@ -239,6 +240,7 @@ class Application(object):
         """
         self.model_data_sync_error = self.model_startup_error
         self.model_data_sync_warnings = []
+        self.model_parameter_coverage = {}
         if isinstance(self.runtime, DegradedServiceRuntime):
             return {
                 "ready": False,
@@ -250,15 +252,28 @@ class Application(object):
             data_code = self.store.current_product_code()
             service_code = str(self.runtime.schema.get("product_code") or "")
             if data_code and service_code and data_code != service_code:
-                raise ValueError("运行业务成品%s，当前HTTP模型服务成品%s" % (data_code, service_code))
+                self.model_data_sync_warnings.append(
+                    "业务成品代号%s与服务声明%s不同；只要实算接口接受请求并返回标准JSON，推荐仍可用。"
+                    % (data_code, service_code)
+                )
             try:
-                self.model_data_sync_warnings = list(self.store.sync_model_schema() or [])
+                self.model_data_sync_warnings.extend(self.store.sync_model_schema() or [])
             except Exception as exc:
                 self.model_data_sync_warnings.append(
                     "模型Schema自动登记未完成，但不阻断HTTP实算：%s" % exc
                 )
             if self.model_execution_mode in ("service", "services", "http", "remote"):
-                probe = self.runtime.evaluate(self._model_probe_parameters())
+                probe_parameters = self._model_probe_parameters()
+                self.model_parameter_coverage = self._parameter_coverage_diagnostics(probe_parameters)
+                self.model_data_sync_warnings.append(
+                    "参数覆盖：DataMaster启用%d项，价格Schema %d项，效能Schema %d项，实算JSON %d项。" % (
+                        self.model_parameter_coverage.get("enabled_business_field_count", 0),
+                        self.model_parameter_coverage.get("price_schema_field_count", 0),
+                        self.model_parameter_coverage.get("effectiveness_schema_field_count", 0),
+                        self.model_parameter_coverage.get("probe_field_count", 0),
+                    )
+                )
+                probe = self.runtime.evaluate(probe_parameters)
                 price = float(probe.get("predicted_price_wan"))
                 score = float(probe.get("capability_score"))
                 self.model_data_sync_warnings.append(
@@ -273,35 +288,13 @@ class Application(object):
             "message": self.model_data_sync_error,
             "scope": "calculation_only",
             "warnings": list(self.model_data_sync_warnings),
+            "parameter_coverage": dict(self.model_parameter_coverage),
         }
 
     def _model_probe_parameters(self):
         """Build one complete, non-persistent request for service readiness."""
-        business = self._example_parameters()
-        encoded = self.store.runtime_parameters(business)
-        for field in self.runtime.all_feature_specs():
-            key = field.get("key")
-            if not key or encoded.get(key) not in (None, ""):
-                continue
-            allowed = list(field.get("allowed_values") or field.get("categories") or [])
-            lower = field.get("min", field.get("training_min"))
-            upper = field.get("max", field.get("training_max"))
-            if field.get("default_value") is not None:
-                value = field.get("default_value")
-            elif field.get("training_mean") is not None:
-                value = field.get("training_mean")
-            elif allowed:
-                value = allowed[0]
-            elif lower is not None and upper is not None:
-                value = (float(lower) + float(upper)) / 2.0
-            elif lower is not None:
-                value = lower
-            elif str(field.get("type") or field.get("dtype") or "").lower() in ("boolean", "bool"):
-                value = 0
-            else:
-                continue
-            encoded[key] = value
-        return encoded
+        business, _sources = self._complete_business_parameters(self._service_feature_specs())
+        return self.store.runtime_parameters(business)
 
     def _require_product_ready(self):
         if self.model_data_sync_error:
@@ -409,6 +402,7 @@ class Application(object):
             "historical_recommendation_available": True,
             "model_data_sync_error": self.model_data_sync_error,
             "model_data_sync_warnings": list(self.model_data_sync_warnings),
+            "parameter_coverage": dict(self.model_parameter_coverage),
             "dynamic_target_protocol_enabled": bool(
                 ((self.runtime.manifest().get("effectiveness") or {}).get("target_protocol_contract") or {}).get("supported")
             ),
@@ -429,6 +423,7 @@ class Application(object):
             "product_ready": not bool(self.model_data_sync_error),
             "model_data_sync_error": self.model_data_sync_error,
             "model_data_sync_warnings": list(self.model_data_sync_warnings),
+            "parameter_coverage": dict(self.model_parameter_coverage),
         }
         if self.model_gateway is not None:
             payload["model_services"] = self._model_service_snapshot()
@@ -436,7 +431,69 @@ class Application(object):
         return payload
 
     def _example_parameters(self):
-        """Build a non-executing example from current business data."""
+        """Build the full enabled business space; history only contributes values."""
+        result, _sources = self._complete_business_parameters(self._service_feature_specs())
+        return result
+
+    @staticmethod
+    def _field_key(field):
+        return str(field.get("field_name") or field.get("key") or "").strip()
+
+    @staticmethod
+    def _field_fallback(field):
+        if field.get("default_value") is not None:
+            return field.get("default_value")
+        if field.get("training_mean") is not None:
+            return field.get("training_mean")
+        allowed = list(field.get("allowed_values") or field.get("categories") or [])
+        if allowed:
+            return allowed[0]
+        lower = field.get("generation_min", field.get("min", field.get("training_min")))
+        upper = field.get("generation_max", field.get("max", field.get("training_max")))
+        if lower is not None and upper is not None:
+            return (float(lower) + float(upper)) / 2.0
+        if lower is not None:
+            return lower
+        dtype = str(field.get("value_type") or field.get("dtype") or field.get("type") or "").lower()
+        if dtype in ("boolean", "bool"):
+            return 0
+        return None
+
+    def _service_feature_specs(self, extra_fields=None):
+        """Return the union of every price/effect field, including model-only inputs."""
+        groups = []
+        effectiveness = getattr(self.runtime, "effectiveness", None)
+        price = getattr(self.runtime, "price", None)
+        groups.append(getattr(effectiveness, "features", []) or [])
+        groups.append(getattr(price, "raw_contract", []) or [])
+        if extra_fields:
+            groups.append(extra_fields)
+        result = []
+        positions = {}
+        for group in groups:
+            for raw in group:
+                item = dict(raw or {})
+                key = self._field_key(item)
+                if not key:
+                    continue
+                item["key"] = key
+                if key not in positions:
+                    positions[key] = len(result)
+                    result.append(item)
+                else:
+                    current = result[positions[key]]
+                    for name, value in item.items():
+                        if current.get(name) in (None, "", []):
+                            current[name] = value
+        return result
+
+    def _complete_business_parameters(self, schema_fields=None):
+        """Merge history, configured values, Schema defaults and DataMaster fields.
+
+        Enabled DataMaster rows define the complete business field set. Price and
+        effectiveness Schema fields extend that set for model-only inputs. A
+        historical agreement is a value source and can never truncate the set.
+        """
         conn = self.store.connect()
         try:
             code = self.store.current_product_code()
@@ -444,46 +501,104 @@ class Application(object):
                 "SELECT params_json FROM agreements WHERE product_code=? AND enabled=1 ORDER BY agreement_id LIMIT 1",
                 (code,),
             ).fetchone()
-            if row:
-                return json.loads(row["params_json"] or "{}")
-            result = {}
-            for item in conn.execute(
+            definitions = [dict(item) for item in conn.execute(
                 "SELECT * FROM parameter_definitions WHERE enabled=1 ORDER BY display_order,parameter_id"
-            ):
-                allowed = json.loads(item["allowed_values_json"] or "[]")
-                if allowed:
-                    value = allowed[0]
-                elif item["value_type"] == "boolean":
-                    value = 0
-                elif item["min_value"] is not None:
-                    value = item["min_value"]
-                else:
-                    value = None
-                if value is not None:
-                    result[item["parameter_id"]] = value
-            return result
+            )]
         finally:
             conn.close()
 
+        specs = self._service_feature_specs(schema_fields)
+        spec_map = dict((self._field_key(item), item) for item in specs if self._field_key(item))
+        definition_map = dict((item["parameter_id"], item) for item in definitions)
+        ordered_keys = [item["parameter_id"] for item in definitions]
+        ordered_keys.extend(key for key in spec_map if key not in definition_map)
+        allowed_keys = set(ordered_keys)
+        result = {}
+        sources = {}
+        if row:
+            try:
+                historical = json.loads(row["params_json"] or "{}")
+                if not isinstance(historical, dict):
+                    historical = {}
+            except (TypeError, ValueError):
+                historical = {}
+            for key, value in historical.items():
+                if key in allowed_keys and value not in (None, ""):
+                    result[key] = value
+                    sources[key] = "historical_agreement"
+
+        for key, value in self.store.configured_model_inputs(None).items():
+            if key in allowed_keys and result.get(key) in (None, ""):
+                result[key] = value
+                sources[key] = "configured_model_input"
+
+        for key in ordered_keys:
+            if result.get(key) not in (None, ""):
+                continue
+            value = self._field_fallback(spec_map.get(key, {}))
+            source = "model_schema"
+            if value is None and key in definition_map:
+                item = definition_map[key]
+                try:
+                    allowed = json.loads(item.get("allowed_values_json") or "[]")
+                    if not isinstance(allowed, list):
+                        allowed = []
+                except (TypeError, ValueError):
+                    allowed = []
+                value = self._field_fallback({
+                    "allowed_values": allowed,
+                    "value_type": item.get("value_type"),
+                    "min": item.get("min_value"),
+                    "max": item.get("max_value"),
+                })
+                source = "data_master_default"
+            if value is not None:
+                result[key] = value
+                sources[key] = source
+            elif key not in result:
+                # Preserve the authoritative field shape even when an operator
+                # has not configured a usable value yet.  Coverage diagnostics
+                # distinguish this from a missing key and the target service
+                # remains responsible for its own missing-value policy.
+                result[key] = None
+                sources[key] = "unresolved_enabled_or_schema_field"
+        return result, sources
+
+    def _parameter_coverage_diagnostics(self, parameters, price_fields=None, effect_fields=None):
+        definitions = self.store.parameter_map()
+        enabled = sorted(key for key, item in definitions.items() if int(item.get("enabled") or 0))
+        if price_fields is None:
+            price_fields = getattr(getattr(self.runtime, "price", None), "raw_contract", []) or []
+        if effect_fields is None:
+            effect_fields = getattr(getattr(self.runtime, "effectiveness", None), "features", []) or []
+        price_keys = sorted(set(self._field_key(item) for item in price_fields if self._field_key(item)))
+        effect_keys = sorted(set(self._field_key(item) for item in effect_fields if self._field_key(item)))
+        payload = dict(parameters or {})
+        present = set(payload)
+        empty = sorted(key for key, value in payload.items() if value in (None, ""))
+        return {
+            "enabled_business_field_count": len(enabled),
+            "price_schema_field_count": len(price_keys),
+            "effectiveness_schema_field_count": len(effect_keys),
+            "union_field_count": len(set(enabled) | set(price_keys) | set(effect_keys)),
+            "probe_field_count": len(present),
+            "missing_enabled_in_probe": sorted(set(enabled) - present),
+            "missing_price_schema_in_probe": sorted(set(price_keys) - present),
+            "missing_effectiveness_schema_in_probe": sorted(set(effect_keys) - present),
+            "empty_value_fields": empty,
+        }
+
     def _model_service_snapshot(self):
         inspected = self.model_gateway.inspect_services()
-        business = self._example_parameters()
+        price_fields = (((inspected.get("price") or {}).get("schema") or {}).get("fields") or [])
+        effect_fields = (((inspected.get("effectiveness") or {}).get("schema") or {}).get("fields") or [])
+        business, sources = self._complete_business_parameters(price_fields + effect_fields)
         encoded = self.store.runtime_parameters(business)
         product_code = self.store.current_product_code()
         examples = {}
         for kind in ("price", "effectiveness"):
             service = inspected.get(kind) or {}
-            schema = service.get("schema") or {}
-            fields = schema.get("fields") or []
-            parameters = dict(encoded) if not fields else {}
-            for field in fields:
-                key = field.get("field_name") or field.get("key")
-                if key in encoded:
-                    parameters[key] = encoded[key]
-                elif field.get("default_value") is not None:
-                    parameters[key] = field.get("default_value")
-                elif not field.get("required", True) and field.get("training_mean") is not None:
-                    parameters[key] = field.get("training_mean")
+            parameters = dict(encoded)
             endpoint = "/api/v1/predict" if kind == "price" else "/api/v1/evaluate"
             examples[kind] = {
                 "method": "POST", "url": service.get("url", "") + endpoint,
@@ -493,7 +608,11 @@ class Application(object):
         return {
             "source": "independent_http_services", "local_model_files_read": False,
             "current_business_product_code": product_code,
-            "business_parameters": business, "services": inspected, "request_examples": examples,
+            "business_parameters": business, "value_sources": sources,
+            "parameter_coverage": self._parameter_coverage_diagnostics(
+                encoded, price_fields=price_fields, effect_fields=effect_fields
+            ),
+            "services": inspected, "request_examples": examples,
         }
 
     def effectiveness_workbench_schema(self):
@@ -510,6 +629,53 @@ class Application(object):
                 "capabilities": manifest.get("capabilities") or {},
             }
         return self.model_gateway.effectiveness_schema()
+
+    def price_workbench_schema(self):
+        if self.model_gateway is None:
+            manifest = self.runtime.manifest().get("price") or {}
+            return {
+                "product_code": self.runtime.schema.get("product_code"),
+                "product_name": self.runtime.schema.get("product_name"),
+                "backend": manifest.get("backend", "local_compatibility"),
+                "model_version": manifest.get("model_version"),
+                "fields": manifest.get("fields") or self.runtime.price.raw_contract,
+            }
+        return self.model_gateway.price_schema()
+
+    def price_workbench_predict(self, request):
+        schema = self.price_workbench_schema()
+        fields = schema.get("fields") or []
+        field_names = set(
+            str(item.get("field_name") or item.get("key")) for item in fields
+            if item.get("field_name") or item.get("key")
+        )
+        business = dict(request.get("parameters") or request.get("params") or {})
+        encoded = self.store.runtime_parameters(business)
+        model_params = dict((key, encoded[key]) for key in field_names if key in encoded)
+        if self.model_gateway is not None:
+            result = self.model_gateway.predict_price(
+                model_params, schema.get("product_code") or self.store.current_product_code()
+            )
+        else:
+            evaluated = self.runtime.price.predict(model_params)
+            result = {
+                "success": True,
+                "prediction": {
+                    "predicted_price_wan": evaluated.get("predicted_price_wan"),
+                    "price_interval_wan": evaluated.get("price_interval_wan"),
+                    "confidence": evaluated.get("price_confidence") or "medium",
+                },
+                "input_status": {"filled_fields": {}, "warnings": []},
+                "domain_status": {"in_domain": True, "warnings": []},
+                "model": self.runtime.manifest().get("price") or {},
+            }
+        result["business_parameters"] = self.store.business_parameters(model_params, business)
+        result["workbench"] = {
+            "effectiveness_service_called": False,
+            "historical_database_modified": False,
+            "price_service_only": True,
+        }
+        return result
 
     def effectiveness_workbench_evaluate(self, request):
         schema = self.effectiveness_workbench_schema()
@@ -1326,6 +1492,7 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/login", "/login.html"): rel = "login.html"
         elif path in ("/admin","/admin/"): rel = "admin.html"
         elif path in ("/effectiveness", "/effectiveness/"): rel = "effectiveness.html"
+        elif path in ("/price", "/price/"): rel = "price.html"
         else: rel = "index.html" if path in ("", "/") else unquote(path.lstrip("/"))
         target = (self.app.static_dir / rel).resolve()
         if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return
@@ -1348,12 +1515,13 @@ class Handler(BaseHTTPRequestHandler):
                     "persistent_writes_enabled": not self.app.demo_read_only,
                 })
             elif path == "/api/health":
-                payload = {"status":"ok","version":"V19.6.5","mode":self.app.model_execution_mode if hasattr(self.app,"model_execution_mode") else "local","auth_required":self.app.auth_enabled,"demo_read_only":self.app.demo_read_only}
+                payload = {"status":"ok","version":"V19.6.14","mode":self.app.model_execution_mode if hasattr(self.app,"model_execution_mode") else "local","auth_required":self.app.auth_enabled,"demo_read_only":self.app.demo_read_only}
                 if self._is_authenticated() or not self.app.auth_enabled:
                     payload.update({"admin_enabled":not self.app.disable_admin,"manifest":self.app.runtime.manifest(),"database":self.app.store.integrity_check()})
                 self._json(payload)
             elif path == "/api/bootstrap": self._json(self.app.bootstrap())
             elif path == "/api/effectiveness-workbench/schema": self._json(self.app.effectiveness_workbench_schema())
+            elif path == "/api/price-workbench/schema": self._json(self.app.price_workbench_schema())
             elif path.startswith("/api/generation-tasks/"):
                 task_id = unquote(path.split("/api/generation-tasks/",1)[1]); task = self.app.generation_tasks.get(task_id); self._json(task if task else {"error":"not_found"}, 200 if task else 404)
             elif path.startswith("/api/agreements/"):
@@ -1437,6 +1605,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/evaluate": self._json(self.app.evaluate(request))
             elif path == "/api/improve": self._json(self.app.improve(request))
             elif path == "/api/effectiveness-workbench/evaluate": self._json(self.app.effectiveness_workbench_evaluate(request))
+            elif path == "/api/price-workbench/predict": self._json(self.app.price_workbench_predict(request))
             elif path == "/api/save-scheme": self._json(self.app.save(request))
             elif path == "/api/clear-live-generated":
                 session_id = request.get("session_id") or "default"
@@ -1515,6 +1684,7 @@ class Handler(BaseHTTPRequestHandler):
             else: self._json({"error":"not_found","path":path},404)
         except ModelInputError as exc: self._json({"error":"model_input_error","message":str(exc),"model_kind":exc.model_kind,"missing_features":exc.missing_features},400)
         except ValueError as exc: self._json({"error":"validation_error","message":str(exc)},400)
+        except sqlite3.IntegrityError as exc: self._json({"error":"database_validation_error","message":"数据未保存：%s" % exc},400)
         except Exception as exc: traceback.print_exc(); self._json({"error":type(exc).__name__,"message":str(exc)},500)
 
 

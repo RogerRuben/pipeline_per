@@ -1,0 +1,25 @@
+{
+  "schema_version": "price-tabpfn-1.0",
+  "resources": {"total_seconds": 3600, "fit_timeout_seconds": 60, "threads": 2},
+  "validation": {"protocol": "group_loo", "micro_max_groups": 29},
+  "tabpfn": {
+    "n_estimators": 2,
+    "variants": [
+      {"target_transform": "identity", "output_type": "median"},
+      {"target_transform": "log", "output_type": "mean"}
+    ]
+  },
+  "seed_bagging": {"base": 101, "milestones": [2, 4], "micro_milestones": [2]},
+  "baselines": {"ridge_alphas": [0.000001, 0.0001, 0.01, 1, 10], "select_k": ["all", 6], "bayesian_ridge": true},
+  "expert": {
+    "from_workbook": true, "core_threshold": 4, "strengths": [0, 0.5, 1],
+    "scores": {
+      "rated_thrust_n": 5, "peak_thrust_n": 3, "speed_mm_s": 5,
+      "salt_spray_h": 4, "protection_grade": 4, "emergency_unlock": 4,
+      "self_test": 4, "temp_high_c": 4, "noise_db": 2, "comm_latency_ms": 2, "sample_rate_hz": 1
+    }
+  },
+  "ensemble": {"mode": "data_only", "alpha": 0.7, "family_priors": []},
+  "engineering": {"intercept_wan": 0, "coefficients": {}},
+  "quality": {"mape_percent_max": 10, "r2_min": 0.85, "minimum_independent_groups_for_evidence": 30, "hard_gate": true}
+}

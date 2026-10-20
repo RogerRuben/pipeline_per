@@ -1,0 +1,9 @@
+{
+  "source": "价格预测_Optuna_AutoML_v3.ipynb",
+  "source_sha256": "77f60bb1e917752280fc6be98123497506c8e93b59b436e4aa9a03e2eae3d4fa",
+  "source_content": "Notebook wrapper imports price_automl_optuna_v3.run_training; NSGA_TRIALS=180, TPE_TRIALS=120, num_anchors=3; optional warm_config/warm_trials",
+  "companion_v3_python_module_provided": false,
+  "implementation": "Project implementation of the documented V3 design, built on the preserved supplied V2 six-model core. Not a byte-identical port of the missing V3 module.",
+  "shared_changes": "Two semantic types: numeric and unordered configuration. Training-only one-hot encoding for configuration attributes, then original training-only MinMax and original price-expert transformations. Numeric V2 remains equivalent to supplied source.",
+  "v3_changes": ["Inherited evaluated observations for MOTPE", "Multiple Pareto anchors", "Fixed anchor split seeds; global independent seed escapes", "Weight-only refinement with bounded per-model prediction caching", "Data/protocol identity checks for history reuse", "Union selection over both phases and compatible imported history"]
+}

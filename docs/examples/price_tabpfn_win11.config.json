@@ -1,0 +1,37 @@
+{
+  "schema_version": "price-tabpfn-1.0",
+  "resources": {"total_seconds": 900, "fit_timeout_seconds": 60, "threads": 2},
+  "tabpfn": {
+    "n_estimators": 4,
+    "variants": [
+      {"target_transform": "identity", "output_type": "mean"},
+      {"target_transform": "log", "output_type": "mean"},
+      {"target_transform": "identity", "output_type": "median"}
+    ]
+  },
+  "seed_bagging": {"base": 101, "milestones": [2, 4]},
+  "engineering": {
+    "intercept_wan": 3.0,
+    "coefficients": {
+      "rated_thrust_n": 0.00042,
+      "speed_mm_s": 0.016,
+      "salt_spray_h": 0.003,
+      "protection_grade": 0.03,
+      "emergency_unlock": 0.65,
+      "self_test": 0.45,
+      "temp_high_c": 0.025
+    }
+  },
+  "ensemble": {
+    "mode": "performance_budget",
+    "alpha": 0.7,
+    "max_mape_delta_pp": 0.1,
+    "max_r2_drop": 0.005,
+    "family_priors": [
+      {"family": "engineering", "label": "工程知识模型", "weight": 0.4, "confidence": 0.85},
+      {"family": "linear", "label": "正则化线性模型", "weight": 0.3, "confidence": 0.8},
+      {"family": "tabpfn", "label": "TabPFN表格基础模型", "weight": 0.3, "confidence": 0.7}
+    ]
+  },
+  "quality": {"mape_percent_max": 10.0, "r2_min": 0.85, "minimum_independent_groups_for_evidence": 30}
+}

@@ -139,6 +139,11 @@ def main():
         check(service_result.get("model_source")=="independent_http_model_services", "完整Application可切换为独立服务执行模式", report)
         check(service_application.local_runtime is None and service_application.runtime.contract_version=="service-schema-1.1", "正式服务模式直接使用服务Schema且不加载本地bundle", report)
         remote_manifest=service_application.runtime.manifest()
+        price_schema=service_application.price_workbench_schema()
+        price_workbench=service_application.price_workbench_predict({"parameters":params})
+        check(bool(price_schema.get("fields")) and float(price_workbench["prediction"]["predicted_price_wan"])>0, "独立价格工作台按HTTP字段完成单独预测", report)
+        check(price_workbench["workbench"]["price_service_only"] and not price_workbench["workbench"]["effectiveness_service_called"], "价格工作台不触发效能服务或历史库写入", report)
+        check((ROOT/"app/static/price.html").is_file() and (ROOT/"app/static/price.js").is_file(), "独立价格预测页面及脚本已纳入应用", report)
         check(remote_manifest["price"].get("backend")=="portable_json" and remote_manifest["effectiveness"].get("backend")=="snapshot_json", "主系统状态明确展示两个服务的实际backend", report)
         app_batch=service_application._evaluate_batch_with_rules([
             {"candidate_id":"APP-A","parameters":params,"base_parameters":params},

@@ -1,0 +1,305 @@
+{
+  "schema_version": "price-automl-r4-1.0",
+  "models": [
+    "ridge",
+    "relative_ridge",
+    "lasso",
+    "elasticnet",
+    "mape_lasso",
+    "relative_huber",
+    "pls",
+    "pca_ridge",
+    "poly_ridge",
+    "svr",
+    "kernel_ridge",
+    "gpr",
+    "extra_trees",
+    "gbdt"
+  ],
+  "search": {
+    "anchor_trials": 128,
+    "seed": 20261012,
+    "promote": 5,
+    "expert_strengths": [
+      0.0,
+      0.5,
+      1.0
+    ],
+    "ridge_alphas": [
+      1e-08,
+      1e-06,
+      0.0001,
+      0.01,
+      1.0,
+      100.0,
+      10000.0,
+      1000000.0
+    ],
+    "parameter_ranges": {
+      "ridge": {
+        "alpha": [
+          1e-08,
+          1000000.0,
+          true
+        ]
+      },
+      "relative_ridge": {
+        "alpha": [
+          1e-08,
+          1000000.0,
+          true
+        ]
+      },
+      "lasso": {
+        "alpha": [
+          1e-07,
+          1.0,
+          true
+        ]
+      },
+      "elasticnet": {
+        "alpha": [
+          1e-07,
+          1.0,
+          true
+        ],
+        "l1_ratio": [
+          0.01,
+          0.99
+        ]
+      },
+      "mape_lasso": {
+        "alpha": [
+          1e-06,
+          0.3,
+          true
+        ]
+      },
+      "relative_huber": {
+        "alpha": [
+          1e-06,
+          1.0,
+          true
+        ],
+        "delta": [
+          0.01,
+          1.0,
+          true
+        ]
+      },
+      "svr": {
+        "C": [
+          0.001,
+          1000000.0,
+          true
+        ],
+        "epsilon": [
+          1e-05,
+          0.5,
+          true
+        ],
+        "gamma": [
+          1e-07,
+          100.0,
+          true
+        ]
+      },
+      "kernel_ridge": {
+        "alpha": [
+          1e-09,
+          1000.0,
+          true
+        ],
+        "gamma": [
+          1e-07,
+          100.0,
+          true
+        ]
+      },
+      "gpr": {
+        "length_scale": [
+          0.01,
+          1000.0,
+          true
+        ],
+        "noise": [
+          1e-08,
+          1.0,
+          true
+        ]
+      },
+      "pls": {
+        "n_components": [
+          1,
+          12
+        ]
+      },
+      "pca_ridge": {
+        "n_components": [
+          1,
+          12
+        ],
+        "alpha": [
+          1e-08,
+          1000000.0,
+          true
+        ]
+      },
+      "poly_ridge": {
+        "degree": [
+          2,
+          3
+        ],
+        "alpha": [
+          1e-08,
+          1000000.0,
+          true
+        ]
+      },
+      "extra_trees": {
+        "n_estimators": [
+          32,
+          256
+        ],
+        "max_depth": [
+          1,
+          12
+        ],
+        "min_samples_leaf": [
+          1,
+          4
+        ],
+        "max_features": [
+          0.1,
+          1.0
+        ]
+      },
+      "gbdt": {
+        "n_estimators": [
+          24,
+          256
+        ],
+        "max_depth": [
+          1,
+          8
+        ],
+        "min_samples_leaf": [
+          1,
+          4
+        ],
+        "learning_rate": [
+          0.005,
+          0.5,
+          true
+        ],
+        "subsample": [
+          0.5,
+          1.0
+        ]
+      }
+    },
+    "warm_start": true,
+    "restart_trials": 32,
+    "max_restarts": 40,
+    "seed_cost_ratio": 8.0,
+    "wide_kernels": true,
+    "optimize_gp": true
+  },
+  "pipeline": {
+    "imputation": "median",
+    "scaler": "standard",
+    "target_transforms": [
+      "identity",
+      "log"
+    ],
+    "expert_core_threshold": 4.0,
+    "feature_views": [
+      "all",
+      "screened"
+    ],
+    "select_k": [
+      1,
+      2,
+      3,
+      5,
+      8,
+      12
+    ],
+    "screening": "nonlinear",
+    "select_fraction": 1.0
+  },
+  "seed_search": {
+    "profile": "deep",
+    "limits": {
+      "quick": 64,
+      "standard": 500,
+      "deep": 5000
+    },
+    "max_trials": 5000,
+    "base": 811,
+    "milestones": [
+      64,
+      200,
+      1000,
+      5000
+    ],
+    "minimum_trials": 64,
+    "early_stop": true,
+    "patience": 2,
+    "minimum_gain": 0.0001,
+    "sample_weight_strength": 0.2,
+    "members_per_configuration": 4,
+    "stop_on_targets": true,
+    "check_interval": 64,
+    "stop_when_unmet_stagnant": false
+  },
+  "validation": {
+    "minimum_groups": 10,
+    "micro_max_groups": 29,
+    "inner_folds": 8,
+    "outer_folds": 8,
+    "seed": 311,
+    "inner_strategy": "price_balanced",
+    "loo_inner_max_groups": 12,
+    "outer_strategy": "group_kfold",
+    "inner_repeats": 2,
+    "outer_repeats": 2
+  },
+  "ensemble": {
+    "max_members": 6,
+    "alpha": 0.7,
+    "regularization": 0.005,
+    "jackknife": false,
+    "calibration": true,
+    "calibration_bounds": [
+      0.85,
+      1.15
+    ],
+    "min_members": 2,
+    "minimum_weight": 0.03,
+    "maximum_weight": 0.95,
+    "candidate_pool": 32
+  },
+  "resources": {
+    "total_seconds": 3600.0,
+    "cache_directory": null,
+    "progress_interval_seconds": 5.0,
+    "per_search_seconds": 150.0
+  },
+  "quality": {
+    "mape_percent_max": 10.0,
+    "r2_min": 0.9,
+    "minimum_groups_for_evidence": 30,
+    "hard_gate": false
+  },
+  "expert": {
+    "scores": {},
+    "records": [],
+    "field_types": {},
+    "attribute_groups": {},
+    "group_strengths": {},
+    "compare_individual_experts": false,
+    "enabled": true
+  },
+  "missing_tokens": []
+}

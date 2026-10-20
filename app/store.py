@@ -391,12 +391,19 @@ class Store(object):
         """Return centrally configured model-only inputs from the admin database."""
         conn = self.connect()
         try:
-            rows = conn.execute("""SELECT parameter_id,data_type,configured_value FROM model_input_bindings
-                WHERE model_kind=? AND enabled=1 AND configured_value IS NOT NULL AND TRIM(configured_value)!=''""", (model_kind,)).fetchall()
+            if model_kind in (None, "", "all"):
+                rows = conn.execute("""SELECT parameter_id,data_type,configured_value FROM model_input_bindings
+                    WHERE enabled=1 AND configured_value IS NOT NULL AND TRIM(configured_value)!=''
+                    ORDER BY CASE model_kind WHEN 'effectiveness' THEN 0 ELSE 1 END, parameter_id""").fetchall()
+            else:
+                rows = conn.execute("""SELECT parameter_id,data_type,configured_value FROM model_input_bindings
+                    WHERE model_kind=? AND enabled=1 AND configured_value IS NOT NULL AND TRIM(configured_value)!=''""", (model_kind,)).fetchall()
         finally:
             conn.close()
         result = {}
         for row in rows:
+            if row["parameter_id"] in result:
+                continue
             value = row["configured_value"]
             try:
                 if row["data_type"] == "boolean":
@@ -414,7 +421,7 @@ class Store(object):
 
     def runtime_parameters(self, params):
         merged = dict(params or {})
-        for key, value in self.configured_model_inputs("price").items():
+        for key, value in self.configured_model_inputs(None).items():
             if merged.get(key) in (None, ""):
                 merged[key] = value
         conn = self.connect()
@@ -814,6 +821,8 @@ class Store(object):
         evaluation["parameters"] = self.business_parameters(model_parameters, item["params"])
         item["params"] = dict(evaluation["parameters"])
         item["predicted_price_wan"] = evaluation["predicted_price_wan"]
+        item["recommendation_price_wan"] = evaluation.get("recommendation_price_wan",evaluation["predicted_price_wan"])
+        item["price_risk"] = evaluation.get("price_risk")
         item["price_interval_wan"] = evaluation["price_interval_wan"]
         item["capability_score"] = evaluation["capability_score"]
         item["conservative_capability_score"] = evaluation.get("conservative_capability_score", evaluation["capability_score"])
@@ -1239,15 +1248,15 @@ class Store(object):
         parameter_ids = set(self.parameter_map())
         tag_ids = set(self.tag_map(include_disabled=True))
         if section == "tag_rules":
-            if data.get("tag_id") not in tag_ids:
+            if data.get("tag_id") and data.get("tag_id") not in tag_ids:
                 raise ValueError("标签规则引用了不存在的标签")
-            if data.get("parameter_id") not in parameter_ids and data.get("parameter_id") not in ("__predicted_price_wan", "__capability_score", "__feasibility_probability"):
+            if data.get("parameter_id") and data.get("parameter_id") not in parameter_ids and data.get("parameter_id") not in ("__predicted_price_wan", "__capability_score", "__feasibility_probability"):
                 raise ValueError("标签规则引用了不存在的指标")
         if section == "couplings":
-            if data.get("parameter_a") not in parameter_ids or data.get("parameter_b") not in parameter_ids:
+            if (data.get("parameter_a") and data.get("parameter_a") not in parameter_ids) or (data.get("parameter_b") and data.get("parameter_b") not in parameter_ids):
                 raise ValueError("耦合关系引用了不存在的指标")
         if section == "constraints":
-            if data.get("left_parameter") not in parameter_ids or (data.get("right_parameter") and data.get("right_parameter") not in parameter_ids):
+            if (data.get("left_parameter") and data.get("left_parameter") not in parameter_ids) or (data.get("right_parameter") and data.get("right_parameter") not in parameter_ids):
                 raise ValueError("约束规则引用了不存在的指标")
         if section == "agreements":
             params = data.pop("params", {})
@@ -1265,6 +1274,54 @@ class Store(object):
                 data["allowed_values_json"] = json.dumps(data["allowed_values_json"], ensure_ascii=False)
             if isinstance(data.get("model_value_mapping_json"), dict):
                 data["model_value_mapping_json"] = json.dumps(data["model_value_mapping_json"], ensure_ascii=False)
+            try:
+                allowed = json.loads(data.get("allowed_values_json") or "[]")
+            except (TypeError, ValueError):
+                raise ValueError("业务允许值必须是JSON数组，例如：[\"类型1\",\"类型2\"]")
+            if not isinstance(allowed, list):
+                raise ValueError("业务允许值必须是JSON数组。")
+            try:
+                mapping = json.loads(data.get("model_value_mapping_json") or "{}")
+            except (TypeError, ValueError):
+                raise ValueError("业务值到模型值的映射必须是JSON对象，例如：{\"类型1\":0}")
+            if not isinstance(mapping, dict):
+                raise ValueError("业务值到模型值的映射必须是JSON对象。")
+            data["allowed_values_json"] = json.dumps(allowed, ensure_ascii=False) if allowed else None
+            data["model_value_mapping_json"] = json.dumps(mapping, ensure_ascii=False) if mapping else None
+
+        defaults = {
+            "products": {"enabled": 1},
+            "parameters": {"value_type": "number", "search_type": "auto", "required": 0,
+                           "auto_adjustable": 1, "decimal_places": 3, "display_order": 1,
+                           "enabled": 1, "model_bound": 0},
+            "tags": {"weight": 1.0, "derivation_mode": "rule", "enabled": 1},
+            "tag_rules": {"operator": "gte", "rule_group": "default", "enabled": 1},
+            "couplings": {"coupling_type": "positive", "domain_operator": "gte", "multiplier": 1.0,
+                          "offset": 0.0, "strength": 1.0, "severity": "info", "display_order": 1,
+                          "enabled": 1},
+            "constraints": {"operator": "gte", "multiplier": 1.0, "offset": 0.0,
+                            "severity": "warning", "display_order": 1, "enabled": 1},
+            "agreements": {"agreement_source": "historical", "enabled": 1},
+        }.get(section, {})
+        for key, value in defaults.items():
+            if data.get(key) in (None, ""):
+                data[key] = value
+
+        required = {
+            "products": (("product_name", "成品名称"),),
+            "parameters": (("label", "指标名称"),),
+            "tags": (("tag_name", "标签名称"),),
+            "tag_rules": (("tag_id", "标签"), ("parameter_id", "指标")),
+            "couplings": (("coupling_name", "耦合名称"), ("parameter_a", "指标A"), ("parameter_b", "指标B")),
+            "constraints": (("rule_name", "约束名称"), ("left_parameter", "左侧指标")),
+            "agreements": (("agreement_name", "协议名称"),),
+        }.get(section, ())
+        missing = [label for key, label in required if data.get(key) in (None, "")]
+        if missing:
+            raise ValueError("请填写必填项：%s" % "、".join(missing))
+        if section == "parameters" and data.get("min_value") is not None and data.get("max_value") is not None:
+            if float(data["min_value"]) > float(data["max_value"]):
+                raise ValueError("指标下限不能大于上限。")
         columns = self._table_columns(table)
         data = dict((k, v) for k, v in data.items() if k in columns)
         if not data.get(pk):

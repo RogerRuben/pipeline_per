@@ -16,9 +16,10 @@ set "JUPYTER_PATH=%CD%\runtime\venvs\price_training38\share\jupyter"
 if not exist "%JUPYTER_CONFIG_DIR%" mkdir "%JUPYTER_CONFIG_DIR%"
 if not exist "%JUPYTER_DATA_DIR%" mkdir "%JUPYTER_DATA_DIR%"
 
-set "NOTEBOOK=%CD%\规范版价格预测_V19_6原生服务导出补丁.ipynb"
-if not exist "%NOTEBOOK%" (
-  echo [ERROR] Training Notebook was not found: %NOTEBOOK%
+set "NOTEBOOK="
+for %%N in ("%CD%\*V19_6*.ipynb") do if not defined NOTEBOOK set "NOTEBOOK=%%~fN"
+if not defined NOTEBOOK (
+  echo [ERROR] Training Notebook matching *V19_6*.ipynb was not found.
   pause
   exit /b 1
 )

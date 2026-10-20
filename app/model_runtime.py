@@ -476,6 +476,7 @@ class EffectivenessBundle(object):
             "capability_contributors": capability_contributors,
             "anomaly_assessment": anomaly,
             "model_version": self.bundle["manifest"]["model_version"],
+            "capability_source": self.bundle.get("capability_source", "snapshot"),
         }
 
     def generate(self, count=10, seed=20260724, constraints=None, min_feasibility=0.75, pool_size=2200):

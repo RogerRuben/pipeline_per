@@ -137,10 +137,25 @@ def install_frozen_package(package_path, output_dir, expected_product_code=None)
                 backup = output.parent / ("%s.backup_%s_%s" % (output.name, suffix, uuid.uuid4().hex[:4]))
             output.replace(backup)
         try:
-            stage.replace(output)
+            try:
+                stage.replace(output)
+            except OSError:
+                # Windows 7/Windows security software may deny an atomic
+                # directory rename after the smoke test imported Python files
+                # from the staged runtime.  A verified copy is a safe fallback;
+                # the previous installation has already been backed up.
+                if output.exists():
+                    shutil.rmtree(str(output))
+                shutil.copytree(str(stage), str(output))
+                shutil.rmtree(str(stage))
         except Exception:
-            if backup is not None and backup.exists() and not output.exists():
-                backup.replace(output)
+            if output.exists():
+                shutil.rmtree(str(output), ignore_errors=True)
+            if backup is not None and backup.exists():
+                try:
+                    backup.replace(output)
+                except OSError:
+                    shutil.copytree(str(backup), str(output))
             raise
         return {
             "status": "PASS",

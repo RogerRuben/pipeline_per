@@ -1,0 +1,55 @@
+{
+  "schema_version": "price-optuna-v3-pipeline-1.0",
+  "search": {
+    "n_trials": 300,
+    "optimizer_seed": 42,
+    "seed_low": 1,
+    "seed_high": 10000,
+    "timeout_seconds": null
+  },
+  "validation": {
+    "test_size": 0.2,
+    "price_bins": 3,
+    "auto_adjust_test_size": true
+  },
+  "targets": {
+    "r2_min": 0.9,
+    "mape_percent_max": 10.0,
+    "hard_gate": false
+  },
+  "expert": {
+    "enabled": true,
+    "default_score": 1.0,
+    "use_supplied_defaults": true,
+    "scores": {},
+    "records": [],
+    "field_types": {}
+  },
+  "input": {
+    "missing_tokens": [],
+    "remove_outliers": false,
+    "min_samples": 4
+  },
+  "deployment": {
+    "model_scope": "full_data"
+  },
+  "v3": {
+    "nsga_fraction": 0.6,
+    "num_anchors": 3,
+    "local_fraction": 0.25,
+    "global_fraction": 0.2,
+    "weight_only_fraction": 0.25,
+    "anchor_refresh_interval": 20,
+    "startup_trials": 10,
+    "ei_candidates": 24,
+    "cache_entries": 256,
+    "warm_start": {
+      "auto_history": true,
+      "history_file": null,
+      "config_file": null,
+      "reuse_metrics": true,
+      "max_history_trials": 1000,
+      "max_warm_proposals": 5
+    }
+  }
+}

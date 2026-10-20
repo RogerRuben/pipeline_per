@@ -15,6 +15,7 @@ from services.common.http_service import ServiceApplication, JsonServiceError, r
 from services.price_service.native_bundle import (
     load_bundle, predict as native_predict, predict_batch as native_predict_batch,
     file_sha256, active_model_names,
+    prepare_vector,
 )
 
 
@@ -67,6 +68,7 @@ class PriceService(ServiceApplication):
                 "model_names": active_model_names(self.bundle),
                 "required_modules": self.bundle.get("required_modules") or [],
                 "load_warning": self.load_error,
+                "automl_explanation": self.bundle.get("automl_explanation"),
             }
         fields = []
         for item in self.bundle.raw_contract:
@@ -122,11 +124,13 @@ class PriceService(ServiceApplication):
                 "predicted_price_wan": result.get("predicted_price_wan"),
                 "price_interval_wan": result.get("price_interval_wan"),
                 "confidence": result.get("confidence") or result.get("price_confidence") or "medium",
+                "recommendation_price_wan":result.get('recommendation_price_wan',result.get('predicted_price_wan')),
+                "price_risk":result.get('price_risk'),
             },
             "input_status": result.get("input_status") or {},
             "domain_status": {
-                "in_domain": not bool((result.get("domain_assessment") or {}).get("is_anomaly")) and not bool((result.get("input_status") or {}).get("warnings")),
-                "warnings": (result.get("input_status") or {}).get("warnings") or [str(x) for x in result.get("feature_anomalies", [])],
+                "in_domain": not bool((result.get("domain_assessment") or {}).get("is_anomaly")) and not bool((result.get("input_status") or {}).get("warnings")) and not bool((result.get('price_risk') or {}).get('is_extrapolation')),
+                "warnings": ((result.get("input_status") or {}).get("warnings") or [str(x) for x in result.get("feature_anomalies", [])])+(['价格预测超出历史可信区域'] if (result.get('price_risk') or {}).get('is_extrapolation') else []),
             },
             "model": {
                 "service_version": self.service_version,
@@ -138,7 +142,62 @@ class PriceService(ServiceApplication):
                 "model_names": self.schema().get("model_names"),
             },
             "debug": {"member_predictions": result.get("member_predictions"), "skipped_members": result.get("skipped_members")},
+            "explanation": self._explanation(params, result),
         }
+
+    def _explanation(self, params, result):
+        if self.backend != "native_pickle" or not self.bundle.get("automl_explanation"):
+            return {}
+        metadata = self.bundle["automl_explanation"]
+        ledger = dict((item["name"], item) for item in metadata["member_ledger"])
+        predictions = result.get("member_predictions") or []
+        total = sum(item["weight"] for item in predictions)
+        divisor = float(self.bundle.get("target_divisor_to_wan") or 1)
+        configurations, engineering = {}, []
+        prepared, _ = prepare_vector(self.bundle, params)
+        for item in predictions:
+            info = ledger.get(item["name"], {})
+            code = info.get("configuration", item["name"])
+            summary = configurations.setdefault(code, {"label": info.get("label", "价格模型"), "family": info.get("family"),
+                                                       "weight": 0.0, "weighted_contribution_wan": 0.0, "seed_instances": 0})
+            effective_weight = item["weight"] / total
+            summary["weight"] += effective_weight
+            summary["weighted_contribution_wan"] += effective_weight * item["price_native"] / divisor
+            summary["seed_instances"] += int(info.get("seed_instances", 1))
+            model = self.bundle["models"][item["name"]]
+            core = getattr(model, "core_", model)
+            if hasattr(core, "contributions"):
+                pieces = core.contributions(prepared)[0]
+                core_price = float(core.predict(prepared)[0]) / divisor
+                engineering.append({"label": info.get("label", "工程成本"), "ensemble_weight": effective_weight,
+                                    "intercept_wan": float(core.intercept) / divisor, "base_price_wan": core_price,
+                                    "attribute_contributions": [{"field_id": key, "label": metadata["field_labels"].get(key, key),
+                                                                  "contribution_wan": float(value) / divisor}
+                                                                 for key, value in zip(core.feature_names, pieces) if core.coefficients.get(key, 0)],
+                                    "residual_correction_wan": item["price_native"] / divisor - core_price})
+        for summary in configurations.values():
+            summary["member_average_price_wan"] = summary["weighted_contribution_wan"] / summary["weight"]
+        output = {"model_contributions": list(configurations.values()), "expert_groups": metadata["expert_groups"],
+                "engineering_components": engineering, "sample_warning": metadata["sample_warning"],
+                "interval_note": "开发集残差的探索区间，未校准覆盖率",
+                "interpretation": "模型融合贡献与工程属性贡献分别展示；残差为统计修正。"}
+        output['price_risk']=result.get('price_risk')
+        for key in ('quality_status','training_metrics','development_metrics','holdout_metrics'):
+            if key in metadata:output[key]=metadata[key]
+        if metadata.get("price_attribute_scores") is not None:
+            output["price_attribute_scores"] = metadata["price_attribute_scores"]
+            output["expert_scores_enabled"] = metadata.get("expert_scores_enabled",True)
+            output["calibration"] = metadata.get("calibration", 1.)
+            output["interpretation"] = "原始1—5分为价格属性重要性；融合份额由训练验证学习，效能偏好独立。"
+            if not output["expert_scores_enabled"]: output["interpretation"]="本版本采用纯数据驱动；原专家评分仅保留作对照，不参与价格训练。"
+            output["interval_note"] = metadata.get("interval_note","折外残差的探索区间，未校准覆盖率")
+            details = []
+            for item in predictions:
+                model = self.bundle["models"][item["name"]]
+                if hasattr(model, "explanation"):
+                    details.append(dict(model.explanation(prepared), label=ledger.get(item["name"], {}).get("label", "价格模型"),ensemble_weight=item['weight']/total))
+            output["configuration_details"] = details
+        return output
 
     def handle_post(self, path, payload):
         if path == "/api/v1/predict":

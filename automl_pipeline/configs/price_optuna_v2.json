@@ -1,0 +1,36 @@
+{
+  "schema_version": "price-optuna-v2-pipeline-1.0",
+  "search": {
+    "n_trials": 150,
+    "optimizer_seed": 42,
+    "seed_low": 1,
+    "seed_high": 10000,
+    "timeout_seconds": null
+  },
+  "validation": {
+    "test_size": 0.2,
+    "price_bins": 3,
+    "auto_adjust_test_size": true
+  },
+  "targets": {
+    "r2_min": 0.9,
+    "mape_percent_max": 10.0,
+    "hard_gate": false
+  },
+  "expert": {
+    "enabled": true,
+    "default_score": 1.0,
+    "use_supplied_defaults": true,
+    "scores": {},
+    "records": [],
+    "field_types": {}
+  },
+  "input": {
+    "missing_tokens": [],
+    "remove_outliers": false,
+    "min_samples": 4
+  },
+  "deployment": {
+    "model_scope": "full_data"
+  }
+}

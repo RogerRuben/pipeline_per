@@ -19,6 +19,7 @@ from __future__ import print_function
 import math
 import random
 import time
+from .recommender import effective_price
 
 
 def _softmax(values):
@@ -158,7 +159,7 @@ class TabularTrajectoryBalanceGFlowNet(object):
 
     @staticmethod
     def _log_reward(evaluation, target_price):
-        price = float(evaluation.get("predicted_price_wan") or 1e9)
+        price = effective_price(evaluation) or 1e9
         target = max(float(target_price), 1e-9)
         relative_gap = (price - target) / target
         feasibility = float(evaluation.get("feasibility_probability") or 0.0)

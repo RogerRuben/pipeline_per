@@ -69,7 +69,8 @@ def wait_task(manager, task_id, timeout=60):
 
 
 def main():
-    report = {"version": "V19.6.5", "status": "RUNNING", "checks": [], "started_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+    expected_version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").splitlines()[0].split("-", 1)[0]
+    report = {"version": expected_version, "status": "RUNNING", "checks": [], "started_at": time.strftime("%Y-%m-%d %H:%M:%S")}
     os.environ.pop("IPDEMO_DEMO_READ_ONLY", None)
     os.environ.pop("IPDEMO_AUTH_ENABLED", None)
     holder, root = make_temp_root()
@@ -222,7 +223,7 @@ def main():
         try:
             base = "http://127.0.0.1:%d" % port
             health = get_json(base + "/api/health")
-            check(health["status"] == "ok" and health["version"] == "V19.6.5", "单端口HTTP健康检查通过", report)
+            check(health["status"] == "ok" and health["version"] == expected_version, "单端口HTTP健康检查通过", report)
             task = post_json(base + "/api/generation/request", dict(base_request, session_id="http-session", count=1))
             deadline = time.time() + 60
             while time.time() < deadline:

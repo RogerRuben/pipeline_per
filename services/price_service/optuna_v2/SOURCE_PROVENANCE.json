@@ -1,0 +1,12 @@
+{
+  "source_archive_sha256": "531ed2fe033b1178910aeda812e35edac8c2f93057af158c82bafd282292947c",
+  "original_core_sha256": "f8f9877029e13535b97b40c429fb4afe6b5d613db635b6bee83307fca30b2899",
+  "original_optimizer_sha256": "7dcbf268c44b11c34f64f7401bb5ed7064204b40b9787cd7476961be7fc9d820",
+  "core_unchanged": true,
+  "adapter_changes": [
+    "relative module import",
+    "prepared table/expert scores input",
+    "progress and optional timeout",
+    "persist existing selected-split bundle"
+  ]
+}

@@ -7,6 +7,7 @@ this project, so Windows 7 deployments do not need openpyxl or pandas.
 from __future__ import print_function
 
 import io
+import posixpath
 import zipfile
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
@@ -33,48 +34,72 @@ def column_index(ref):
     return max(value - 1, 0)
 
 
-def read_workbook_bytes(data):
-    ns = {"m": _MAIN, "r": _REL}
-    result = {}
+def read_workbook_details(data):
+    """Values, visibility, physical coordinates and uncalculated formulas.
+
+    Styled empty cells never extend data rows. Formula results are not invented.
+    """
+    result = []
     with zipfile.ZipFile(io.BytesIO(data), "r") as zf:
+        workbook = ET.fromstring(zf.read("xl/workbook.xml"))
+        main = workbook.tag.split("}")[0].lstrip("{")
+        ns = {"m": main}
         shared = []
         if "xl/sharedStrings.xml" in zf.namelist():
             root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
             for si in root.findall("m:si", ns):
                 shared.append("".join((node.text or "") for node in si.findall(".//m:t", ns)))
-        workbook = ET.fromstring(zf.read("xl/workbook.xml"))
         rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
         relmap = dict((rel.attrib["Id"], rel.attrib["Target"]) for rel in rels)
         for sheet in workbook.findall("m:sheets/m:sheet", ns):
             name = sheet.attrib.get("name", "Sheet")
-            rid = sheet.attrib.get("{%s}id" % _REL)
-            target = relmap[rid].lstrip("/")
-            if not target.startswith("xl/"):
-                target = "xl/" + target
+            rid = next((value for key, value in sheet.attrib.items() if key.endswith("}id")), None)
+            target = relmap[rid]
+            target = posixpath.normpath(target.lstrip("/") if target.startswith(("/", "xl/")) else posixpath.join("xl", target))
+            if target == ".." or target.startswith("../"):
+                raise ValueError("工作表%s的文件关系越出工作簿。" % name)
             root = ET.fromstring(zf.read(target))
-            rows = []
-            for row in root.findall(".//m:sheetData/m:row", ns):
+            rows, row_numbers, formulas, seen_columns = [], [], {}, set()
+            for sequence, row in enumerate(root.findall(".//m:sheetData/m:row", ns), 1):
+                row_number = int(row.attrib.get("r", sequence))
                 values = {}
+                next_column = 0
                 for cell in row.findall("m:c", ns):
-                    idx = column_index(cell.attrib.get("r", "A1"))
+                    idx = column_index(cell.attrib["r"]) if cell.attrib.get("r") else next_column
+                    next_column = idx + 1
+                    seen_columns.add(idx)
+                    reference = "%s%d" % (column_name(idx), row_number)
                     cell_type = cell.attrib.get("t")
                     value_node = cell.find("m:v", ns)
                     inline = cell.find("m:is", ns)
+                    formula = cell.find("m:f", ns)
+                    if formula is not None:
+                        formulas[reference] = {"formula": formula.text or "", "cached": value_node is not None and value_node.text is not None,
+                                               "column": idx, "row": row_number}
                     if cell_type == "s" and value_node is not None:
-                        try: value = shared[int(value_node.text)]
-                        except Exception: value = ""
+                        try:
+                            value = shared[int(value_node.text)]
+                        except (ValueError, TypeError, IndexError):
+                            raise ValueError("工作表%s的%s引用了无效共享字符串。" % (name, reference))
                     elif cell_type == "inlineStr" and inline is not None:
                         value = "".join((node.text or "") for node in inline.findall(".//m:t", ns))
                     elif cell_type == "b" and value_node is not None:
                         value = "1" if value_node.text == "1" else "0"
                     else:
                         value = value_node.text if value_node is not None else ""
-                    values[idx] = value
+                    if str(value if value is not None else "").strip() or formula is not None:
+                        values[idx] = value
                 if values:
                     width = max(values) + 1
                     rows.append([values.get(i, "") for i in range(width)])
-            result[name] = rows
+                    row_numbers.append(row_number)
+            result.append({"name": name, "state": sheet.attrib.get("state", "visible"), "rows": rows,
+                           "row_numbers": row_numbers, "formulas": formulas, "seen_columns": sorted(seen_columns)})
     return result
+
+
+def read_workbook_bytes(data):
+    return {sheet["name"]: sheet["rows"] for sheet in read_workbook_details(data)}
 
 
 def _cell_xml(row_number, col_number, value, style=0):

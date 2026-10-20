@@ -1,0 +1,9 @@
+.ensemble-table-scroll { overflow-x: auto; margin: 12px 0; }
+.ensemble-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ensemble-table th { text-align: left; padding: 9px 5px; background: #edf2f7; color: #30465d; }
+.ensemble-table td { padding: 9px 5px; border-bottom: 1px solid #e4eaf1; white-space: nowrap; }
+.ensemble-table td:not(:first-child) { text-align: right; }
+#priceEnsemblePanel p { color: #627287; font-size: 12px; line-height: 1.6; }
+#priceEnsemblePanel h4 { margin: 18px 0 8px; font-size: 13px; }
+#priceEnsemblePanel details { margin: 12px 0; }
+#priceEnsemblePanel summary { cursor: pointer; font-size: 13px; line-height: 1.6; }

@@ -29,6 +29,7 @@ from .data_master import (
     num,
 )
 from .model_field_types import model_types_compatible
+from .store import safe_id
 from .historical_onboarding import HistoricalProductOnboarding
 from .wide_import import WideTableParser, parse_bool, read_table_bytes
 from .xlsx_utils import read_workbook_bytes
@@ -448,10 +449,43 @@ class ProductReleaseService(object):
             raise ValueError("模块数据必须是JSON数组。")
         release = self.get(release_id)
         data = release["data"]
-        data[section] = items
-        if section == "products" and items:
-            release["product_code"] = clean(items[0].get("product_code"))
-            release["product_name"] = clean(items[0].get("product_name"))
+        prefixes = {"parameters":"PAR", "tags":"TAG", "tag_rules":"TAGRULE",
+                    "couplings":"CPL", "constraints":"RULE", "agreements":"AGR"}
+        section_defaults = {
+            "parameters": {"value_type":"number", "search_type":"auto", "required":0,
+                           "auto_adjustable":1, "decimal_places":3, "display_order":1,
+                           "enabled":1, "model_bound":0},
+            "tags": {"weight":1.0, "derivation_mode":"rule", "enabled":1},
+            "tag_rules": {"operator":"gte", "rule_group":"default", "enabled":1},
+            "couplings": {"coupling_type":"positive", "domain_operator":"gte", "multiplier":1.0,
+                          "offset":0.0, "strength":1.0, "severity":"info", "display_order":1, "enabled":1},
+            "constraints": {"operator":"gte", "multiplier":1.0, "offset":0.0,
+                            "severity":"warning", "display_order":1, "enabled":1},
+        }.get(section, {})
+        primary_key = PRIMARY_KEYS.get(section)
+        prepared = []
+        for raw in items:
+            item = dict(raw or {})
+            if section == "products":
+                item["product_code"] = clean(item.get("product_code")) or release["product_code"]
+                item["product_name"] = clean(item.get("product_name")) or release["product_name"]
+                item.setdefault("enabled", 1)
+            elif primary_key and not clean(item.get(primary_key)):
+                item[primary_key] = safe_id(prefixes.get(section, "ID"))
+            for key, value in section_defaults.items():
+                if item.get(key) in (None, ""):
+                    item[key] = value
+            if section == "agreements":
+                item["product_code"] = clean(item.get("product_code")) or release["product_code"]
+                item.setdefault("agreement_source", "historical")
+                item.setdefault("params", {})
+                item.setdefault("tags", [])
+                item.setdefault("enabled", 1)
+            prepared.append(item)
+        data[section] = prepared
+        if section == "products" and prepared:
+            release["product_code"] = clean(prepared[0].get("product_code"))
+            release["product_name"] = clean(prepared[0].get("product_name"))
         return self.store.update_product_release(
             release_id, data, product_code=release.get("product_code"),
             product_name=release.get("product_name"), status="draft",

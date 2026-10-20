@@ -1,0 +1,175 @@
+{
+  "schema_version": "price-automl-v2-proposal-1.1",
+  "implementation_status": "design_draft_not_consumed_by_current_pipeline",
+  "profile": "standard",
+  "runtime": {
+    "python": "3.8-x64",
+    "sklearn": "0.24.2",
+    "numpy": "1.19.5",
+    "scipy": "1.5.4",
+    "pandas": "1.3.5",
+    "optuna": "3.6.0"
+  },
+  "data": {
+    "header_rows": 2,
+    "target_field": "price_wan",
+    "target_unit": "万元",
+    "group_fields": [],
+    "time_field": null,
+    "missing_tokens": ["-1", "\\", "/"],
+    "exclude_business_identity_features": true,
+    "preserve_english_attribute_codes": true,
+    "display_language": "zh-CN"
+  },
+  "validation": {
+    "protocol": "grouped_iid",
+    "holdout_fraction": 0.2,
+    "holdout_seed": 20261002,
+    "duplicate_configurations_same_group": true,
+    "business_groups_excluded_from_features": true,
+    "screen_folds": 3,
+    "screen_repeats": 1,
+    "finalist_folds": 5,
+    "finalist_repeats_min": 3,
+    "finalist_repeats_max": 10,
+    "validation_seed_base": 311,
+    "nested_audit": {"enabled": true, "outer_folds": 3, "rerun_entire_inner_selection": true},
+    "holdout_used_for_selection": false
+  },
+  "search": {
+    "optimizer": "optuna_tpe",
+    "multivariate": true,
+    "conditional_group": true,
+    "search_seed": 2026,
+    "max_trials": 80,
+    "finalist_configurations": 10,
+    "promotion": "external_budget_stages",
+    "native_multiobjective_trial_report_pruning": false,
+    "cache_oof": true,
+    "cache_requires_data_protocol_config_code_versions": true,
+    "ensemble_aware_second_stage": {"enabled": true, "score": "validated_marginal_ensemble_gain_per_cost", "rerun_inside_outer_training": true}
+  },
+  "resources": {
+    "total_seconds": 900,
+    "fit_timeout_seconds": 60,
+    "search_worker_processes": 1,
+    "estimator_n_jobs": 1,
+    "worker_memory_soft_limit_mb": 2048,
+    "resume_completed_trials": true,
+    "unfinished_audit_marks_run_incomplete": true
+  },
+  "preprocessing": {
+    "numeric_imputation": ["median", "mean"],
+    "missing_indicator": [false, true],
+    "numeric_scaler": ["none", "standard", "robust"],
+    "numeric_transform": ["identity", "yeo_johnson"],
+    "categorical_encoder": "one_hot_with_fold_fitted_rare_category_option",
+    "target_transform": ["identity", "log"],
+    "use_model_family_conditions": true
+  },
+  "features": {
+    "numeric_interactions": ["off", "selected_numeric_pairs"],
+    "max_engineered_features": 256,
+    "engineering_expressions": [],
+    "selection": ["none", "low_variance"],
+    "fit_all_learned_steps_inside_fold": true
+  },
+  "models": {
+    "enabled": ["ridge", "lasso", "elasticnet", "bayesian_ridge", "huber", "svr", "kernel_ridge", "knn", "random_forest", "extra_trees", "gbdt"],
+    "optional_hist_gbdt": false,
+    "parameter_range_overrides": {},
+    "relative_price_sample_weight": {"enabled": false, "cap": 10.0},
+    "verify_sklearn_024_parameter_names": true
+  },
+  "objectives": {
+    "mape_percent_max": 10.0,
+    "r2_min": 0.85,
+    "mape_std_penalty": 0.5,
+    "report_metrics": ["mape", "r2", "mdape", "p90_ape", "p95_ape", "wape", "business_slices"]
+  },
+  "ensemble": {
+    "methods": ["equal_topk", "greedy_selection", "nonnegative_regularized"],
+    "max_configuration_members": 6,
+    "desired_min_configuration_members": 2,
+    "allow_zero_weights": true,
+    "allow_explicit_single_model_fallback": true,
+    "weight_sum": 1.0,
+    "nonnegative_weights": true,
+    "alpha_candidates": [0.4, 0.7, 0.9],
+    "regularization_candidates": [0.0, 0.0001, 0.001, 0.01],
+    "prior": "uniform_validated_topk",
+    "cvar_tail_penalty": {"enabled": false, "quantile": 0.9},
+    "compare_simple_blending": true,
+    "quality_gate": {"invalid_predictions": "ban", "poor_single_with_complementarity": "require_validated_marginal_gain", "all_candidates_fail": "mark_quality_not_met"},
+    "weight_method_hyperparameters_selected_inside_inner_validation": true
+  },
+  "seed_bagging": {
+    "eligible_models": ["random_forest", "extra_trees", "gbdt", "hist_gbdt"],
+    "estimator_seed_base": 101,
+    "seed_source": "numpy_seed_sequence_stream",
+    "select_lucky_seed": false,
+    "min_training_seeds": 4,
+    "max_training_seeds": 16,
+    "expansion_milestones": [4, 8, 16],
+    "deep_profile_optional_cap": 32,
+    "stop_rule": {"kind": "budget_heuristic_not_confidence_guarantee", "stable_rounds": 2, "report_prediction_change_and_validation_gain": true},
+    "shared_bias_action": "diagnose_features_labels_coverage_and_expand_model_families",
+    "average_within_configuration_before_learning_weights": true,
+    "deterministic_models_training_instances": 1
+  },
+  "expert_knowledge": {
+    "model_weights": {
+      "enabled": false,
+      "scope": "model_family",
+      "records": [],
+      "weight_unit": "fraction_of_complete_ensemble",
+      "modes": ["data_only", "soft_prior", "performance_budget"],
+      "partial_prior_missing": "unspecified",
+      "zero_prior": "soft_preference_not_hard_ban",
+      "soft_prior_penalty": "confidence_weighted_l2",
+      "prior_strength_candidates": [0.0, 0.0001, 0.001, 0.01, 0.1],
+      "performance_budget": {
+        "max_mape_delta_percentage_points": 0.1,
+        "max_r2_drop": 0.005,
+        "reference": "data_only_without_expert_bounds",
+        "constraint_scope": "development_oof_only",
+        "require_independent_outer_quality_gate": true
+      },
+      "hard_constraints": [],
+      "hard_constraint_conflict": "report_and_stop",
+      "explanation_fields": ["expert_weight", "learned_weight", "deviation", "confidence", "reason", "member_price", "weighted_contribution"]
+    },
+    "attribute_weights": {
+      "effectiveness_prior": {},
+      "requires_effectiveness_labels_or_preferences_for_calibration": true,
+      "price_importance_is_not_raw_regression_coefficient": true,
+      "optional_engineering_cost_residual_candidate": false,
+      "price_monotonic_directions": {},
+      "hard_monotonicity_requires_all_components_and_transforms": true
+    },
+    "scenario_weights": {
+      "enabled": false,
+      "scenario_fields": [],
+      "shrink_toward_global_weights": true,
+      "sparse_scenario_fallback": "global_weights",
+      "requires_new_native_composite_estimator": true,
+      "do_not_claim_global_monotonicity_from_member_constraints_alone": true
+    }
+  },
+  "uncertainty": {
+    "paired_bootstrap_unit": "business_or_configuration_group",
+    "paired_bootstrap_draws": 2000,
+    "bootstrap_seed": 20261003,
+    "prediction_interval": "uncalibrated_oof_diagnostic",
+    "do_not_claim_95_percent_coverage": true,
+    "report_member_disagreement_and_out_of_range": true
+  },
+  "export": {
+    "format": "native_price_bundle",
+    "aggregation": "weighted_mean_price",
+    "model_output_transform": "direct",
+    "member_owns_preprocessing_and_target_inverse": true,
+    "write_new_output_directory_only": true,
+    "verify_in_memory_native_http_equivalence": true
+  }
+}

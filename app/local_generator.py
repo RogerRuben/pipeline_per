@@ -29,7 +29,7 @@ import math
 import random
 import time
 
-from .recommender import filter_match, rank_agreements
+from .recommender import filter_match, rank_agreements, effective_price
 
 
 def _float(value, default=None):
@@ -163,7 +163,7 @@ class HistorySeededGenerator(object):
             distance += abs(actual - target) / span if actual is not None and target is not None else 1.0
         evaluation = item.get("evaluation") or {}
         checks = [
-            ("max_price", evaluation.get("predicted_price_wan"), "max"),
+            ("max_price", effective_price(evaluation), "max"),
             ("min_capability", evaluation.get("conservative_capability_score", evaluation.get("capability_score")), "min"),
             ("min_cost_effectiveness", evaluation.get("cost_effectiveness"), "min"),
             ("min_feasibility", evaluation.get("feasibility_probability"), "min"),
@@ -728,7 +728,7 @@ class HistorySeededGenerator(object):
     def _output_target_penalty(evaluation, request):
         pieces = []
         checks = [
-            ("max_price", evaluation.get("predicted_price_wan"), "max", 4.0),
+            ("max_price", effective_price(evaluation), "max", 4.0),
             ("min_capability", evaluation.get("capability_score"), "min", 2.0),
             ("min_cost_effectiveness", evaluation.get("cost_effectiveness"), "min", 1.5),
             ("min_feasibility", evaluation.get("feasibility_probability"), "min", 2.5),
@@ -845,7 +845,7 @@ class HistorySeededGenerator(object):
                 penalty += 1.0 + (abs(a - b) / span if a is not None and b is not None else 0.5)
         evaluation = item.get("evaluation") or {}
         output_checks = [
-            ("max_price", "预测价格", evaluation.get("predicted_price_wan"), "max", "万元"),
+            ("max_price", "预测价格", effective_price(evaluation), "max", "万元"),
             ("min_capability", "保守效能分", evaluation.get("conservative_capability_score", evaluation.get("capability_score")), "min", ""),
             ("min_cost_effectiveness", "效费比", evaluation.get("cost_effectiveness"), "min", ""),
             ("min_feasibility", "可行概率", evaluation.get("feasibility_probability"), "min", ""),
@@ -913,7 +913,7 @@ class HistorySeededGenerator(object):
         capability = float(evaluation.get("conservative_capability_score", evaluation.get("capability_score")) or 0) / 100.0
         feasibility = float(evaluation.get("feasibility_probability") or 0)
         ce = float(evaluation.get("cost_effectiveness") or 0)
-        price = float(evaluation.get("predicted_price_wan") or 0)
+        price = float(effective_price(evaluation) or 0)
         price_utility = 1.0 / (1.0 + max(price, 0.0) / 20.0)
         ce_utility = ce / (1.0 + abs(ce))
         gate_penalty = 1.5 if (evaluation.get("physical_gate") or {}).get("passed") is False else 0.0
@@ -936,6 +936,8 @@ class HistorySeededGenerator(object):
             "supplier_type": "智能目标邻域生成",
             "historical_price_wan": None,
             "predicted_price_wan": evaluation["predicted_price_wan"],
+            'recommendation_price_wan':evaluation.get('recommendation_price_wan',evaluation['predicted_price_wan']),
+            'price_risk':evaluation.get('price_risk'),
             "price_interval_wan": evaluation["price_interval_wan"],
             "capability_score": evaluation["capability_score"],
             "conservative_capability_score": evaluation.get("conservative_capability_score", evaluation["capability_score"]),

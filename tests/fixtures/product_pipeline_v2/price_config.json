@@ -1,0 +1,98 @@
+{
+  "schema_version": "price-automl-v2-1.0",
+  "experts_from_workbook": true,
+  "models": [
+    "engineering_cost",
+    "engineering_residual",
+    "ridge",
+    "lasso",
+    "elasticnet",
+    "bayesian_ridge",
+    "huber",
+    "svr",
+    "kernel_ridge",
+    "knn",
+    "random_forest",
+    "extra_trees",
+    "gbdt"
+  ],
+  "search": {
+    "trials": 20,
+    "ensemble_trials": 4,
+    "promote": 6
+  },
+  "resources": {
+    "total_seconds": 300,
+    "fit_timeout_seconds": 30
+  },
+  "validation": {
+    "folds": 2,
+    "repeats": 2,
+    "outer_folds": 2,
+    "outer_repeats": 2
+  },
+  "pipeline": {
+    "select_k": [
+      "all",
+      3,
+      6
+    ],
+    "interaction_pairs": [
+      [
+        "rated_thrust_n",
+        "speed_mm_s"
+      ]
+    ]
+  },
+  "seed_bagging": {
+    "milestones": [
+      4,
+      8,
+      16
+    ]
+  },
+  "ensemble": {
+    "mode": "performance_budget",
+    "max_mape_delta_pp": 0.1,
+    "max_r2_drop": 0.005,
+    "max_members": 6,
+    "family_priors": [
+      {
+        "family": "engineering",
+        "label": "工程知识模型",
+        "weight": 0.35,
+        "confidence": 0.85
+      },
+      {
+        "family": "linear",
+        "label": "正则化线性模型",
+        "weight": 0.35,
+        "confidence": 0.8
+      },
+      {
+        "family": "tree",
+        "label": "树模型",
+        "weight": 0.2,
+        "confidence": 0.7
+      },
+      {
+        "family": "kernel",
+        "label": "核与近邻模型",
+        "weight": 0.1,
+        "confidence": 0.65
+      }
+    ]
+  },
+  "engineering": {
+    "intercept_wan": 3.0,
+    "coefficients": {
+      "rated_thrust_n": 0.00042,
+      "speed_mm_s": 0.016,
+      "salt_spray_h": 0.003,
+      "protection_grade": 0.03,
+      "emergency_unlock": 0.65,
+      "self_test": 0.45,
+      "temp_high_c": 0.025
+    }
+  }
+}

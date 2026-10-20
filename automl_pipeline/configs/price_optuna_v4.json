@@ -1,0 +1,97 @@
+{
+  "schema_version": "price-optuna-v4-pipeline-1.0",
+  "search": {
+    "n_trials": 300,
+    "optimizer_seed": 42,
+    "seed_low": 1,
+    "seed_high": 10000,
+    "timeout_seconds": null
+  },
+  "validation": {
+    "test_size": 0.2,
+    "price_bins": 3,
+    "auto_adjust_test_size": true
+  },
+  "targets": {
+    "r2_min": 0.9,
+    "mape_percent_max": 10.0,
+    "hard_gate": false
+  },
+  "expert": {
+    "enabled": true,
+    "default_score": 1.0,
+    "use_supplied_defaults": true,
+    "scores": {},
+    "records": [],
+    "field_types": {}
+  },
+  "input": {
+    "missing_tokens": [],
+    "remove_outliers": false,
+    "min_samples": 4
+  },
+  "deployment": {
+    "model_scope": "full_data"
+  },
+  "v4": {
+    "search": {
+      "mode": "hybrid",
+      "sampler": "nsga_tpe",
+      "nsga_fraction": 0.6,
+      "global_fraction": 0.4,
+      "coarse_splits": 4,
+      "budget_mode": "total",
+      "trials_per_split": 100,
+      "global_trials": 100,
+      "warm_candidates": 3,
+      "model_seeds": [
+        0,
+        42,
+        137
+      ],
+      "model_seed_mode": "range",
+      "model_seed_low": 0,
+      "model_seed_high": 10000,
+      "cache_entries": 512,
+      "adaptive_parameters": true
+    },
+    "splits": {
+      "coverage": "auto",
+      "validation_rows": null,
+      "max_splits": 64,
+      "random_splits": 8,
+      "enumeration_limit": 100000,
+      "seed": 20261016,
+      "stratify": false,
+      "group_identical_inputs": true,
+      "group_field": null
+    },
+    "train_gate": {
+      "mode": "hard",
+      "scope": "pooled",
+      "mape_percent_max": 10.0,
+      "r2_min": 0.9,
+      "min_pass_fraction": 1.0,
+      "soft_penalty": 1.0
+    },
+    "review": {
+      "max_candidates": 12
+    },
+    "ensemble": {
+      "enabled": true,
+      "max_configurations": 3,
+      "weight_trials": 32,
+      "non_degradation": true
+    },
+    "evaluation": {
+      "mode": "development",
+      "holdout_ids": [],
+      "holdout_fraction": 0.2,
+      "holdout_seed": 20261016,
+      "require_declared_types": true
+    },
+    "publish": {
+      "policy": "allow_draft"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Recommended when your Python 3.8 + sklearn 0.21 environment already works.
+# This does not reinstall sklearn.
+numpy==1.19.5
+scipy==1.5.4
+pandas==1.3.5
+joblib==0.14.1
+optuna==3.6.0

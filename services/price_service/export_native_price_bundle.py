@@ -76,6 +76,27 @@ def _feature_schema(feature_order, X_train, field_metadata=None):
     return result
 
 
+def _training_frame(namespace):
+    """Return the unscaled training frame when the notebook exposes one.
+
+    Older notebooks overwrite ``X_train`` with its scaled values.  They normally
+    retain either ``train_df`` or ``df_X``; using that frame keeps the service
+    schema ranges and defaults meaningful without asking an operator to retype
+    field metadata.
+    """
+    scaled = namespace.get("X_train")
+    if scaled is None or not hasattr(scaled, "columns"):
+        raise ValueError("Notebook中必须保留带英文表头的X_train")
+    columns = [str(x) for x in scaled.columns]
+    for name in ("X_train_original", "train_df", "df_X"):
+        candidate = namespace.get(name)
+        if candidate is None or not hasattr(candidate, "columns"):
+            continue
+        if all(column in candidate.columns for column in columns):
+            return candidate.loc[:, columns]
+    return scaled
+
+
 def _ordered_names(names):
     names = list(names)
     canonical = [name for name in CANONICAL_MODEL_ORDER if name in names]
@@ -279,7 +300,7 @@ def _required_modules(models, preprocessor):
     return sorted(roots)
 
 
-def export_from_notebook(namespace, output="price_native_bundle.pkl", product_code="PRODUCT",
+def export_from_notebook(namespace, output="price_native_bundle.pkl", product_code=None,
                          product_name="", model_version="price-native-v1",
                          target_divisor_to_wan=1.0, field_metadata=None,
                          model_variables=None, ensemble_model_names=None,
@@ -298,8 +319,11 @@ def export_from_notebook(namespace, output="price_native_bundle.pkl", product_co
     It no longer means that seven hard-coded models are required.
     """
     ns = namespace
-    if "X_train" not in ns or "scaler" not in ns:
-        raise ValueError("Notebook中必须存在X_train和scaler")
+    training_frame = _training_frame(ns)
+    product_code = product_code or ns.get("PRODUCT_CODE") or ns.get("product_code")
+    if not str(product_code or "").strip():
+        raise ValueError("请在Notebook设置PRODUCT_CODE；这是唯一必须手工确认的成品信息")
+    preprocessor = ns.get("price_scaler", ns.get("model_scaler", ns.get("scaler")))
 
     mode = str(model_source or "auto").strip().lower()
     if mode not in ("auto", "saved_files", "namespace"):
@@ -321,7 +345,7 @@ def export_from_notebook(namespace, output="price_native_bundle.pkl", product_co
     weights, weight_source = _resolve_weights(ns, names, available_names, ensemble_weights)
 
     feature_order = [str(x) for x in ns["X_train"].columns]
-    schema = _feature_schema(feature_order, ns["X_train"], field_metadata)
+    schema = _feature_schema(feature_order, training_frame, field_metadata)
     source_to_field = dict((x["source_column"], x["field_name"]) for x in schema)
     if len(set(source_to_field.values())) != len(source_to_field):
         raise ValueError("field_metadata产生重复field_name")
@@ -330,7 +354,7 @@ def export_from_notebook(namespace, output="price_native_bundle.pkl", product_co
         item["field_name"] = source_to_field[item["source_column"]]
 
     residual = _recalculate_residual(
-        ns, models, names, weights, ns["scaler"], str(model_output_transform or "log")
+        ns, models, names, weights, preprocessor, str(model_output_transform or "log")
     )
     omitted = [name for name in available_names if name not in names]
     bundle = {
@@ -340,7 +364,7 @@ def export_from_notebook(namespace, output="price_native_bundle.pkl", product_co
         "feature_order": api_order,
         "source_feature_order": feature_order,
         "feature_schema": schema,
-        "preprocessor": ns["scaler"],
+        "preprocessor": preprocessor,
         "models": models,
         "ensemble": {
             "aggregation": "weighted_mean_price",
@@ -351,7 +375,7 @@ def export_from_notebook(namespace, output="price_native_bundle.pkl", product_co
         "target_divisor_to_wan": float(target_divisor_to_wan),
         "residual_calibration": residual,
         "training_environment": environment_versions(),
-        "required_modules": _required_modules(models, ns["scaler"]),
+        "required_modules": _required_modules(models, preprocessor),
         "model_sources": sources,
         "export_notes": {
             "discovery_mode": discovery_mode,
@@ -388,6 +412,36 @@ def export_from_notebook(namespace, output="price_native_bundle.pkl", product_co
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return bundle
+
+
+def export_price_service_bundle(namespace):
+    """One-call notebook export for the independent price service.
+
+    Required notebook variable: ``PRODUCT_CODE``.  The exporter discovers any
+    fitted supported estimator variables that actually exist, uses the English
+    ``X_train`` headers as stable API field IDs, and installs the bundle in the
+    current project. Optional overrides remain available as notebook variables
+    rather than a long function call.
+    """
+    root = Path(__file__).resolve().parents[2]
+    output = namespace.get("PRICE_BUNDLE_OUTPUT") or (
+        root / "services" / "price_service" / "model" / "price_native_bundle.pkl"
+    )
+    return export_from_notebook(
+        namespace,
+        output=output,
+        product_code=namespace.get("PRODUCT_CODE"),
+        product_name=namespace.get("PRODUCT_NAME", ""),
+        model_version=namespace.get("PRICE_MODEL_VERSION", "price-native-notebook"),
+        target_divisor_to_wan=namespace.get("TARGET_DIVISOR_TO_WAN", 1.0),
+        field_metadata=namespace.get("FIELD_METADATA"),
+        ensemble_model_names=namespace.get("PRICE_ENSEMBLE_MODELS"),
+        ensemble_weights=namespace.get("PRICE_ENSEMBLE_WEIGHTS"),
+        model_source=namespace.get("PRICE_MODEL_SOURCE", "namespace"),
+        saved_model_dir=namespace.get("PRICE_SAVED_MODEL_DIR"),
+        saved_model_files=namespace.get("PRICE_SAVED_MODEL_FILES"),
+        model_output_transform=namespace.get("PRICE_OUTPUT_TRANSFORM", "log"),
+    )
 
 
 if __name__ == "__main__":

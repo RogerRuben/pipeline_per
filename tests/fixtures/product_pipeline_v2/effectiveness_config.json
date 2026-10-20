@@ -1,0 +1,227 @@
+{
+  "attributes": {
+    "emergency_unlock": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "self_test": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "overload_protect": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "position_feedback": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "manual_drive": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "brake_hold": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "remote_control": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "fault_alarm": {
+      "preference": "higher",
+      "weight": 0.0375
+    },
+    "rated_thrust_n": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "peak_thrust_n": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "speed_mm_s": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "mass_kg": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "response_time_ms": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "stroke_mm": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "position_error_mm": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "lifetime_cycles": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "duty_ratio": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "power_w": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "current_a": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "voltage_v": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "noise_db": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "length_mm": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "width_mm": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "height_mm": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "efficiency_percent": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "gear_ratio": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "backlash_mm": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "rigidity_n_mm": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "repeatability_mm": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "holding_force_n": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "acceleration_mm_s2": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "deceleration_mm_s2": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "comm_latency_ms": {
+      "preference": "lower",
+      "weight": 0.017857142857142856
+    },
+    "sample_rate_hz": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "rated_torque_nm": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "peak_torque_nm": {
+      "preference": "higher",
+      "weight": 0.017857142857142856
+    },
+    "temp_low_c": {
+      "preference": "lower",
+      "weight": 0.016666666666666666
+    },
+    "temp_high_c": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "humidity_percent": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "vibration_g": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "shock_g": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "salt_spray_h": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "protection_grade": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "altitude_m": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "corrosion_h": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "emc_level": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "water_pressure_kpa": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "storage_high_c": {
+      "preference": "higher",
+      "weight": 0.016666666666666666
+    },
+    "power_type": {
+      "preference": "neutral",
+      "weight": 0
+    },
+    "material_type": {
+      "preference": "neutral",
+      "weight": 0
+    }
+  },
+  "couplings": [
+    {
+      "source": "rated_thrust_n",
+      "target": "peak_thrust_n",
+      "coefficient": 1.45,
+      "offset": 0,
+      "tolerance": 200
+    },
+    {
+      "source": "speed_mm_s",
+      "target": "response_time_ms",
+      "coefficient": -2.6,
+      "offset": 320,
+      "tolerance": 12
+    },
+    {
+      "source": "rated_thrust_n",
+      "target": "mass_kg",
+      "coefficient": 0.00038,
+      "offset": 3,
+      "tolerance": 0.8
+    }
+  ]
+}

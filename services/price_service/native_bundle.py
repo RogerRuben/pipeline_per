@@ -147,6 +147,10 @@ def prepare_vector(bundle, parameters):
             policy = str(spec.get("missing_policy") or ("reject" if spec.get("required", True) else "training_mean"))
             if policy == "reject":
                 raise ValueError("价格模型缺少必填字段%s" % key)
+            if policy == "model_imputer":
+                values.append(float("nan"))
+                filled[key] = {"value": None, "strategy": "model_imputer"}
+                continue
             if policy == "training_mean":
                 value = spec.get("training_mean")
             elif policy in ("default", "configured_value", "constant"):
@@ -168,6 +172,8 @@ def prepare_vector(bundle, parameters):
         elif dtype in ("enum", "category", "categorical"):
             mapping = _category_mapping(spec)
             text = str(value).strip()
+            if text not in mapping and isinstance(value,(int,float)) and not isinstance(value,bool):
+                text=format(value,'.15g')
             if text in mapping:
                 numeric = mapping[text]
             else:
@@ -181,6 +187,8 @@ def prepare_vector(bundle, parameters):
                 numeric = normalized[lookup]
         else:
             numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValueError("价格字段%s须为有限数值" % key)
         lo, hi = spec.get("training_min"), spec.get("training_max")
         if lo is not None and numeric < float(lo):
             warnings.append("%s低于训练范围下限%s" % (spec.get("field_label", key), lo))
@@ -207,6 +215,22 @@ def _model_prediction(model, prepared):
         return float(value)
 
 
+def price_risk(bundle,prepared,predictions,price_wan):
+    region=bundle.get('price_trust_region')
+    if region is None:return {}
+    import numpy as np
+    policy=bundle.get('price_risk_policy') or {};weights=np.asarray([max(0.,p['weight']) for p in predictions]);weights/=weights.sum()
+    divisor=float(bundle.get('target_divisor_to_wan') or 1.)
+    values=np.asarray([p['price_native']/divisor for p in predictions]);spread=float(np.sqrt(weights.dot((values-price_wan)**2)))
+    risk=region.assess(prepared)[0]
+    uplift=policy.get('disagreement_multiplier',1.)*spread+price_wan*policy.get('extrapolation_penalty',.1)*risk['severity']
+    conservative=price_wan+max(0.,uplift)
+    reference=risk.get('nearest_reference_price_native')
+    if risk['is_extrapolation'] and reference is not None:conservative=max(conservative,float(reference)/divisor*min(1.,risk['severity']))
+    risk.update(model_disagreement_wan=spread,recommendation_price_wan=round(conservative,6),note='保守排序价格；模型分歧和历史距离不是已校准置信区间')
+    return risk
+
+
 def predict(bundle, parameters, allow_degraded=False):
     prepared, input_status = prepare_vector(bundle, parameters)
     members = bundle["ensemble"]["members"]
@@ -219,6 +243,8 @@ def predict(bundle, parameters, allow_degraded=False):
             continue
         try:
             raw = _model_prediction(model, prepared)
+            if not math.isfinite(raw):
+                raise ValueError("价格子模型输出不是有限数")
         except Exception as exc:
             if not allow_degraded:
                 raise
@@ -250,15 +276,18 @@ def predict(bundle, parameters, allow_degraded=False):
         delta = float(residual.get("half_width_native", residual.get("half_width", 0))) / divisor
         lower, upper = max(0.0, price_wan - delta), price_wan + delta
     status = "exact" if not skipped else "degraded"
-    return {
+    result = {
         "predicted_price_wan": round(price_wan, 6),
         "price_interval_wan": [round(lower, 6), round(upper, 6)],
         "prediction_mode": "native_pickle_%s" % status,
         "member_predictions": predictions,
         "skipped_members": skipped,
         "input_status": input_status,
-        "confidence": "low" if skipped or input_status["warnings"] else "medium",
+        "confidence": "low" if skipped or input_status["warnings"] or (bundle.get("automl_explanation") or {}).get("evidence_sufficient") is False else "medium",
     }
+    risk=price_risk(bundle,prepared,predictions,price_wan)
+    if risk:result.update(price_risk=risk,recommendation_price_wan=risk['recommendation_price_wan'])
+    return result
 
 
 def predict_batch(bundle, parameter_items, allow_degraded=False):
@@ -305,6 +334,8 @@ def predict_batch(bundle, parameter_items, allow_degraded=False):
             raw_values = [float(value) for value in raw_values]
             if len(raw_values) != len(parameter_items):
                 raise ValueError("价格子模型批量返回数量不一致")
+            if any(not math.isfinite(value) for value in raw_values):
+                raise ValueError("价格子模型批量输出包含非有限数")
         except Exception as exc:
             if not allow_degraded:
                 raise
@@ -355,8 +386,10 @@ def predict_batch(bundle, parameter_items, allow_degraded=False):
             "member_predictions": predictions,
             "skipped_members": list(skipped),
             "input_status": input_status,
-            "confidence": "low" if skipped or input_status["warnings"] else "medium",
+            "confidence": "low" if skipped or input_status["warnings"] or (bundle.get("automl_explanation") or {}).get("evidence_sufficient") is False else "medium",
         })
+        risk=price_risk(bundle,prepared_rows[row_index],predictions,price_wan)
+        if risk:results[-1].update(price_risk=risk,recommendation_price_wan=risk['recommendation_price_wan'])
     return results
 
 

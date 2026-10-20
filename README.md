@@ -1,241 +1,133 @@
-# 工业技术协议智能推荐系统 V19.6.5
+# 工业技术协议智能推荐系统与 AutoML 快速构建流水线
 
-V19.6在V19.5共享价格／效能属性基础上持续完成数据生命周期治理、模型服务解耦、显式计算和待发布成品工作区重构。随包演示成品和模型只用于验证流程，不代表真实工程结论。
+当前源码基准：**推荐系统 V19.6.14 + AutoML V4**，目录整理于 **2026-10-20**。
 
-V11 效能模型采用“专家端在线学习、推荐系统只读复用产物”的边界设计，详见 [效能产物复用与服务边界](docs/EFFECTIVENESS_ARTIFACT_CONSUMPTION_V11.md)。需要不含离线 wheels 的源码交付时，运行 `BUILD_SOURCE_DEPLOYMENT_NO_WHEELS.bat`；在可联网或可访问内部 pip 镜像的目标机上，使用 `INSTALL_SOURCE_DEPENDENCIES_WIN7.bat` 创建运行环境。
+本仓库包含两个相互配合的部分：推荐系统负责使用已有模型和成品数据完成推荐、方案生成与显式重算；AutoML流水线负责从处理好的成品表训练价格模型、建立效能试用快照，并导出推荐系统可用的成品草稿。
 
-## 推荐启动方式
+## 源码分区
 
-本地Windows 7建议使用64位Python 3.8。
+| 目录 / 入口 | 用途 |
+| --- | --- |
+| [`app/`](app/README.md)、`run_app.py` | **推荐系统源码**：HTTP后端、中文前台、数据中心、历史方案推荐、候选生成和业务草稿管理 |
+| [`automl_pipeline/`](automl_pipeline/README.md) | **快速建立流水线源码**：成品表接入、V2/V3/V4价格训练适配、效能基线、推荐草稿构建与版本切换 |
+| `services/price_service/` | 独立价格推理服务、原生bundle导出和可复用价格模型实现；`optuna_v2/`保留原V2核心及V3搜索，`optuna_v4/`为V4搜索与复核 |
+| `services/effectiveness_service/` | 独立效能服务及已有专家工程产物接入 |
+| `tools/` | 离线环境、打包、验证和历史入口；迁移到流水线目录的旧命令保留兼容转发 |
+| `tests/`、`docs/` | 自动化验证、输入规范、部署说明与历史方案记录 |
+| `config/` | 推荐系统运行配置；流水线的默认训练配置位于`automl_pipeline/configs/` |
 
-### 三服务模式
+详细边界和兼容关系见[源码目录与产物边界](docs/CODEBASE_LAYOUT.md)。推荐系统启动不调用AutoML训练；流水线在新的输出目录构建产物，随后由推荐系统消费。
+
+`BUILD_SOURCE_DEPLOYMENT_NO_WHEELS.bat`生成的是推荐系统及HTTP模型服务的操作端源码部署包，不包含AutoML训练区；需要开发快速建模流程时使用完整Git源码。
+
+## 使用推荐系统
+
+推荐系统的业务后端使用Python标准库；价格和效能模型分别使用与其产物匹配的环境。Windows现场安装及三服务部署见[当前部署说明](docs/CLEAN_WIN7_DEPLOYMENT_V19_6_13.md)。
+
+在已配置环境中启动三个服务：
 
 ```bat
 START_ALL_SERVICES_WIN7.bat
 ```
 
-默认端口：
-
-```text
-价格预测服务：http://127.0.0.1:18101/docs
-效能预测服务：http://127.0.0.1:18102/docs
-智能推荐系统：http://127.0.0.1:17891/
-数据管理中心：http://127.0.0.1:17891/admin
-```
-
-推荐系统将完整方案JSON并行发送给两个模型服务。价格服务和效能服务自行选择字段、执行预处理和推理。
-
-V19.6.1开始，三服务模式直接以两个服务的`/api/v1/schema`构建字段目录，不再由项目内置JSON bundle决定成品代号、字段角色和生成字段。`config/model_services.json`是默认配置来源，环境变量仅用于明确覆盖；正式服务模式默认关闭本地模型回退。
-
-V19.6.2开始，成品业务数据可以先进入独立“待发布成品”草稿。模型服务切换后即使当前运行数据库暂时不匹配，管理中心仍可进入；推荐和计算会明确暂停，直到对应草稿校验并激活。
-
-### 单进程兼容模式
+只启动推荐系统后端：
 
 ```bat
-START_ALL_WIN7.bat
+python run_app.py --no-browser
 ```
 
-该模式继续使用项目内置模型，适合服务尚未部署时的演示和故障回退。
+默认地址：
 
-## 模型服务
+| 服务 | 地址 |
+| --- | --- |
+| 推荐系统 / 数据中心 | `http://127.0.0.1:17891/` / `http://127.0.0.1:17891/admin` |
+| 价格服务 | `http://127.0.0.1:18101/docs` |
+| 效能服务 | `http://127.0.0.1:18102/docs` |
 
-价格服务支持：
+服务地址由`config/model_services.json`配置。推荐系统依据两个模型的schema建立字段目录，并发送完整方案JSON；各模型负责自己的字段选择和预处理。修改属性后需显式点击“重新计算价格与效能”，保存专家方案时会校验本次计算与当前参数一致。
 
-- `native_pickle`：直接加载原Notebook导出的完整原生模型包；
-- `portable_json`：无NumPy、scikit-learn、XGBoost和joblib依赖的演示后备模式。
+数据中心支持成品草稿维护、校验、离线业务发布、备份及切换。业务数据、价格模型和效能模型的发布操作分别管理，详见[统一交付](docs/PRODUCT_DELIVERY_WIN7.md)和[操作人员手册](docs/操作人员手册_测试数据运行与成品更换.md)。
 
-原生价格包使用Python标准库pickle协议4，包含原Scaler、原拟合模型、字段顺序、集成权重、log逆变换、单位换算和残差校准。它不依赖joblib，但仍要求安装模型对象本身需要的scikit-learn和可选XGBoost。
+## 从一张表快速建立成品
 
-效能服务支持：
+### 源码运行
 
-- `original_effectiveness_runtime`：直接运行原效能源码、Workbook和可选State；
-- `snapshot_json`：当前演示模型兼容模式。
-
-原运行时模式不会把效能工程近似重写成另一个模型。
-
-接口文档：
-
-- `docs/api/MODEL_SERVICES_API.md`
-- `docs/MODEL_SERVICE_DEPLOYMENT_WIN7.md`
-- 两个服务各自的`/docs`和`/openapi.json`
-
-## 数据生命周期管理
-
-管理页面中的标签、标签规则、耦合关系、约束规则和协议采用：
-
-```text
-启用 → 停用/归档 → 依赖检查 → 自动备份 → 永久删除
-```
-
-列表直接提供启用/停用操作。普通删除实际为归档，可以恢复。永久删除只对已停用且无引用的记录开放。停用标签下的规则仍可编辑保存，但暂不参与推荐。
-
-当前业务成品不能在普通表格中直接停用，应通过成品数据工作区备份并切换。指标启停不受当前HTTP模型字段约束。
-
-## 成品数据工作区
-
-管理中心的“成品数据工作区”支持四种并行维护方式：
-
-- 在网页中逐条新增、编辑和删除成品信息、指标、标签、标签规则、耦合、约束和历史协议；
-- 为上述任一模块单独上传CSV或XLSX，不再要求一张工作簿一次构建整个项目。
-- 直接上传包含价格与属性的普通历史成品 CSV/XLSX，指定 `-1`、`\`、`/` 等缺失符，由系统推断字段类型、允许值和必填性并建立草稿；
-- 下载草稿维护工作簿，在 Excel 中修订后整体回导当前草稿。
-
-自动推断会把任一行曾经缺失的属性设为非必填。列名具有“是否/有无”语义时，0/1 推断为布尔；含义不明确的 0/1 保留为枚举并标记人工确认。编辑单条历史协议时，属性显示为独立输入框，无需手写 `params JSON`。
-
-新建空白草稿不会读取当前价格/效能服务Schema；从历史表建立草稿也不依赖当前模型。文件预览只检查表格格式和单元格类型；“检查业务数据（可选）”只检查数据库可写性和本地跨模块引用，不比较模型成品、模型字段、单位或必填性。
-
-当前双模型未使用的业务扩展指标会按普通业务字段保留，可继续用于界面展示、筛选和业务规则。模型所需字段是否齐全只在点击计算时由对应HTTP服务处理。
-
-“备份并切换业务数据”是唯一影响运行数据的操作。系统先备份SQLite数据库，再原子替换成品主数据；不会调用模型或重新计算导入的历史协议。原DataMaster仍保留为批量迁移和完整导入入口，但不再是唯一维护方式。
-
-### 断网电脑离线发布
-
-开发机与甲方断网机之间可以使用单个离线发布包：
-
-```text
-开发机：复制当前运行数据或建立草稿 → 分模块维护 → 导出完整离线发布包
-断网机：导入离线发布包 → 进入草稿 → 检查业务数据（可选） → 备份并切换
-```
-
-发布包包含七个业务模块，并带有规范化JSON的SHA256传输完整性校验。SHA256用于发现文件损坏或意外改动，不代表数字签名或发布者身份认证。导入发布包不会直接写入运行主数据；后续业务切换也不读取当前机器上的模型契约。
-
-每个草稿模块均可单独下载UTF-8 CSV模板；历史协议模板会根据该草稿的指标和标签动态生成。也可以点击“复制当前运行数据为草稿”，在现有成品基础上修改，避免从空表重新维护。
-
-### 价格、效能和成品数据统一交付
-
-V19.6.4新增统一离线交付包，将正式价格原生bundle、正式效能运行包和上述成品数据发布包绑定为一个ZIP。构建阶段可对这一套已配套产物做交付验收；安装阶段重新校验文件SHA-256，自动备份旧模型及SQLite，并把业务数据导入为草稿。安装不会自动切换业务数据，由用户检查后确认；数据中心本身不以模型契约作为切换门禁。
+V2/V3/V4主线使用 **Python 3.8.10 x64、scikit-learn 0.24.2、Optuna 3.6.0**，依赖见[`automl_pipeline/requirements.txt`](automl_pipeline/requirements.txt)。请使用独立训练环境；已有正式模型仍按自己的依赖清单运行。TabPFN使用独立Win11环境，见[实验方案说明](docs/TABPFN_WIN11_WIN7_DELIVERY.md)。
 
 ```bat
-BUILD_PRODUCT_DELIVERY_WIN7.bat --price-model <价格pkl> --effectiveness-package <效能运行包目录> --business-release <成品数据json> --output <交付zip>
-VERIFY_PRODUCT_DELIVERY_WIN7.bat <交付zip> --expected-sha256 <已确认摘要>
-INSTALL_PRODUCT_DELIVERY_WIN7.bat <交付zip> --expected-sha256 <已确认摘要>
-ROLLBACK_PRODUCT_DELIVERY_WIN7.bat <安装返回的备份ID>
+python -m pip install -r automl_pipeline/requirements.txt
+python -m automl_pipeline --help
 ```
 
-完整操作和正式/演示模型边界见`docs/PRODUCT_DELIVERY_WIN7.md`。
-
-### 虚拟正式成品验收基线
-
-V19.6.5新增确定性的`VIRTUAL_COUPLED_ACTUATOR`验收基线，覆盖价格专用、效能专用和共有属性，连续/整数/布尔/IP/枚举类型，10个标签、6条耦合及40条协议。基线会生成原生`price_native_bundle.pkl`，并调用原效能`ProjectApp`模拟专家偏好与可行性证据，保存Workbook+State正式运行包。
+下面以仓库中的**虚拟16条、36属性样本**验证流程，快速配置与构建结果均写入新目录：
 
 ```bat
-RUN_VIRTUAL_FORMAL_PRODUCT_E2E_WIN7.bat
+python -m automl_pipeline config --profile quick --output outputs/my_first_product/price.json
+python -m automl_pipeline inspect automl_pipeline/examples/virtual_16x36.xlsx --price-config outputs/my_first_product/price.json
+python -m automl_pipeline build automl_pipeline/examples/virtual_16x36.xlsx --price-config outputs/my_first_product/price.json --output outputs/my_first_product/build --virtual-data
+python -m automl_pipeline serve --output outputs/my_first_product/build --activate-draft --no-browser
 ```
 
-该测试在隔离目录内完成统一包安装、双模型HTTP服务、草稿激活、推荐生成、显式计算和回滚，不会替换当前项目的运行模型与数据库。当前为32项PASS，详细说明见`docs/VIRTUAL_FORMAL_PRODUCT_BASELINE.md`。
+新入口默认使用V4。正式训练时将示例路径换成自己的CSV/XLSX，去掉`--virtual-data`。`config`生成配置，`inspect`只检查，`build`才训练，`serve`只运行指定的保存结果；已有输出目录不会被覆盖。默认配置可在[`automl_pipeline/configs/`](automl_pipeline/configs/)中查看，`--price-engine optuna_v2`或`optuna_v3`可切换引擎。
 
-面向现场操作人员的启动、安装、草稿激活、回滚以及正式新成品配置流程，见`docs/操作人员手册_测试数据运行与成品更换.md`。
+### 输入表约定
 
-## DataMaster
+第一行填写中文名称，第二行填写**唯一英文属性代号**，第三行起填写成品记录。价格建议采用`price_wan`（万元）；前台属性统一显示中文。
 
-项目内置：
+属性只有**数值**与**配置类型**两种。1—5、80、7200这样的不同量级可直接作为数值，训练内部按当前训练子集缩放；配置使用训练子集独热编码。数字形式的配置代号也应明确声明为配置类型，才能保留`001`等原始取值。
 
-```text
-data_master/DataMaster_Current.xlsx
-data_master/DataMaster_Template.xlsx
-```
+专家提供的是**价格属性重要性1—5分**，内部转换为模型倍率，并与学习得到的融合份额分开记录。可以关闭专家评分做纯数据对照。只要求填写成品数据；效能偏好、专家评分与耦合表可选，没有耦合时不自动编造。
 
-V19.6工作簿包含10张表：
+主线最低支持4条有效价格记录，训练与验证各至少2条。输入应已处理完整，价格为正；固定外层留出模式至少需要6条，并需声明全部属性类型。
 
-```text
-填写说明
-字典_下拉项
-成品信息
-指标定义
-标签字典
-标签规则
-耦合关系
-约束规则
-历史协议
-模型字段绑定
-```
+### 价格模型版本
 
-所有固定类型字段提供Excel下拉；标签编号和指标编号等引用字段使用动态下拉。布尔字段的定义与取值明确分开：
+| 版本 | 当前实现 |
+| --- | --- |
+| V2 | 保留提供版本的六模型核心，联合搜索划分种子、超参数及非负融合权重 |
+| V3 | 在同一核心上采用NSGA-II及多锚点TPE搜索，提供缓存、历史参数复用及异常候选隔离 |
+| **V4（默认）** | 可切换随机划分、全划分统一搜索、逐划分搜索、混合复核；增加训练门槛、实际全量重拟合检查、跨划分复核与参数组合融合 |
 
-```text
-指标定义：取值类型=布尔，搜索类型=布尔开关
-历史协议/规则条件：实际值填写有或无
-数据库内部：系统自动转换成1或0
-```
+V4默认混合复核，训练和开发目标为MAPE≤10%、R²≥0.9，未达标允许输出明确标记的试用草稿。默认300轮配置预算，模型种子范围0—10000；预算、划分数量、专家评分、训练门槛、融合和部署范围均可配置。
 
-模板保留当前模型必需的指标定义和字段绑定，可以直接填写业务主数据并回导。
+**开发成绩参与了参数及融合权重选择，不能作为独立测试成绩。** V4分别记录划分训练、最终部署训练、跨划分开发及可选固定外层留出成绩；默认“全划分”受64个划分上限约束，需要穷举时显式配置。更多预算不保证达标。配置、评估口径与报告字段见[V4完整说明](docs/OPTUNA_V4_PIPELINE.md)。
 
-## 价格Notebook原生导出
+### 已交付的完整离线包
 
-使用：
+离线包与源码仓库分别管理，ZIP、Python环境和新训练产物不放入Git。仓库中保留的基线虚拟模型用于演示和回归。当前已交付的基准文件为`ProductAutoML_V4_Offline_20261016.zip`及`ProductAutoML_V4_PATCH_20261016.zip`；本地副本位于被Git忽略的`deliverables/`，Git克隆不会附带这些文件。
 
-```text
-规范版价格预测_V19_6原生服务导出补丁.ipynb
-```
+在完整离线包根目录使用：
 
-在原Notebook全部模型和集成权重计算完成后运行最后一个单元格，即可生成：
+| 操作 | 入口 |
+| --- | --- |
+| 选择V2/V3/V4及V4模式 | `MODE_MENU.bat`、`SELECT_V2.bat`、`SELECT_V3.bat`、`SELECT_V4.bat` |
+| 更换数据后检查 / 训练 | 替换`input/products.xlsx`，运行`CHECK_INPUT.bat` / `RETRAIN.bat` |
+| 直接使用所选模式保存模型 | `START.bat`，不会自动重训 |
+| 导出当前模型和环境 | `EXPORT.bat`，导出包不需要原训练表 |
 
-```text
-services/price_service/model/price_native_bundle.pkl
-```
-
-正式使用前必须核对价格单位和字段编号，并执行原Notebook预测与服务预测的一致性测试。
-
-## 效能原工程接入
-
-设置：
-
-```bat
-set EFFECT_SOURCE_ROOT=D:\effectiveness_project
-set EFFECT_WORKBOOK=D:\effectiveness_project\data\product.xlsx
-set EFFECT_STATE=D:\effectiveness_project\interactive_project\state_xxx.json
-```
-
-再运行`START_EFFECTIVENESS_SERVICE_WIN7.bat`。没有State时为Workbook基线，不应声称包含专家学习结果。
-
-## 智能推荐与生成
-
-V19.6保留此前功能：非阻塞生成、稳定批次、需求锚定、反向轮廓补偿、价格目标搜索、混合属性邻域、标签规则分支、探索方案、动态重评估，以及共享／效能专用／价格专用属性编辑。
-
-两个模型服务已经提供批量接口。V19.6.2在输出目标搜索的同一轮独立属性扫描中使用批量评价；依赖前一步结果的累计坐标下降和属性组合搜索仍保持顺序评价，以避免改变自适应搜索语义。批量接口缺少候选结果时会明确报错，不会把候选和结果错配。
-
-方案详情中的属性修改不会自动调用模型。界面会将当前结果标为“已过期”，只有点击“重新计算价格与效能”后才请求模型服务。保存专家方案时，后端会核对本次显式计算的参数哈希，禁止把旧结果绑定到已经修改的参数。
-
-## Python 3.8 离线模型与价格训练环境
-
-原价格 Notebook 的 Lasso、Ridge、SVR、GBDT、ExtraTrees、RandomForest、
-XGBoost 训练流程未被重写；当前改动集中在训练后原生 bundle 导出、严格加载和
-离线部署。
-
-断网运行机：
-
-```bat
-CREATE_MODEL_RUNTIME_ENV_WIN7.bat
-```
-
-价格训练开发机：
-
-```bat
-CREATE_PRICE_TRAINING_ENV_PY38.bat
-RUN_PRICE_TRAINING_ENV_TEST.bat
-RUN_PRICE_TRAINING_NOTEBOOK_PY38.bat
-```
-
-随包提供 Python 3.8/Win64 离线 wheelhouse、固定依赖清单和 SHA-256 Manifest。
-完整说明见 `docs/PRICE_TRAINING_AND_OFFLINE_ENVIRONMENT.md`。
+这些操作BAT由打包工具生成，**不等同于源码根目录的入口**。不同模式的保存模型分别登记，切换到未训练模式会提示先训练，不借用其他模式结果。打包脚本位于`tools/build_product_v4.py`，完整离线重打包还需另外准备固定环境及演示产物，见[流水线源码说明](automl_pipeline/README.md)。
 
 ## 验证
 
-```bat
-RUN_FULL_PIPELINE_TEST.bat
-```
-
-专项测试：
+在上述Python3.8训练环境中，从仓库根目录运行：
 
 ```bat
-python tests\v19_6_service_governance_test.py
-python tests\product_release_workspace_test.py
-python tests\product_delivery_test.py
-runtime\venvs\price_training38\Scripts\python.exe tests\price_training_environment_test.py
+python tools/verify_product_optuna_v2_tests.py --report outputs/verification/legacy.json
+python tools/verify_product_v4_tests.py --report outputs/verification/v4.json
+python -m unittest discover -s tests -p source_layout_test.py -v
 ```
 
-详细结果见：
+推荐系统的完整HTTP及数据生命周期验证：
 
-- `docs/V19_6_VALIDATION_REPORT.md`
-- `logs/full_pipeline_test_report.json`
-- `logs/v19_6_service_governance_report.json`
+```bat
+python tests/full_pipeline_test.py
+python tests/complete_parameter_payload_and_admin_save_test.py
+```
+
+2026-10-16的交付基准已验证165项检查，以及8组4—7条、40属性的实际BAT训练、模式切换和带环境导出。涉及旧交付ZIP的验收需要对应离线资产；源码克隆缺少旧ZIP时会跳过该资产专用测试。虚拟样本只用于验证软件链路，不能证明真实业务精度；当前固定环境已在Windows开发机验证，实体Win7未复测。
+
+## 版本管理边界
+
+Git保存源码、配置模板、虚拟测试样本、文档和测试。运行数据库、真实输入、专家现场配置、训练输出、日志、依赖wheel、环境及交付ZIP保留在本机或单独交付。首次运行时，可由仓库中的虚拟CSV初始化本机数据库。
+
+历史V1/R4、原始Notebook及TabPFN代码保留作对照，当前快速建模主线以`automl_pipeline/`和V4说明为准。推荐系统原有多类型指标与DataMaster格式继续使用自己的业务规范；流水线的双行表头及两种属性类型是快速建模的输入约定。

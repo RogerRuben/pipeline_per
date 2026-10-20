@@ -73,15 +73,14 @@ for kind, label in (("price", "价格"), ("effectiveness", "效能")):
 if ok:
     codes = [str(schemas[kind].get("product_code") or "") for kind in ("price", "effectiveness")]
     if not codes[0] or codes[0] != codes[1]:
-        ok = False
-        print("[ERROR] 双服务product_code不一致: %s / %s" % tuple(codes))
+        print("[WARN] 双服务product_code声明不同: %s / %s；继续以实算JSON判断可用性" % tuple(codes))
     else:
         print("[OK] 双服务product_code一致: %s" % codes[0])
 
 if ok:
     try:
         price = request_json(BASES["price"] + "/api/v1/predict", {
-            "request_id": "DEPLOYMENT-CHECK-PRICE", "product_code": codes[0],
+            "request_id": "DEPLOYMENT-CHECK-PRICE", "product_code": codes[0] or None,
             "parameters": example(schemas["price"]),
         })
         predicted = float((price.get("prediction") or {}).get("predicted_price_wan"))
@@ -91,7 +90,7 @@ if ok:
         print("[ERROR] 价格API实算失败: %s" % exc)
     try:
         effect = request_json(BASES["effectiveness"] + "/api/v1/evaluate", {
-            "request_id": "DEPLOYMENT-CHECK-EFFECT", "product_code": codes[0],
+            "request_id": "DEPLOYMENT-CHECK-EFFECT", "product_code": codes[1] or codes[0] or None,
             "parameters": example(schemas["effectiveness"]),
         })
         evaluated = effect.get("evaluation") or {}

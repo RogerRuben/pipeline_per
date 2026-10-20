@@ -9,7 +9,8 @@ from __future__ import print_function
 import json
 import re
 
-from .wide_import import read_table_bytes, split_tags
+from .wide_import import split_tags
+from .product_table import product_table_rows
 
 
 def _clean(value):
@@ -245,15 +246,13 @@ def _price_value(value, header, missing_tokens, warnings):
 
 
 class HistoricalProductOnboarding(object):
-    def analyze(self, filename, raw, product_code, product_name, missing_tokens=None):
-        rows = read_table_bytes(filename, raw)
-        rows = [row for row in rows if any(_clean(value) for value in row)]
-        if len(rows) < 2:
-            raise ValueError("历史成品表至少需要表头和一条数据。")
-        headers = [_clean(value) for value in rows[0]]
+    def analyze(self, filename, raw, product_code, product_name, missing_tokens=None, require_dual_header=False):
+        table = product_table_rows(filename, raw, require_dual_header=require_dual_header)
+        headers = [_clean(value) for value in table["labels"]]
+        field_ids = table["field_ids"]
         if not any(headers):
             raise ValueError("历史成品表表头为空。")
-        normalized_headers = [_header_key(value) for value in headers if value]
+        normalized_headers = [_header_key(value) for value in (field_ids or headers) if value]
         duplicate_headers = sorted(set(value for value in normalized_headers if normalized_headers.count(value) > 1))
         if duplicate_headers:
             raise ValueError("历史成品表存在重复列名：%s" % "、".join(duplicate_headers))
@@ -262,7 +261,7 @@ class HistoricalProductOnboarding(object):
         if not code:
             raise ValueError("请填写本批历史成品所属的成品代号。")
         tokens = parse_missing_tokens(missing_tokens)
-        data_rows = rows[1:]
+        data_rows = table["rows"]
         width = len(headers)
         padded = [list(row) + [""] * max(0, width - len(row)) for row in data_rows]
 
@@ -289,7 +288,7 @@ class HistoricalProductOnboarding(object):
             elif key in POSITION_HEADERS:
                 meta.setdefault("positioning", index)
             else:
-                parameter_id = _parameter_id(header, len(attribute_columns) + 1, used_ids)
+                parameter_id = field_ids[index] if field_ids else _parameter_id(header, len(attribute_columns) + 1, used_ids)
                 values = [row[index] if index < len(row) else "" for row in padded]
                 parameter = _infer_parameter(header, parameter_id, values, tokens, len(attribute_columns) + 1)
                 parameters.append(parameter)
@@ -383,7 +382,9 @@ class HistoricalProductOnboarding(object):
             "agreements": agreements,
             "onboarding": {
                 "source_filename": filename, "missing_tokens": tokens, "inference_rows": inference_rows,
-                "warnings": warnings,
+                "warnings": warnings, "header_rows": table["header_rows"],
+                "field_ids": field_ids,
+                "input_diagnostics": table.get("diagnostics"),
             },
         }
         return {
