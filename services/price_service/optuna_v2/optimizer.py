@@ -15,6 +15,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import optuna
+from .training_observation import attach,ProgressBest
 
 from .price_automl_core import (
     EXPERT_MAP, MODEL_NAMES, TARGET_DEFAULT, fit_ensemble, load_bundle,
@@ -125,6 +126,17 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
     _evaluate = model_backend.evaluate if model_backend is not None else globals()['_evaluate']
     fit_ensemble = model_backend.fit if model_backend is not None else globals()['fit_ensemble']
     predict_bundle = model_backend.predict if model_backend is not None else globals()['predict_bundle']
+    telemetry_backend=model_backend
+    if telemetry_backend is None:
+        from types import SimpleNamespace
+        from .training_observation import capture
+        telemetry_backend=SimpleNamespace(last_evaluation=None)
+        numeric_evaluate=_evaluate
+        def numeric_with_telemetry(cfg,X,y,source_rows,expert_map,test_size,price_bins):
+            scores,bundle,detail=numeric_evaluate(cfg,X,y,source_rows,expert_map,test_size,price_bins)
+            p,c=predict_bundle(bundle,detail[0]);capture(telemetry_backend,cfg,detail,p,c,bundle)
+            return scores,bundle,detail
+        _evaluate=numeric_with_telemetry
     os.makedirs(output_dir, exist_ok=True)
     if prepared_data is None:
         X, y, source_rows = load_training_data(
@@ -176,15 +188,22 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
             return -1e6, 1e6
 
     def report_trial(current_study,trial):
-        if progress_callback is not None:
+        report_callback=progress_callback if progress_callback is not None else print if verbose else None
+        if report_callback is not None:
             if trial.user_attrs.get('valid'):
-                progress_callback('Optuna V2 试验%d/%d：划分种子%s，开发R² %.6f，MAPE %.3f%%。'%(trial.number+1,n_trials,trial.params.get('split_seed'),trial.values[0],trial.values[1]*100.))
-            else:progress_callback('Optuna V2 试验%d/%d失败：%s'%(trial.number+1,n_trials,trial.user_attrs.get('error','未知原因')))
+                report_callback('Optuna V2 试验%d/%d：划分种子%s，%s'%(trial.number+1,n_trials,trial.params.get('split_seed'),monitor.describe(trial)))
+            else:report_callback('Optuna V2 试验%d/%d失败：%s'%(trial.number+1,n_trials,trial.user_attrs.get('error','未知原因')))
+    monitor=ProgressBest(r2_target,mape_target)
+    def observed_objective(trial):
+        telemetry_backend.last_evaluation=None
+        values=objective(trial)
+        attach(trial,telemetry_backend)
+        return values
     if search_driver is None:
-        study.optimize(objective, n_trials=int(n_trials), n_jobs=1, show_progress_bar=False,
+        study.optimize(observed_objective, n_trials=int(n_trials), n_jobs=1, show_progress_bar=False,
                        callbacks=[report_trial], timeout=timeout_seconds)
     else:
-        study=search_driver(objective,study,timeout_seconds)
+        study=search_driver(observed_objective,study,timeout_seconds)
     trial_records = []
     for t in study.trials:
         rec = {"trial": t.number, "state": str(t.state), "r2": None,
@@ -196,6 +215,7 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
             evaluation_diagnostic=json.dumps(t.user_attrs.get('evaluation_diagnostic',{}),ensure_ascii=False),
             sampler_fallbacks=json.dumps(t.user_attrs.get('sampler_fallbacks',[]),ensure_ascii=False))
         rec.update(t.params)
+        rec.update(train_mape_percent=t.user_attrs.get('train_mape_percent'),train_r2=t.user_attrs.get('train_r2'),train_rows=t.user_attrs.get('train_rows'),train_metric_status=t.user_attrs.get('train_metrics',{}).get('status','not_recorded'))
         trial_records.append(rec)
     pd.DataFrame(trial_records).to_csv(os.path.join(output_dir, "optuna_trials.csv"), index=False,
                                         encoding="utf-8-sig")
@@ -264,6 +284,10 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
         "training_full_data_model": True,
         "created_at": datetime.now().isoformat(timespec="seconds"),
     }
+    result['selected_training_metrics']=(telemetry_backend.last_evaluation or {}).get('train_metrics')
+    from .training_observation import score as training_score
+    final_training,_=predict_bundle(full_bundle,X)
+    result['full_refit_training_metrics']=training_score(y,final_training)
     if search_driver is not None:result.update(search_driver.summary(study,chosen))
     with open(os.path.join(output_dir, "best_config.json"), "w", encoding="utf-8") as f:
         json.dump(_json_ready(result), f, ensure_ascii=False, indent=2)

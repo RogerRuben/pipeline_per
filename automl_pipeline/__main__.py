@@ -5,11 +5,12 @@ import json
 from pathlib import Path
 
 HERE=Path(__file__).resolve().parent
-ENGINES=('optuna_v2','optuna_v3','optuna_v4')
+ENGINES=('optuna_v2','optuna_v3','optuna_v4','optuna_v5')
 
 
 def config_loader(engine):
-    if engine=='optuna_v4':from .product_price_optuna_v4 import load_config
+    if engine=='optuna_v5':from .product_price_optuna_v5 import load_config
+    elif engine=='optuna_v4':from .product_price_optuna_v4 import load_config
     elif engine=='optuna_v3':from .product_price_optuna_v3 import load_config
     else:from .product_price_optuna_v2 import load_config
     return load_config
@@ -41,20 +42,28 @@ def inspect_input(source,engine,cfg):
         folds,plan=make_splits(y[dev],groups[dev],cfg)
         if cfg['v4']['search']['mode']=='random':folds=folds[:cfg['v4']['splits']['random_splits']]
         result.update(v4_split_plan=plan,budget=budget_plan(cfg,len(folds)),development_records=len(dev),locked_holdout_records=len(outer))
+    elif engine=='optuna_v5':
+        from .product_price_optuna_v4 import load_config as hold_config
+        from services.price_service.optuna_v4.splits import holdout_indices
+        dev,outer=holdout_indices(len(y),ids,groups,hold_config(overrides={'input':cfg['input'],'v4':{'evaluation':cfg['v5']['evaluation']}}))
+        if len(outer) and cfg['v5']['evaluation']['require_declared_types'] and set(frame.columns)-set(cfg['expert']['field_types']):raise ValueError('V5固定留出须声明全部属性类型。')
+        training_split(len(dev),cfg)
+        result.update(development_records=len(dev),locked_holdout_records=len(outer),v5_mode=cfg['v5']['mode'],
+                      budget={'baseline_configuration_trials':cfg['search']['n_trials'],'enhancement_new_fits':cfg['v5']['enhancement']['max_new_fits'],'total_fit_limit':cfg['v5']['budget']['max_member_fits']})
     return result
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description='成品表 → AutoML价格模型 → 效能试用快照 → 推荐草稿；源码入口默认V4。')
+    p=argparse.ArgumentParser(description='成品表 → AutoML价格模型 → 效能试用快照 → 推荐草稿；源码入口默认V5。')
     sub=p.add_subparsers(dest='command',required=True)
     for command in ('inspect','build'):
         parser=sub.add_parser(command,help='检查成品输入' if command=='inspect' else '在独立目录构建三环节产物')
-        parser.add_argument('input');parser.add_argument('--price-engine',choices=ENGINES,default='optuna_v4');parser.add_argument('--price-config')
+        parser.add_argument('input');parser.add_argument('--price-engine',choices=ENGINES,default='optuna_v5');parser.add_argument('--price-config')
         if command=='build':
             parser.add_argument('--output',required=True);parser.add_argument('--product-code',default='SOURCE_PRODUCT');parser.add_argument('--product-name',default='成品价格效能与推荐试用')
             parser.add_argument('--effect-config');parser.add_argument('--virtual-data',action='store_true')
     config=sub.add_parser('config',help='生成V2/V3/V4配置；不会训练')
-    config.add_argument('--price-engine',choices=ENGINES,default='optuna_v4');config.add_argument('--profile',choices=['standard','quick','deep'],default='standard');config.add_argument('--output',required=True)
+    config.add_argument('--price-engine',choices=ENGINES,default='optuna_v5');config.add_argument('--profile',choices=['standard','quick','deep'],default='standard');config.add_argument('--output',required=True)
     serve=sub.add_parser('serve',help='启动指定构建结果，不训练')
     serve.add_argument('--output',required=True);serve.add_argument('--activate-draft',action='store_true');serve.add_argument('--no-browser',action='store_true')
     serve.add_argument('--price-port',type=int,default=18701);serve.add_argument('--effect-port',type=int,default=18702);serve.add_argument('--app-port',type=int,default=18791)
@@ -73,7 +82,11 @@ def main(argv=None):
             if args.profile=='quick':
                 cfg['search']['n_trials']=40
                 if args.price_engine=='optuna_v4':cfg['v4']['splits']['max_splits']=12
-            elif args.profile=='deep':cfg['search']['n_trials']=5000
+            elif args.profile=='deep':
+                if args.price_engine=='optuna_v5':
+                    cfg['search']['n_trials']=300;cfg['search']['timeout_seconds']=1800;cfg['v5']['enhancement']['max_new_fits']=5000;cfg['v5']['budget']['max_member_fits']=5000
+                    cfg['v5']['enhancement']['split_anchors']=3
+                else:cfg['search']['n_trials']=5000
             cfg=config_loader(args.price_engine)(overrides=cfg);path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text(json.dumps(cfg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print('配置已保存：'+str(path));return 0
         from .product_pipeline import build

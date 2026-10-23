@@ -38,7 +38,7 @@ class SourceLayoutTests(unittest.TestCase):
                 validate_local_imports({'tools/product_pipeline.py':(ROOT/'tools/product_pipeline.py').read_bytes()},Path(folder))
     def test_all_default_configs_validate_without_private_state(self):
         from automl_pipeline.__main__ import configuration
-        for engine in ('optuna_v2','optuna_v3','optuna_v4'):
+        for engine in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5'):
             cfg=configuration(engine,None);self.assertEqual(cfg['input']['min_samples'],4)
             self.assertEqual(cfg['schema_version'],'price-'+engine.replace('_','-')+'-pipeline-1.0')
     def test_fingerprints_reference_real_training_sources(self):
@@ -62,7 +62,7 @@ class SourceLayoutTests(unittest.TestCase):
             cfg=Path(folder)/'price.json'
             self.assertEqual(main(['config','--profile','quick','--output',str(cfg)]),0)
             value=json.loads(cfg.read_text(encoding='utf-8'));self.assertEqual(value['search']['n_trials'],40)
-            self.assertEqual(value['v4']['splits']['max_splits'],12)
+            self.assertEqual(value['v5']['mode'],'goal_first');self.assertEqual(value['v5']['enhancement']['max_new_fits'],0)
             self.assertEqual(main(['inspect',str(ROOT/'automl_pipeline/examples/virtual_16x36.xlsx'),'--price-config',str(cfg)]),0)
             original=cfg.read_bytes()
             with self.assertRaises(SystemExit) as raised:main(['config','--output',str(cfg)])

@@ -13,7 +13,9 @@
     var html = "<h3>价格融合解释</h3><p>" + escape(explanation.sample_warning) + "</p>";
     if (explanation.quality_status) {
       html += '<p><strong>' + (explanation.quality_status === 'qualified_development' ? '开发目标达标' : '未达标试用草稿') + '</strong></p>';
-      var scores = [['部署模型训练集', explanation.training_metrics], ['跨划分开发集（参与选择）', explanation.development_metrics], ['固定外层留出集', explanation.holdout_metrics]];
+      var scores = [['部署模型训练集', explanation.training_metrics], ['开发集（参与选择）', explanation.development_metrics], ['固定外层留出集', explanation.holdout_metrics]];
+      if (explanation.reference_metrics) scores.splice(1, 0, ['保留的V3基线开发集', explanation.reference_metrics]);
+      if (explanation.reference_training_metrics) scores.splice(1, 0, ['保留的V3基线训练集', explanation.reference_training_metrics]);
       html += table(['评估范围', '平均百分比误差', 'R方'], scores.map(function (item) {
         var score = item[1];
         return [item[0], !score || score.mape_percent == null ? '未提供' : Number(score.mape_percent).toFixed(3) + '%', !score ? '未提供' : score.r2 == null ? '不可定义' : Number(score.r2).toFixed(5)];

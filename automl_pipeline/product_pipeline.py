@@ -147,16 +147,18 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             write_json(source.parent / "effectiveness_config.json", config)
         elif input_path:
             source = Path(input_path).resolve()
-            config = load_config(source, effect_config,allow_legacy=price_engine not in ('optuna_v2','optuna_v3','optuna_v4'))
+            config = load_config(source, effect_config,allow_legacy=price_engine not in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5'))
         else:
             raise ValueError("请提供双行表头CSV/XLSX，或使用--demo。")
         raw = source.read_bytes()
-        if price_engine in ('optuna_v2','optuna_v3','optuna_v4') and missing_tokens is None:
+        if price_engine in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5') and missing_tokens is None:
             from .product_price_optuna_v2 import load_config as load_optuna_config
             if price_engine=='optuna_v3':
                 from .product_price_optuna_v3 import load_config as load_optuna_config
             elif price_engine=='optuna_v4':
                 from .product_price_optuna_v4 import load_config as load_optuna_config
+            elif price_engine=='optuna_v5':
+                from .product_price_optuna_v5 import load_config as load_optuna_config
             missing_tokens=load_optuna_config(price_config,price_overrides)['input']['missing_tokens']
         table = product_table_rows(source.name, raw, require_dual_header=True)
         write_json(output / "input_diagnostics.json", table["diagnostics"])
@@ -167,17 +169,22 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             raise ValueError("成品表须包含中文价格列，建议注明价格(万元)。")
         data = report["data"]
         progress("已读取%d条成品记录、%d个属性，英文代号已保留。" % (report["row_count"], report["attribute_count"]), "price")
-        if price_engine in ("optuna_v2","optuna_v3","optuna_v4"):
+        if price_engine in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5"):
             from .product_price_optuna_v2 import train_price_optuna_v2,load_config as load_optuna_config,workbook_config
             from services.price_service.optuna_v2.typed_features import apply_types,restore_configurations
             if price_engine=='optuna_v3':
                 from .product_price_optuna_v3 import load_config as load_optuna_config
             elif price_engine=='optuna_v4':
                 from .product_price_optuna_v4 import load_config as load_optuna_config
+            elif price_engine=='optuna_v5':
+                from .product_price_optuna_v5 import load_config as load_optuna_config
             optuna_config=workbook_config(source,load_optuna_config(price_config,price_overrides),{p['parameter_id'] for p in data['parameters']},loader=load_optuna_config)
             restore_configurations(data,table,optuna_config['expert']['field_types'],optuna_config['input']['missing_tokens'])
             apply_types(data,optuna_config['expert']['field_types'])
-            if price_engine=='optuna_v4':
+            if price_engine=='optuna_v5':
+                from .product_price_optuna_v5 import train_price_optuna_v5
+                price_bundle,price_report=train_price_optuna_v5(data,output/"price",price_config,progress,optuna_config,input_path=source)
+            elif price_engine=='optuna_v4':
                 from .product_price_optuna_v4 import train_price_optuna_v4
                 price_bundle,price_report=train_price_optuna_v4(data,output/"price",price_config,progress,optuna_config,input_path=source)
             else:price_bundle,price_report=train_price_optuna_v2(data,output/"price",price_config,progress,optuna_config,input_path=source,engine=price_engine)
@@ -231,9 +238,21 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
                     "elapsed_seconds": round(time.monotonic() - started, 2)}
         manifest["artifact_sha256"] = dict((name, hashlib.sha256((output / manifest[name]).read_bytes()).hexdigest())
                                           for name in ("price_model", "effectiveness_model", "business_package"))
-        if price_engine=='optuna_v4':manifest.update(quality_status=price_report['quality_status'],search_mode=price_report['search_mode'])
+        if price_engine in ('optuna_v4','optuna_v5'):manifest.update(quality_status=price_report['quality_status'],search_mode=price_report['search_mode'])
         write_json(output / "prototype_manifest.json", manifest)
         cv, holdout = price_report["cv_metrics"], price_report["holdout_metrics"]
+        if price_engine=='optuna_v5':
+            from tools.product_saved_start import fixed_version_launcher_bytes
+            text=('# %s：V5保留基线流水线\n\n模式：%s；状态：%s。\n\n'
+                  'V3基线开发MAPE %.4f%%，R² %s。\n当前开发MAPE %.4f%%，R² %s。\n'
+                  '当前部署训练MAPE %.4f%%，R² %s。\n累计实际成员fit %d；停止原因：%s。\n\n'
+                  'price/selected_snapshot_native.pkl是获分快照；full_refit_native.pkl为全量开发重拟合。\n'
+                  'price/price_native_bundle.pkl为当前选择的服务模型；V3参考和复核另报，不混用分数。\n'
+                  'MODE_MENU切换；RETRAIN或RESUME继续；START不重训；EXPORT导出保存模型和环境。\n\n%s\n')%(product_name,price_report['search_mode'],price_report['quality_status'],
+                    price_report['reference_metrics']['validation']['mape_percent'],str(price_report['reference_metrics']['validation']['r2']),cv['mean_mape'],str(cv['mean_r2']),
+                    price_report['deployed_training_metrics']['mape_percent'],str(price_report['deployed_training_metrics']['r2']),price_report['fit_statistics']['total'],price_report['stop_reason'],price_report['warning'])
+            (output/'构建结果.md').write_text(text,encoding='utf-8');(output/'START_PROTOTYPE_WIN7.bat').write_bytes(fixed_version_launcher_bytes())
+            status.update(status='completed',stage='complete',targets_met=manifest['targets_met']);progress('V5价格、效能与推荐草稿构建完成：'+str(output));return manifest
         if price_engine=='optuna_v4':
             from services.price_service.optuna_v4.optimizer import fmt
             from tools.product_saved_start import fixed_version_launcher_bytes
@@ -460,7 +479,7 @@ def main(argv=None):
     builder.add_argument("--product-code", default="VIRTUAL_PIPELINE_PRODUCT")
     builder.add_argument("--product-name", default="虚拟执行机构（初版试用）")
     builder.add_argument("--effect-config", help="可选效能偏好与耦合JSON；XLSX也可带属性配置、耦合关系表")
-    builder.add_argument("--price-engine", choices=["v1", "v2", "r4", "tabpfn", "optuna_v2", "optuna_v3", "optuna_v4"], default="v1", help="V2、V3或V4可切换价格搜索引擎")
+    builder.add_argument("--price-engine", choices=["v1", "v2", "r4", "tabpfn", "optuna_v2", "optuna_v3", "optuna_v4", "optuna_v5"], default="v1", help="V2/V3/V4/V5可切换价格搜索引擎")
     builder.add_argument("--price-config", help="与所选训练引擎匹配的JSON；旧版搜索参数仅用于V1")
     builder.add_argument("--trials", type=int, default=24)
     builder.add_argument("--folds", type=int, default=3)

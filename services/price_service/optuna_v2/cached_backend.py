@@ -16,8 +16,9 @@ class CachedBackend(TypedBackend):
         self.limit=int(cache_entries);self.searching=False;self.cache=OrderedDict();self.splits=OrderedDict()
         self.stats={'model_fits':0,'prediction_cache_hits':0,'prediction_cache_misses':0,'cached_entries_peak':0,'split_cache_hits':0,'cache_fallbacks':0}
         self.fast_path_disabled=False;self.last_diagnostic={}
+        self.retain_estimators=False
     def evaluate(self,cfg,X,y,rows,expert_map,test_size,price_bins):
-        self.last_diagnostic={}
+        self.last_diagnostic={};self.last_evaluation=None
         if not self.searching or not self.limit or self.fast_path_disabled:
             return self._direct_evaluate(cfg,X,y,rows,expert_map,test_size,price_bins)
         try:return self._cached_evaluate(cfg,X,y,rows,expert_map,test_size,price_bins)
@@ -57,32 +58,44 @@ class CachedBackend(TypedBackend):
             train=pd.DataFrame(scaler.transform(train),columns=train.columns)
             test=pd.DataFrame(scaler.transform(test),columns=test.columns)
             expanded={name:expert_map.get(owner,1.) for name,owner in encoder.owners.items()}
-            prepared=(Xtr,ytr,Xte,yte,tr_rows,te_rows,train,test,expanded)
+            prepared=(Xtr,ytr,Xte,yte,tr_rows,te_rows,train,test,expanded,encoder,scaler)
             self.splits[split_key]=prepared
             while len(self.splits)>64:self.splits.popitem(last=False)
-        Xtr,ytr,Xte,yte,tr_rows,te_rows,train,test,expanded=prepared
+        Xtr,ytr,Xte,yte,tr_rows,te_rows,train,test,expanded,encoder,scaler=prepared
         # Train/test ORDER is material to subsampling and deterministic tie-breaking.
         split_identity=json.dumps([identity,tr_rows.tolist(),te_rows.tolist()],sort_keys=True)
-        weights=core.normalized_weights(cfg);components=pd.DataFrame(index=np.arange(len(yte)))
+        weights=core.normalized_weights(cfg);components=pd.DataFrame(index=np.arange(len(yte)));train_components=pd.DataFrame(index=np.arange(len(ytr)));models={}
         for j,name in enumerate(core.MODEL_NAMES):
-            prediction=np.zeros(len(yte))
+            prediction=np.zeros(len(yte));train_prediction=np.zeros(len(ytr))
             if weights[j]>0:
                 model=core.instantiate_model(name,cfg,expanded)
                 key=hashlib.sha256((split_identity+name+json.dumps(model.get_params(deep=False),sort_keys=True)).encode('utf-8')).hexdigest()
                 if key in self.cache:
-                    self.stats['prediction_cache_hits']+=1;prediction=self.cache.pop(key);self.cache[key]=prediction
+                    self.stats['prediction_cache_hits']+=1;entry=self.cache.pop(key);self.cache[key]=entry
+                    prediction=entry['validation'];train_prediction=entry['train']
+                    if self.retain_estimators:models[name]=entry['model']
                 else:
                     self.stats['prediction_cache_misses']+=1;self.stats['model_fits']+=1
                     model.fit(core._weighted_array(train,name,expanded),np.log(ytr))
                     prediction=np.exp(np.clip(np.asarray(model.predict(core._weighted_array(test,name,expanded)),float),-700,700))
+                    train_prediction=np.exp(np.clip(np.asarray(model.predict(core._weighted_array(train,name,expanded)),float),-700,700))
+                    if self.retain_estimators:models[name]=model
                     if not np.isfinite(prediction).all():raise ValueError('模型预测包含非有限值。')
                     if self.limit:
-                        self.cache[key]=prediction
+                        self.cache[key]={'validation':prediction,'train':train_prediction,'model':model if self.retain_estimators else None}
                         while len(self.cache)>self.limit:self.cache.popitem(last=False)
                         self.stats['cached_entries_peak']=max(self.stats['cached_entries_peak'],len(self.cache))
             # Inactive models are neither fitted nor cached as zero predictions.
             components[name]=prediction
+            train_components[name]=train_prediction
         pred=components.to_numpy().dot(weights)
         scores=core.regression_metrics(yte,pred)
         self._check_metrics(scores,yte,pred,components,te_rows,cfg)
-        return scores,None,(Xtr,ytr,Xte,yte,tr_rows,te_rows,pred,components)
+        detail=(Xtr,ytr,Xte,yte,tr_rows,te_rows,pred,components)
+        bundle=None
+        if self.retain_estimators:
+            bundle={'scaler':scaler,'models':models,'weights':weights,'feature_names':list(train.columns),'expert_map':expanded,'params':dict(cfg),'log_target':True,'model_names':core.MODEL_NAMES}
+            if self.category_fields:bundle.update(input_encoder=encoder,input_feature_names=list(X.columns))
+        from .training_observation import capture
+        capture(self,cfg,detail,train_components.to_numpy().dot(weights),train_components,bundle)
+        return scores,None,detail

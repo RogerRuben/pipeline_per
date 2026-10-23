@@ -35,7 +35,7 @@ def select(root,engine):
     from tools.product_portable import write_json
     root=Path(root).resolve();path=root/'config/portable.json'
     settings=json.loads(path.read_text(encoding='utf-8-sig'))
-    if engine=='optuna_v4' or settings.get('mode_registry_enabled'):
+    if engine in ('optuna_v4','optuna_v5') or settings.get('mode_registry_enabled'):
         from .product_modes import select as select_mode
         return select_mode(root,engine)
     if engine not in ('optuna_v2','optuna_v3'):raise ValueError('请选择optuna_v2或optuna_v3。')
@@ -82,7 +82,11 @@ def compare(root,trials=None):
                 '开发验证成品':','.join(report['validation_record_ids']),'有效模型数':report['member_count'],'开发目标达到':report['targets_met'],
                 '模型权重':json.dumps(report['weights'],ensure_ascii=False),'保存目录':output.relative_to(root).as_posix()})
     finally:
-        if selected in ('optuna_v2','optuna_v3'):
+        if json.loads((root/'config/portable.json').read_text(encoding='utf-8-sig')).get('mode_registry_enabled'):
+            from .product_modes import selected_pointer
+            pointer=selected_pointer(root)
+            if pointer:portable.write_json(root/'state/latest.json',pointer)
+        elif selected in ('optuna_v2','optuna_v3'):
             pointer=saved_pointer(root,selected)
             if pointer:portable.write_json(root/'state/latest.json',pointer)
     if len(set(identities))!=1:raise ValueError('两次训练的数据或预处理协议不一致，不能标记为同条件对比。各模型已分别保存。')
@@ -104,7 +108,7 @@ def compare(root,trials=None):
 
 def main():
     parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest='command',required=True)
-    select_parser=sub.add_parser('select');select_parser.add_argument('--engine',required=True,choices=['optuna_v2','optuna_v3','optuna_v4'])
+    select_parser=sub.add_parser('select');select_parser.add_argument('--engine',required=True,choices=['optuna_v2','optuna_v3','optuna_v4','optuna_v5'])
     comparison=sub.add_parser('compare');comparison.add_argument('--trials',type=int)
     args=parser.parse_args()
     try:

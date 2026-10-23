@@ -17,6 +17,8 @@ def prepare(source,root,settings):
         from .product_price_optuna_v3 import load_config as loader
     elif engine=='optuna_v4':
         from .product_price_optuna_v4 import load_config as loader
+    elif engine=='optuna_v5':
+        from .product_price_optuna_v5 import load_config as loader
     cfg=loader(root/('config/price_'+engine+'.json'))
     table=product_table_rows(source.name,raw,require_dual_header=True)
     write_json(root/'logs/input_diagnostics.json',table['diagnostics'])
@@ -28,6 +30,21 @@ def prepare(source,root,settings):
     restore_configurations(analyzed['data'],table,cfg['expert']['field_types'],cfg['input']['missing_tokens'])
     frame,y,specs,mappings,groups,ids=dataset(analyzed['data'],cfg)
     _,split_report=training_split(len(y),cfg)
+    if engine=='optuna_v5':
+        p=cfg['v5']['persistence']
+        if not p['directory']:p['directory']=str((root/'state/v5').resolve())
+        if cfg['v5']['baseline']['auto_reference'] and not cfg['v5']['baseline']['reference_dir']:
+            from .product_optuna_versions import saved_pointer
+            old=saved_pointer(root,'optuna_v3')
+            if old:cfg['v5']['baseline']['reference_dir']=str((root/old['output']).resolve())
+        for obj,key in ((p,'directory'),(cfg['v5']['baseline'],'reference_dir')):
+            if obj[key]:
+                path=Path(obj[key]);obj[key]=str((path if path.is_absolute() else root/path).resolve())
+        from .product_price_optuna_v4 import load_config as hold_config
+        from services.price_service.optuna_v4.splits import holdout_indices
+        dev,outer=holdout_indices(len(y),ids,groups,hold_config(overrides={'input':cfg['input'],'v4':{'evaluation':cfg['v5']['evaluation']}}))
+        if len(outer) and cfg['v5']['evaluation']['require_declared_types'] and set(frame.columns)-set(cfg['expert']['field_types']):raise ValueError('V5固定留出须声明全部属性类型。')
+        training_split(len(dev),cfg)
     if engine=='optuna_v3':
         warm=cfg['v3']['warm_start']
         if warm['auto_history'] and not warm['history_file'] and not warm['config_file']:
@@ -48,6 +65,9 @@ def prepare(source,root,settings):
                 'services/price_service/optuna_v2/price_automl_core.py','services/price_service/optuna_v2/optimizer.py','services/price_service/optuna_v2/native_member.py',
                 'services/price_service/optuna_v2/typed_features.py','services/price_service/optuna_v2/search_history.py')
     if engine=='optuna_v3':code_files+=('automl_pipeline/product_price_optuna_v3.py','services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py')
+    if engine=='optuna_v5':code_files+=('automl_pipeline/product_price_optuna_v5.py','automl_pipeline/product_optuna_v5_adapter.py',
+        'services/price_service/optuna_v5/engine.py','services/price_service/optuna_v5/fusion.py','services/price_service/optuna_v5/persistence.py','services/price_service/optuna_v5/review.py',
+        'services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py','services/price_service/optuna_v2/training_observation.py')
     if engine=='optuna_v4':
         code_files+=('automl_pipeline/product_price_optuna_v4.py','automl_pipeline/product_optuna_v4_adapter.py','services/price_service/optuna_v4/backend.py',
                      'services/price_service/optuna_v4/optimizer.py','services/price_service/optuna_v4/parameters.py','services/price_service/optuna_v4/metrics.py',
@@ -71,6 +91,9 @@ def prepare(source,root,settings):
     notes.append('属性只有数值与配置类型；配置独热编码，数值在训练集上MinMax缩放。')
     if split_report.get('adjusted'):notes.append('小样本验证自动调整：%d条训练、%d条验证；配置最低%d条。'%(split_report['training_rows'],split_report['validation_rows'],split_report['min_samples']))
     if engine=='optuna_v3':notes[0]='V3：NSGA-II广域搜索后，以Pareto多锚点MOTPE精修；总预算在两阶段共享。'
+    if engine=='optuna_v5':
+        notes[0]='V5：先保留V3基线%d轮，再用已有预测求融合权重；新增成员fit预算%d。'%(cfg['search']['n_trials'],cfg['v5']['enhancement']['max_new_fits'])
+        notes[2]='默认运行实际获分快照；跨划分复核单独报告；全量重拟合另存。START不训练，RESUME/RETRAIN可读取同数据检查点继续。'
     if engine=='optuna_v4':
         notes[0]='V4：%s；%d个固定划分复核，训练门槛%s/%s。'%(cfg['v4']['search']['mode'],split_report['evaluated_splits'],cfg['v4']['train_gate']['mode'],cfg['v4']['train_gate']['scope'])
         notes[2]='训练、跨划分开发、可选固定外层留出分别报告。全部开发记录重拟合后再次检查训练指标；开发成绩参与选择。'

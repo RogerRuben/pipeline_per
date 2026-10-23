@@ -1,0 +1,118 @@
+{
+  "schema_version": "price-optuna-v5-pipeline-1.0",
+  "search": {
+    "n_trials": 300,
+    "optimizer_seed": 42,
+    "seed_low": 1,
+    "seed_high": 10000,
+    "timeout_seconds": null
+  },
+  "validation": {
+    "test_size": 0.2,
+    "price_bins": 3,
+    "auto_adjust_test_size": true
+  },
+  "targets": {
+    "r2_min": 0.9,
+    "mape_percent_max": 10.0,
+    "hard_gate": false
+  },
+  "expert": {
+    "enabled": true,
+    "default_score": 1.0,
+    "use_supplied_defaults": true,
+    "scores": {},
+    "records": [],
+    "field_types": {}
+  },
+  "input": {
+    "missing_tokens": [],
+    "remove_outliers": false,
+    "min_samples": 4
+  },
+  "deployment": {
+    "model_scope": "selected_split"
+  },
+  "v3": {
+    "nsga_fraction": 0.6,
+    "num_anchors": 3,
+    "local_fraction": 0.25,
+    "global_fraction": 0.2,
+    "weight_only_fraction": 0.25,
+    "anchor_refresh_interval": 20,
+    "startup_trials": 10,
+    "ei_candidates": 24,
+    "cache_entries": 256,
+    "warm_start": {
+      "auto_history": false,
+      "history_file": null,
+      "config_file": null,
+      "reuse_metrics": true,
+      "max_history_trials": 1000,
+      "max_warm_proposals": 5
+    }
+  },
+  "v5": {
+    "mode": "goal_first",
+    "baseline": {
+      "reference_dir": null,
+      "auto_reference": true,
+      "finish": "fixed_budget"
+    },
+    "train_gate": {
+      "mode": "hard",
+      "mape_percent_max": 10.0,
+      "r2_min": 0.9,
+      "soft_penalty": 1.0
+    },
+    "budget": {
+      "max_member_fits": null
+    },
+    "enhancement": {
+      "max_new_fits": 0,
+      "families": [
+        "ridge",
+        "lasso",
+        "svr",
+        "expert_tree",
+        "extratrees",
+        "gbdt"
+      ],
+      "pool_size": 12,
+      "patience": 30,
+      "split_anchors": 1,
+      "model_seed_low": 0,
+      "model_seed_high": 10000,
+      "continue_after_targets": false
+    },
+    "fusion": {
+      "enabled": true,
+      "non_degradation": true,
+      "maxiter": 200
+    },
+    "audit": {
+      "enabled": true,
+      "max_splits": 4,
+      "max_members": 16,
+      "validation_rows": null,
+      "seed": 20261023,
+      "balanced_weight": 0.25
+    },
+    "evaluation": {
+      "mode": "development",
+      "holdout_ids": [],
+      "holdout_fraction": 0.2,
+      "holdout_seed": 20261016,
+      "require_declared_types": true
+    },
+    "persistence": {
+      "enabled": true,
+      "resume": true,
+      "directory": null,
+      "checkpoint_interval": 10
+    },
+    "publish": {
+      "policy": "allow_draft"
+    }
+  }
+}

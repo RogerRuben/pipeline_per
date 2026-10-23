@@ -12,6 +12,7 @@ import numpy as np
 import optuna
 from .optimizer import run_training as v2_training,_select_pareto,_original_baseline
 from .search_history import read_history
+from .training_observation import ProgressBest
 
 
 class SeedIndependentTPE(optuna.samplers.TPESampler):
@@ -76,10 +77,12 @@ def select_anchors(study,count,r2_target,mape_target):
 
 
 class SearchDriver(object):
-    def __init__(self,settings,backend,identity,progress,seed_low,seed_high,optimizer_seed,r2_target,mape_target):
+    def __init__(self,settings,backend,identity,progress,seed_low,seed_high,optimizer_seed,r2_target,mape_target,observer=None):
         self.settings,self.backend,self.identity,self.progress=settings,backend,identity,progress
         self.seed_low,self.seed_high,self.seed=seed_low,seed_high,optimizer_seed
         self.r2_target,self.mape_target=r2_target,mape_target;self.counts={'nsga':0,'tpe':0};self.history={};self.anchors=[]
+        self.monitor=ProgressBest(r2_target,mape_target)
+        self.observer=observer
     def __call__(self,objective,initial,timeout_seconds):
         start=time.monotonic();cfg=self.settings
         study=optuna.create_study(directions=['maximize','minimize'],sampler=initial.sampler)
@@ -104,12 +107,18 @@ class SearchDriver(object):
         for params in proposals[:warm['max_warm_proposals']]:enqueue(params)
         for seed in (7527,6192,9300,9431,3308):
             if self.seed_low<=seed<=self.seed_high:enqueue(_original_baseline(seed))
-        def remaining():return None if timeout_seconds is None else max(0.,timeout_seconds-(time.monotonic()-start))
+        restored=self.observer.restore(self) if self.observer is not None else None
+        resumed_phase=None
+        if restored is not None:
+            study=restored['study'];resumed_phase=restored['phase']
+            self.counts=restored['counts'];self.history=restored['history'];self.anchors=restored['anchors']
+            for previous in study.trials:self.monitor.update(previous)
+        def remaining():return None if timeout_seconds is None else max(0.,timeout_seconds-getattr(self.observer,'elapsed_before',0.)-(time.monotonic()-start))
         def report(phase):
             def callback(current,trial):
                 self.counts[phase]+=1;done=sum(self.counts.values());total=cfg['nsga_trials']+cfg['tpe_trials']
                 if trial.user_attrs.get('valid'):
-                    self.progress('Optuna V3 %s %d/%d：划分种子%s，开发R² %.6f，MAPE %.3f%%；模型拟合%d，缓存命中%d。'%(phase,done,total,trial.params.get('split_seed'),trial.values[0],trial.values[1]*100,self.backend.stats['model_fits'],self.backend.stats['prediction_cache_hits']))
+                    self.progress('Optuna V3 %s %d/%d：划分种子%s，%s 模型拟合%d，缓存命中%d。'%(phase,done,total,trial.params.get('split_seed'),self.monitor.describe(trial),self.backend.stats['model_fits'],self.backend.stats['prediction_cache_hits']))
                 else:self.progress('Optuna V3 %s %d/%d：跳过不稳定候选，继续搜索。%s'%(phase,done,total,trial.user_attrs.get('error','未知原因')))
                 if trial.user_attrs.get('sampler_fallbacks'):self.progress('该轮TPE采样异常已恢复，%d个参数在原搜索范围内重新独立采样；详情已记录。'%len(trial.user_attrs['sampler_fallbacks']))
             return callback
@@ -117,6 +126,7 @@ class SearchDriver(object):
         def run_trials(current,func,count,phase):
             for _ in range(count):
                 if remaining()==0:break
+                if self.observer is not None and self.observer.should_stop(self):break
                 trial=current.ask()
                 values=func(trial)
                 sampling_notes=getattr(current.sampler,'fallbacks_by_trial',{}).get(trial.number,[])
@@ -129,19 +139,23 @@ class SearchDriver(object):
                     finished=current.tell(trial,values=values)
                 else:finished=current.tell(trial,state=optuna.trial.TrialState.FAIL)
                 report(phase)(current,finished)
+                if self.observer is not None:self.observer.after_trial(self,current,finished,phase)
         self.backend.searching=True
         try:
-            if cfg['nsga_trials'] and remaining()!=0:
-                run_trials(study,broad,cfg['nsga_trials'],'nsga')
+            if cfg['nsga_trials'] and resumed_phase!='tpe' and remaining()!=0:
+                run_trials(study,broad,max(0,cfg['nsga_trials']-self.counts['nsga']),'nsga')
             # Transfer evaluated observations, not just enqueued parameter guesses.
             # WAITING baseline proposals are intentionally excluded from the TPE study.
-            tpe=optuna.create_study(directions=['maximize','minimize'],sampler=SeedIndependentTPE(self.seed,cfg['startup_trials'],cfg['ei_candidates']))
-            finished=[t for t in study.trials if t.state in (optuna.trial.TrialState.COMPLETE,optuna.trial.TrialState.FAIL)]
-            for trial in finished:
-                if trial.state==optuna.trial.TrialState.COMPLETE and not trial.user_attrs.get('valid'):
-                    trial=optuna.trial.create_trial(state=optuna.trial.TrialState.FAIL,params=trial.params,distributions=trial.distributions,user_attrs=trial.user_attrs)
-                tpe.add_trial(trial)
-            self.tpe_history_count=sum(t.state==optuna.trial.TrialState.COMPLETE for t in tpe.trials)
+            if resumed_phase=='tpe':
+                tpe=study;self.tpe_history_count=restored['tpe_history_count']
+            else:
+                tpe=optuna.create_study(directions=['maximize','minimize'],sampler=SeedIndependentTPE(self.seed,cfg['startup_trials'],cfg['ei_candidates']))
+                finished=[t for t in study.trials if t.state in (optuna.trial.TrialState.COMPLETE,optuna.trial.TrialState.FAIL)]
+                for trial in finished:
+                    if trial.state==optuna.trial.TrialState.COMPLETE and not trial.user_attrs.get('valid'):
+                        trial=optuna.trial.create_trial(state=optuna.trial.TrialState.FAIL,params=trial.params,distributions=trial.distributions,user_attrs=trial.user_attrs)
+                    tpe.add_trial(trial)
+                self.tpe_history_count=sum(t.state==optuna.trial.TrialState.COMPLETE for t in tpe.trials)
             def refine(trial):
                 index=self.counts['tpe'];trial.set_user_attr('phase','tpe')
                 if index%cfg['anchor_refresh_interval']==0 or not self.anchors:
@@ -159,7 +173,8 @@ class SearchDriver(object):
                     finally:tpe.sampler.fixed={}
                 trial.set_user_attr('global_escape',True);return objective(trial)
             if cfg['tpe_trials'] and remaining()!=0:
-                run_trials(tpe,refine,cfg['tpe_trials'],'tpe')
+                run_trials(tpe,refine,max(0,cfg['tpe_trials']-self.counts['tpe']),'tpe')
+            if self.observer is not None:self.observer.flush(self,tpe,'tpe')
             self.search_diagnostics={'valid_trials':sum(t.state==optuna.trial.TrialState.COMPLETE and bool(t.user_attrs.get('valid')) for t in tpe.trials),
                 'failed_trials':sum(t.state==optuna.trial.TrialState.FAIL for t in tpe.trials),'cache_statistics':dict(self.backend.stats),
                 'sampler_fallback_count':len(tpe.sampler.fallbacks),'sampler_fallbacks':tpe.sampler.fallbacks,
@@ -181,9 +196,9 @@ class SearchDriver(object):
                 'implementation_provenance':'project_implementation_of_uploaded_v3_notebook_design'}
 
 
-def run_training(v3_settings,history_identity,model_backend,**kwargs):
+def run_training(v3_settings,history_identity,model_backend,observer=None,**kwargs):
     driver=SearchDriver(v3_settings,model_backend,history_identity,kwargs.get('progress_callback') or print,
-                        kwargs['seed_low'],kwargs['seed_high'],kwargs['optimizer_seed'],kwargs['r2_target'],kwargs['mape_target'])
+                        kwargs['seed_low'],kwargs['seed_high'],kwargs['optimizer_seed'],kwargs['r2_target'],kwargs['mape_target'],observer)
     try:return v2_training(model_backend=model_backend,search_driver=driver,history_identity=history_identity,**kwargs)
     finally:
         diagnostic=getattr(driver,'search_diagnostics',None)

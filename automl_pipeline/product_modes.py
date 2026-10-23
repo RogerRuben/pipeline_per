@@ -13,10 +13,11 @@ LABELS={'random':'随机划分搜索','global':'全划分统一搜索','per_spli
 
 
 def loader(engine):
-    if engine=='optuna_v4':from .product_price_optuna_v4 import load_config
+    if engine=='optuna_v5':from .product_price_optuna_v5 import load_config
+    elif engine=='optuna_v4':from .product_price_optuna_v4 import load_config
     elif engine=='optuna_v3':from .product_price_optuna_v3 import load_config
     elif engine=='optuna_v2':from .product_price_optuna_v2 import load_config
-    else:raise ValueError('只支持V2、V3、V4。')
+    else:raise ValueError('只支持V2、V3、V4、V5。')
     return load_config
 
 
@@ -26,6 +27,10 @@ def descriptor(engine,cfg):
         value.update(search_mode=cfg['v4']['search']['mode'],train_gate=cfg['v4']['train_gate'],
                      evaluation_mode=cfg['v4']['evaluation']['mode'],ensemble_enabled=cfg['v4']['ensemble']['enabled'],
                      targets={k:v for k,v in cfg['targets'].items() if k!='hard_gate'},coverage=cfg['v4']['splits']['coverage'])
+    elif engine=='optuna_v5':
+        value.update(search_mode=cfg['v5']['mode'],train_gate=cfg['v5']['train_gate'],evaluation_mode=cfg['v5']['evaluation']['mode'],
+                     ensemble_enabled=cfg['v5']['fusion']['enabled'],audit_enabled=cfg['v5']['audit']['enabled'],
+                     baseline_finish=cfg['v5']['baseline']['finish'],targets={k:v for k,v in cfg['targets'].items() if k!='hard_gate'})
     return value
 
 
@@ -85,6 +90,19 @@ def select(root,engine=None,**changes):
         if name=='experts':cfg['expert']['enabled']=value=='on'
         elif name=='scope':cfg['deployment']['model_scope']=value
         elif name=='trials':cfg['search']['n_trials']=int(value)
+        elif engine=='optuna_v5':
+            if name=='strategy':cfg['v5']['mode']=value
+            elif name=='gate':cfg['v5']['train_gate']['mode']=value
+            elif name=='evaluation':cfg['v5']['evaluation']['mode']=value
+            elif name=='ensemble':cfg['v5']['fusion']['enabled']=value=='on'
+            elif name=='publish':cfg['v5']['publish']['policy']=value
+            elif name=='audit':cfg['v5']['audit']['enabled']=value=='on'
+            elif name=='baseline_finish':cfg['v5']['baseline']['finish']=value
+            elif name=='new_fits':cfg['v5']['enhancement']['max_new_fits']=int(value)
+            elif name=='max_fits':cfg['v5']['budget']['max_member_fits']=int(value) if int(value)>0 else None
+            elif name=='seconds':cfg['search']['timeout_seconds']=float(value) if float(value)>0 else None
+            elif name=='continue_after_targets':cfg['v5']['enhancement']['continue_after_targets']=value=='on'
+            else:raise ValueError(name+'不适用于V5；跨折训练门槛范围/覆盖策略可切换V4后设置。')
         elif engine!='optuna_v4':raise ValueError(name+'仅适用于V4。')
         elif name=='strategy':cfg['v4']['search']['mode']=value
         elif name=='gate':cfg['v4']['train_gate']['mode']=value
@@ -99,7 +117,7 @@ def select(root,engine=None,**changes):
     settings.update(price_engine=engine,startup_policy='saved_only',engine_selection_required=True,mode_registry_enabled=True);write_json(path,settings)
     pointer=selected_pointer(root)
     if pointer:write_json(root/'state/latest.json',pointer)
-    label=engine.upper().replace('OPTUNA_','')+(' / '+LABELS[cfg['v4']['search']['mode']] if engine=='optuna_v4' else '')
+    label=engine.upper().replace('OPTUNA_','')+(' / '+LABELS[cfg['v4']['search']['mode']] if engine=='optuna_v4' else ' / '+{'goal_first':'V3基线达标优先','balanced':'高分与复核权衡','robust':'跨划分融合'}[cfg['v5']['mode']] if engine=='optuna_v5' else '')
     print('已选择%s；专家价格评分%s。'%(label,'开启' if cfg['expert']['enabled'] else '关闭'),flush=True)
     print('START直接载入：'+pointer['output'] if pointer else '此模式尚无已训练模型，请CHECK_INPUT后RETRAIN；START不会自动训练。',flush=True)
     print('切换与修改预算均不触发训练；训练配置在下次RETRAIN生效。',flush=True)
@@ -109,11 +127,11 @@ def select(root,engine=None,**changes):
 def menu(root):
     while True:
         desc=current(root);print('\n当前模式：'+json.dumps(desc,ensure_ascii=False))
-        print('1 版本V2/V3/V4　2 V4搜索模式　3 训练门槛　4 门槛范围　5 专家评分　6 部署范围\n7 评估模式　8 参数组合融合　9 总轮数　10 预算方式　11 划分覆盖　12 发布策略　0 退出')
+        print('1 版本V2/V3/V4/V5　2 搜索模式　3 训练门槛　4 V4门槛范围　5 专家评分　6 部署范围\n7 评估模式　8 融合　9 V3/V5基线轮数或V4总轮数　10 V4预算方式　11 V4划分覆盖　12 发布策略\n13 V5复核开关　14 V5新增fit预算　15 V5总fit上限　16 V5秒数预算　17 V5基线结束方式　18 V5达标后继续　0 退出')
         option=input('选择编号：').strip()
         if option=='0':return
         choices={
-            '1':('engine',['optuna_v4','optuna_v2','optuna_v3'],['V4','V2','V3']),
+            '1':('engine',['optuna_v5','optuna_v4','optuna_v3','optuna_v2'],['V5','V4','V3','V2']),
             '2':('strategy',['hybrid','random','global','per_split'],['混合复核','随机划分','全划分统一搜索','逐划分搜索']),
             '3':('gate',['hard','soft','off'],['硬门槛','软惩罚','关闭']),
             '4':('gate_scope',['pooled','every_split','fraction'],['汇总训练预测','每个划分均达标','达标划分占比']),
@@ -123,9 +141,16 @@ def menu(root):
             '8':('ensemble',['on','off'],['多参数组合融合','单套参数六模型融合']),
             '10':('budget',['total','per_split'],['共享总预算','每个划分独立预算']),
             '11':('coverage',['auto','exhaustive','sampled'],['自动枚举/限额抽样','穷举全部唯一划分','固定抽样']),
-            '12':('publish',['allow_draft','require_targets'],['未达标允许试用草稿','达标才更新运行模型'])}
+            '12':('publish',['allow_draft','require_targets'],['未达标允许试用草稿','达标才更新运行模型']),
+            '13':('audit',['on','off'],['启用跨划分复核','关闭复核（达标优先模式）']),
+            '17':('baseline_finish',['fixed_budget','targets_met'],['完整V3基线预算','开发目标达到后停止基线']),
+            '18':('continue_after_targets',['off','on'],['达到训练/开发门槛后停止新增fit','达标后继续改善'])}
+        if desc['engine']=='optuna_v5':choices['2']=('strategy',['goal_first','balanced','robust'],['V3基线达标优先','高分与复核权衡','跨划分融合'])
         try:
             if option=='9':select(root,trials=int(input('配置搜索轮数（融合权重另计）：')));continue
+            if option in ('14','15','16'):
+                name={'14':'new_fits','15':'max_fits','16':'seconds'}[option]
+                select(root,**{name:int(input('输入预算（总上限/秒数填0表示不设）：'))});continue
             if option not in choices:continue
             name,values,labels=choices[option]
             for i,label in enumerate(labels):print('%d. %s'%(i+1,label))
@@ -136,11 +161,13 @@ def menu(root):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('command',choices=['menu','select','status']);p.add_argument('--engine',choices=['optuna_v2','optuna_v3','optuna_v4'])
-    for name,values in [('strategy',list(LABELS)),('gate',['off','soft','hard']),('gate-scope',['pooled','every_split','fraction']),('experts',['on','off']),
+    p=argparse.ArgumentParser();p.add_argument('command',choices=['menu','select','status']);p.add_argument('--engine',choices=['optuna_v2','optuna_v3','optuna_v4','optuna_v5'])
+    for name,values in [('strategy',list(LABELS)+['goal_first','balanced','robust']),('gate',['off','soft','hard']),('gate-scope',['pooled','every_split','fraction']),('experts',['on','off']),
                         ('scope',['full_data','selected_split']),('evaluation',['development','locked_holdout']),('ensemble',['on','off']),
-                        ('coverage',['auto','exhaustive','sampled']),('publish',['allow_draft','require_targets']),('budget',['total','per_split'])]:p.add_argument('--'+name,choices=values)
-    p.add_argument('--trials',type=int);a=p.parse_args()
+                        ('coverage',['auto','exhaustive','sampled']),('publish',['allow_draft','require_targets']),('budget',['total','per_split']),
+                        ('audit',['on','off']),('baseline-finish',['fixed_budget','targets_met']),('continue-after-targets',['on','off'])]:p.add_argument('--'+name,choices=values)
+    for name in ('trials','new-fits','max-fits','seconds'):p.add_argument('--'+name,type=int)
+    a=p.parse_args()
     try:
         if a.command=='menu':menu(ROOT)
         elif a.command=='status':print(json.dumps({'selected':current(ROOT),'saved':selected_pointer(ROOT)},ensure_ascii=False,indent=2))

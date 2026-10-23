@@ -81,6 +81,7 @@ class EncodedMinMax(object):
 class TypedBackend(object):
     def __init__(self,category_fields=(),category_labels=None):
         self.category_fields=tuple(category_fields);self.category_labels=category_labels or {}
+        self.last_evaluation=None
     def encode(self,frame):return FeatureEncoder(self.category_fields,self.category_labels).fit(frame)
     def fit(self,frame,y,cfg,expert_map,active_weights=None):
         if not self.category_fields:return core.fit_ensemble(frame,y,cfg,expert_map,active_weights)
@@ -94,9 +95,14 @@ class TypedBackend(object):
         encoder=bundle.get('input_encoder')
         return core.predict_bundle(bundle,encoder.frame(frame) if encoder else frame)
     def evaluate(self,cfg,X,y,rows,expert_map,test_size,price_bins):
+        self.last_evaluation=None
         Xtr,ytr,Xte,yte,tr_rows,te_rows=core.split_data(X,y,rows,cfg['split_seed'],test_size,price_bins)
         bundle=self.fit(Xtr,ytr,cfg,expert_map);pred,components=self.predict(bundle,Xte)
-        return core.regression_metrics(yte,pred),bundle,(Xtr,ytr,Xte,yte,tr_rows,te_rows,pred,components)
+        detail=(Xtr,ytr,Xte,yte,tr_rows,te_rows,pred,components)
+        train_prediction,train_components=self.predict(bundle,Xtr)
+        from .training_observation import capture
+        capture(self,cfg,detail,train_prediction,train_components,bundle)
+        return core.regression_metrics(yte,pred),bundle,detail
 
 
 def native_preprocessor(bundle):

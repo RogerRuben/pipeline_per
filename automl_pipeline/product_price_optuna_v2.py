@@ -247,6 +247,8 @@ def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrid
         'min_samples':cfg['input']['min_samples'],'tiny_sample_mode':split_report['tiny_sample_mode'],'validation_split':split_report}
     for key in ('history_trials_imported','history_policy','phase_counts','selected_phase','tpe_inherited_completed_trials','candidate_pool_count','cache_statistics','failed_trials','sampler_fallback_count','implementation_provenance'):
         if key in result:report[key]=result[key]
+    report.update(selected_training_metrics=result.get('selected_training_metrics'),full_refit_training_metrics=result.get('full_refit_training_metrics'),
+                  deployed_training_metrics=result.get('full_refit_training_metrics') if deployment_scope=='full_data' else result.get('selected_training_metrics'))
     write_json(output/'training_report.json',report);write_json(output/'price_attribute_scores.json',{'attributes':attributes,'records':cfg['expert']['records']})
     manifest_path=Path(str(path)+'.manifest.json');manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
     manifest.update(bundle_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),automl_explanation=native['automl_explanation']);write_json(manifest_path,manifest)

@@ -1,6 +1,6 @@
 # 源码目录与产物边界
 
-2026-10-20整理，以本机已完成的推荐系统V19.6.14及AutoML V4为基准。算法行为、已有模型类路径及成品业务格式保持原有约定。
+2026-10-20整理，2026-10-23加入AutoML V5。推荐系统基准仍为V19.6.14，保留V2/V3/V4；已有模型类路径及成品业务格式保持原有约定。
 
 ## 两部分源码
 
@@ -13,6 +13,7 @@ services/
   price_service/           价格推理、原生模型导出、可复用训练核心
     optuna_v2/             提供版本核心、V2搜索、V3搜索及编码
     optuna_v4/             V4搜索、划分、指标、缓存、融合及推理成员
+    optuna_v5/             V3保留基线、受约束融合、条件搜索及检查点
   effectiveness_service/   效能推理与已有专家工程产物适配
 tools/                     环境、交付、验证、历史实验和兼容入口
 tests/                     推荐、模型、流水线与打包测试
@@ -35,7 +36,7 @@ flowchart LR
 
 ## 旧入口兼容
 
-下列实现已移入`automl_pipeline/`：`product_pipeline`、`product_effectiveness_bootstrap`、三个`product_price_optuna_v*`、`product_optuna_v2_input`、`product_optuna_v4_adapter`、`product_modes`和`product_optuna_versions`。
+当前实现集中在`automl_pipeline/`：`product_pipeline`、`product_effectiveness_bootstrap`、V2/V3/V4/V5配置入口、输入适配、V4/V5训练导出适配、模式与版本管理。
 
 `tools/`下的同名文件保留转发，旧BAT无需更改。导入新旧路径得到同一模块对象，因此针对旧模块的测试替换仍作用于实际实现。价格原生推理类仍位于原`services.price_service.*`路径；没有通过移动模型类破坏旧pickle。
 
