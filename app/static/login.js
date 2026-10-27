@@ -13,8 +13,9 @@
     button.disabled=true;
     button.textContent="正在验证…";
     try{
-      var data=await request("/api/auth/login",{method:"POST",body:JSON.stringify({username:document.getElementById("username").value,password:document.getElementById("password").value})});
-      window.location.replace(data.redirect||"/");
+      var next=new URLSearchParams(window.location.search).get("next")||"";
+      var data=await request("/api/auth/login",{method:"POST",body:JSON.stringify({username:document.getElementById("username").value,password:document.getElementById("password").value,next:next})});
+      window.location.replace(data.redirect||"/portal");
     }catch(error){
       message.textContent=error.message;
       document.getElementById("password").select();

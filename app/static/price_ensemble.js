@@ -12,9 +12,10 @@
     if (!explanation || !(explanation.model_contributions || []).length) { panel.classList.add("hidden"); return; }
     var html = "<h3>价格融合解释</h3><p>" + escape(explanation.sample_warning) + "</p>";
     if (explanation.quality_status) {
-      html += '<p><strong>' + (explanation.quality_status === 'qualified_development' ? '开发目标达标' : '未达标试用草稿') + '</strong></p>';
+      html += '<p><strong>' + (explanation.quality_status === 'qualified_sealed_assessment' ? '训练与封存验收目标达标' : explanation.quality_status === 'qualified_development' ? '开发目标达标' : '未达标试用草稿') + '</strong></p>';
       var fixedCV = explanation.evaluation_scope === 'fixed_cross_validation_development';
       var scores = [['部署模型训练集', explanation.training_metrics], [fixedCV ? '固定CV开发集（参与选参）' : '开发集（参与选择）', explanation.development_metrics], ['固定外层留出集', explanation.holdout_metrics]];
+      if (explanation.protocol === 'sealed_nested') scores = [['部署模型训练集', explanation.training_metrics], ['内部练习（参与选参和融合）', explanation.development_metrics], [explanation.evaluation_scope === 'nested_procedure_test' ? '完整训练办法的轮换封存验收' : '同一保存模型的固定留出验收', explanation.test_metrics || explanation.holdout_metrics]];
       if (explanation.reference_metrics) scores.splice(1, 0, [fixedCV ? 'V3原单划分开发（仅对照）' : '保留的V3基线开发集', explanation.reference_metrics]);
       if (explanation.reference_cv_metrics) scores.splice(1, 0, ['V3参数在同一固定CV上的基线', explanation.reference_cv_metrics]);
       if (explanation.reference_training_metrics) scores.splice(1, 0, ['保留的V3基线训练集', explanation.reference_training_metrics]);

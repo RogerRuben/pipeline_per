@@ -1,0 +1,348 @@
+{
+  "recommendation_version": "V21.6",
+  "recommendation_reference": "3439c7dadf3b3dada10482a2c17d99d3f9853b10",
+  "cost_effectiveness_reference": "16ab95512f18f818a65572d982095dbd1e9622bf",
+  "retained_pipeline_compatibility": [
+    "app/console_compat.py",
+    "app/product_table.py",
+    "app/static/price_ensemble.css",
+    "app/static/price_ensemble.js",
+    "app/xlsx_utils.py"
+  ],
+  "files": [
+    {
+      "path": "app/__init__.py",
+      "upstream_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/anchor_feasibility.py",
+      "upstream_sha256": "2bec98b4cfdec1832d42533c50c2f4b7d2b58b93daa837024e48fa819dba3dfe"
+    },
+    {
+      "path": "app/conditional_compatibility.py",
+      "upstream_sha256": "6f3b1f4e389bcdf705e65e02736ece461171e8d295eaef96a93494123d118d54"
+    },
+    {
+      "path": "app/conditional_constraint.py",
+      "upstream_sha256": "846851d8911d5b45277c6953ba5f1f9e9ee8aa4a15b0000bf59f2dd5cc11a457"
+    },
+    {
+      "path": "app/configuration.py",
+      "upstream_sha256": "b3b1212e3ebaceb839bb26b398c0db84b3fb7d91b9a64400b7cb1c0a1f3c8a6d"
+    },
+    {
+      "path": "app/constraint_projection.py",
+      "upstream_sha256": "691c33f05068dd3612c1df35053bf17cadaa7230b0a95b45f2b46b80fa378a99"
+    },
+    {
+      "path": "app/coupling_pairs.py",
+      "upstream_sha256": "e33ebf0e9f7982bd74ccb7dba943ee83c906df95e8dc66dc0a463c9526642891"
+    },
+    {
+      "path": "app/data_master.py",
+      "upstream_sha256": "7661307fbfe5ccfd2ef3ee44120ec78e72955ebd02aabd88dd8159250f1e7075"
+    },
+    {
+      "path": "app/demand_branch.py",
+      "upstream_sha256": "ce1a0fe311e8d5ce3117a4303d9b41ef9945afb7fe84cb6c6b4b8140db57af8a"
+    },
+    {
+      "path": "app/display_mapping.py",
+      "upstream_sha256": "649a1942ac2acfe92fad8df22a0c8ead791c4203c76e82aaf45876816eaa1445"
+    },
+    {
+      "path": "app/expert_scheme.py",
+      "upstream_sha256": "4b4e1d93f23b035c2ab7af3b189be4ebc5556f8b01644db4d7a386dd02ea7cdc"
+    },
+    {
+      "path": "app/generation_profiles.py",
+      "upstream_sha256": "22935c3049d8aa79e3e62fd2c7cc91469c116cf1a5dc31cd0344e9009dd5ac22"
+    },
+    {
+      "path": "app/generation_tasks.py",
+      "upstream_sha256": "8fec0b1b1658875deb83d1f67fad48ffde4d6e7c8412269153bfd8d2d3b6e54b"
+    },
+    {
+      "path": "app/gflownet_generator.py",
+      "upstream_sha256": "981bcf8ffd98a2d9b9caf039ee09261c57a3a2f64c58f91e4a4b16fb30b89e0f"
+    },
+    {
+      "path": "app/historical_onboarding.py",
+      "upstream_sha256": "9a590d5b2e8741c2ffdd7044bb87a8dacb962ca7ae003bbff76729d451487e34"
+    },
+    {
+      "path": "app/local_generator.py",
+      "upstream_sha256": "c45e51e6134bb7d4830d2a5480650746bd250da8cbe533b5e886ccb5fc8133a1"
+    },
+    {
+      "path": "app/model_contract_v4.py",
+      "upstream_sha256": "ef87dd1c676f3cea2116ab0c665580e6fe5b97aa347b74b0ac9a53676322667d"
+    },
+    {
+      "path": "app/model_field_types.py",
+      "upstream_sha256": "876161a818d149d5bf13cc479c3a2255637d9942d9ccef59e3520d5261fb68d3"
+    },
+    {
+      "path": "app/model_runtime.py",
+      "upstream_sha256": "e917663a10b9545c978bd06a6ebfbdfe13a71c1de339e5354d15ebd7416ef1b7"
+    },
+    {
+      "path": "app/model_service_client.py",
+      "upstream_sha256": "17bf1ec09cb6a7ee7e7a480b3187cd3e9df565ae0a25fb30794ec58db48ad041"
+    },
+    {
+      "path": "app/price_output.py",
+      "upstream_sha256": "8992b8e6fd7a3f77d4afa1a98256527eba3055fd3cf1e7d10571224792f828a3"
+    },
+    {
+      "path": "app/product_releases.py",
+      "upstream_sha256": "7809e13dc9f36bd763f27312ffeeafbff9bdfaaa6516999410a657c7aca80840"
+    },
+    {
+      "path": "app/range_diagnostics.py",
+      "upstream_sha256": "1e171354bd5ddb29c48e034b88da4f10c7430d90abce0f69ff0861273f6ccd51"
+    },
+    {
+      "path": "app/ranking_explanation.py",
+      "upstream_sha256": "e7d2a2f6a11803b6bdc5b188a957e39ed3aafc4392138cca4bc53ba08d9e24ec"
+    },
+    {
+      "path": "app/recommendation_explanation.py",
+      "upstream_sha256": "6387204785c28f9cd1e0315fe5b0fac61219a978cff660d25828325d639b49ed"
+    },
+    {
+      "path": "app/recommender.py",
+      "upstream_sha256": "a42e09a07e16a532c1f85d1a610f429a39352997f8c030cf733862fea2b2e856"
+    },
+    {
+      "path": "app/relaxation_advisor.py",
+      "upstream_sha256": "aaa0c2b8e69ef5ed05af9221b15d2b4f090cb4a1cf88f5ba3450b0c68421b06a"
+    },
+    {
+      "path": "app/requirement_assessment.py",
+      "upstream_sha256": "c2cab16d4c91cd5b2a4e5e4773e4e3bd99bed1f25bb79c2f9673edbd70446295"
+    },
+    {
+      "path": "app/requirement_versions.py",
+      "upstream_sha256": "f216c40bc3b3716318ce4a96db3464ec11ee7ee732fd853b9fea87c0025f0747"
+    },
+    {
+      "path": "app/scenario_policy.py",
+      "upstream_sha256": "ffb63f0a941e7f0d0411d41c2e0318b5f0beccb504877e07d2711b767f3d3dd3"
+    },
+    {
+      "path": "app/semantic_snapshot.py",
+      "upstream_sha256": "7e036220ce403aa5f7ff3746be3e2b0faa0f2862b4aee1e3ff5bceb1dda9a90d"
+    },
+    {
+      "path": "app/server.py",
+      "upstream_sha256": "f10ab9412f23c1a9df9967be01c1e46e6534e9241a78e513c95ff2a75a6a77d3"
+    },
+    {
+      "path": "app/static/admin.html",
+      "upstream_sha256": "788bf97f999f956c6fbbe099b77b237a5d30554b458bcd0ef317eb646e1e672f"
+    },
+    {
+      "path": "app/static/admin.js",
+      "upstream_sha256": "96cfe506e600eab84f36ecf192d3a0f61eb3b2db2e84790f3ccf170555b67589"
+    },
+    {
+      "path": "app/static/app.js",
+      "upstream_sha256": "4d7b2f22087dca93d9214cb644b6733bde59bc730065250d7458ab6d7881efd5"
+    },
+    {
+      "path": "app/static/effectiveness.html",
+      "upstream_sha256": "e37db53908e433613bae2d74fa6d323f17555dc31671e86295e8b78e6d5be09c"
+    },
+    {
+      "path": "app/static/effectiveness.js",
+      "upstream_sha256": "d3e6175da38fba5fc45e35c5f77cbfa4c0c5f1bf435a1179c694dfd26a9257c0"
+    },
+    {
+      "path": "app/static/index.html",
+      "upstream_sha256": "51cc0a3789ae35bf894a48a45bb689c1e308dbf59cc0c381424149541da49c9b"
+    },
+    {
+      "path": "app/static/login.html",
+      "upstream_sha256": "a48015b3d851d7bad27894f29c2d379a244a833a45e5111e6ac642f440e57976"
+    },
+    {
+      "path": "app/static/login.js",
+      "upstream_sha256": "d1b4f2c08f4784f0cd0e8be6fbeb84a578ff5ca44fbfb5f6c9f8701068e4d032"
+    },
+    {
+      "path": "app/static/portal.html",
+      "upstream_sha256": "3b9ffba4970240a1aadf5da2094f8a5b722fbcafb26383e40286a1aafeca3b59"
+    },
+    {
+      "path": "app/static/portal.js",
+      "upstream_sha256": "b6452a23320ac7ca8d70c4a3edb276efefc4998a03ef409b66934a90150dbb41"
+    },
+    {
+      "path": "app/static/price.html",
+      "upstream_sha256": "3e4a244b1fed3486ae1d86c7e37729cf5729072f5cd5e6304a43bea67866215c"
+    },
+    {
+      "path": "app/static/price.js",
+      "upstream_sha256": "79180b181d34b21af73dece3ab94814bad4be7e7f64dd30f821b46a14ab715a7"
+    },
+    {
+      "path": "app/static/styles.css",
+      "upstream_sha256": "40a0e8a27b926a457d68ccec0d9c9f458837b41f4ad8f4222ffe832a8d07d919"
+    },
+    {
+      "path": "app/store.py",
+      "upstream_sha256": "026b35a67d976bdb6afcf49f7322773f861a90bf1a36b71cad85fcea2da4e2ae"
+    },
+    {
+      "path": "app/value_semantics.py",
+      "upstream_sha256": "a5c55ceab2dcc5cccb953e5eafca8b594c30fb0fc6df290855e12d81085ce565"
+    },
+    {
+      "path": "app/wide_import.py",
+      "upstream_sha256": "ccbcea835c04399feb1ef9cf25b8264c28b0de36da1f7ff63d25e8b8ec9323fb"
+    },
+    {
+      "path": "cost_effectiveness_analysis/__init__.py",
+      "upstream_sha256": "a4a9e1556460c5216d5320e9f1450e472f7990705c86e5c7dc2a3bbe4928da58"
+    },
+    {
+      "path": "cost_effectiveness_analysis/analysis.py",
+      "upstream_sha256": "b84d093472077103f2d670bb7b2c539e8f151a431d6bc5bd9eab960d8b5f685e"
+    },
+    {
+      "path": "cost_effectiveness_analysis/app.py",
+      "upstream_sha256": "ed6416a06bc8e1e607f36b1f0016c598eeb02b307ed6bb21c6732a8f99caf9a7"
+    },
+    {
+      "path": "cost_effectiveness_analysis/config.py",
+      "upstream_sha256": "e3abf5b6dec2af3bb2738a3cf7b029451101ee5147eb375acb170eddd754cd42"
+    },
+    {
+      "path": "cost_effectiveness_analysis/db_reader.py",
+      "upstream_sha256": "e543bf506d1659170d8221a38d8efec120a082bc42f492869d393a0a14a5dfc3"
+    },
+    {
+      "path": "cost_effectiveness_analysis/model_client.py",
+      "upstream_sha256": "e5aa9b597bad3e8629db7bff468bdcc47dae03bafe73c64f85eef64edcebb55b"
+    },
+    {
+      "path": "cost_effectiveness_analysis/static/app.js",
+      "upstream_sha256": "e49624b064170fb7425a24ce4339cc6780a0b5dc0220fb13075fd22dc8aaf95d"
+    },
+    {
+      "path": "cost_effectiveness_analysis/static/index.html",
+      "upstream_sha256": "c99151d49582b29b188488410733bd0a89bcccd5c688589bc616a75cad6e499a"
+    },
+    {
+      "path": "cost_effectiveness_analysis/static/styles.css",
+      "upstream_sha256": "1657750c0064afe7151a056ddc5b15cdac152e1bd5e1536726fa69213b09023b"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/__init__.py",
+      "upstream_sha256": "8b084a9f378124b2b1a51563bf3c22444eb7ff33692017da28b2136ae56987ed"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/test_analysis.py",
+      "upstream_sha256": "85a67c923fcdb3d9e7729aeb9983bd41c0a10c45aa14e2724f492603fa20b49e"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/test_api.py",
+      "upstream_sha256": "2d9c13fd26a513e262b299db28107be7a2f57c4a0ada5daf718ce92dc56d8c9c"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/test_config.py",
+      "upstream_sha256": "7d9dd6f408975bbced1e3786c092b69d751d4dc91aa203e4b59a3be864f6307e"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/test_db_readonly.py",
+      "upstream_sha256": "9e4b72ecedbccc6e4e2c783cc3555001ceb5b5b62b4353fd3c40e288e23c19a7"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/test_frontend_contract.py",
+      "upstream_sha256": "71331f087f8bb6ce7909e1f21857f6753ccfd0bfcd9d9d8e85148d865eb0e4b4"
+    },
+    {
+      "path": "cost_effectiveness_analysis/tests/test_model_client.py",
+      "upstream_sha256": "b395ac7662212728130125c1f10f0ba68bce6857d60833ce23214a0670bf68d9"
+    }
+  ],
+  "note": "Original input/console fixes retained; pipeline service management and native model classes are independent.",
+  "pipeline_adjustments": [
+    "Preserve dual Chinese/English headers, CSV encodings/delimiters and workbook diagnostics.",
+    "Keep the native price ensemble explanation panel and saved model compatibility imports.",
+    "Preserve conservative recommendation prices while retaining nominal price display.",
+    "Use a bundled scenario default only when user/workspace configuration is absent.",
+    "Link the real read-only cost service and resolve its return link to the current portal.",
+    "Record the imported effectiveness component source; service ownership lives in the pipeline, not this frontend."
+  ],
+  "integrated_sha256": {
+    "app/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "app/anchor_feasibility.py": "2bec98b4cfdec1832d42533c50c2f4b7d2b58b93daa837024e48fa819dba3dfe",
+    "app/conditional_compatibility.py": "6f3b1f4e389bcdf705e65e02736ece461171e8d295eaef96a93494123d118d54",
+    "app/conditional_constraint.py": "846851d8911d5b45277c6953ba5f1f9e9ee8aa4a15b0000bf59f2dd5cc11a457",
+    "app/configuration.py": "6e156eeb6e608b3c9993657e909a17c61571917907c0b4c7d7170ae82a87c180",
+    "app/constraint_projection.py": "691c33f05068dd3612c1df35053bf17cadaa7230b0a95b45f2b46b80fa378a99",
+    "app/coupling_pairs.py": "e33ebf0e9f7982bd74ccb7dba943ee83c906df95e8dc66dc0a463c9526642891",
+    "app/data_master.py": "7661307fbfe5ccfd2ef3ee44120ec78e72955ebd02aabd88dd8159250f1e7075",
+    "app/defaults/scenario_config.json": "da46eb9e57527cfc24c5577140f5847c7ad04ea406a80574af86fab47a515091",
+    "app/demand_branch.py": "ce1a0fe311e8d5ce3117a4303d9b41ef9945afb7fe84cb6c6b4b8140db57af8a",
+    "app/display_mapping.py": "649a1942ac2acfe92fad8df22a0c8ead791c4203c76e82aaf45876816eaa1445",
+    "app/expert_scheme.py": "4b4e1d93f23b035c2ab7af3b189be4ebc5556f8b01644db4d7a386dd02ea7cdc",
+    "app/generation_profiles.py": "22935c3049d8aa79e3e62fd2c7cc91469c116cf1a5dc31cd0344e9009dd5ac22",
+    "app/generation_tasks.py": "8fec0b1b1658875deb83d1f67fad48ffde4d6e7c8412269153bfd8d2d3b6e54b",
+    "app/gflownet_generator.py": "7fb71395680ba7ec754c71ce39f55edd209f2db98369dd1298c4fe5ed11da852",
+    "app/historical_onboarding.py": "275e5356869d4754c4059cb65a25978849ea25f5e366f07eb4c96ffee1aa700e",
+    "app/legacy_gflownet.py": "0130e2e95a714358c02bf6a69f4c01f6af2089ade2d1a7aae32b952c41ef928d",
+    "app/local_generator.py": "bf44fcdee23468a47e4b5c38f0a6b81b72e60acdc9b21f2b9930e0f6b5c75767",
+    "app/model_contract_v4.py": "ef87dd1c676f3cea2116ab0c665580e6fe5b97aa347b74b0ac9a53676322667d",
+    "app/model_field_types.py": "876161a818d149d5bf13cc479c3a2255637d9942d9ccef59e3520d5261fb68d3",
+    "app/model_runtime.py": "c861c9c621727c038c43c7befcbec687eaabc8f7e4db6c709a8f2b3b5a19a539",
+    "app/model_service_client.py": "a0ac30ed50d3b0ac076fb6c47daeb8a4fea10bca8a989dc7bd14721018fd1401",
+    "app/price_output.py": "c00fcf0b0d5c33264074386544687adbb612b57a209314e6031cb69c0c9c574e",
+    "app/product_releases.py": "7809e13dc9f36bd763f27312ffeeafbff9bdfaaa6516999410a657c7aca80840",
+    "app/range_diagnostics.py": "1e171354bd5ddb29c48e034b88da4f10c7430d90abce0f69ff0861273f6ccd51",
+    "app/ranking_explanation.py": "e7d2a2f6a11803b6bdc5b188a957e39ed3aafc4392138cca4bc53ba08d9e24ec",
+    "app/recommendation_explanation.py": "6387204785c28f9cd1e0315fe5b0fac61219a978cff660d25828325d639b49ed",
+    "app/recommender.py": "1f9bf62e89a4f5b095f886d4e15768e2fe3ea57b3ba46b220162a60d3ce48f2f",
+    "app/relaxation_advisor.py": "aaa0c2b8e69ef5ed05af9221b15d2b4f090cb4a1cf88f5ba3450b0c68421b06a",
+    "app/requirement_assessment.py": "c2cab16d4c91cd5b2a4e5e4773e4e3bd99bed1f25bb79c2f9673edbd70446295",
+    "app/requirement_versions.py": "f216c40bc3b3716318ce4a96db3464ec11ee7ee732fd853b9fea87c0025f0747",
+    "app/scenario_policy.py": "5fb084d99a7d7e1c3e3270541f6c4e0f939f97e0c8da97d0a82a016f1b260b6c",
+    "app/semantic_snapshot.py": "7e036220ce403aa5f7ff3746be3e2b0faa0f2862b4aee1e3ff5bceb1dda9a90d",
+    "app/server.py": "76b6a94c0afc355881afb73566d1bcc3a8b13aa41b7f9b85d34dbff727419f27",
+    "app/static/admin.html": "788bf97f999f956c6fbbe099b77b237a5d30554b458bcd0ef317eb646e1e672f",
+    "app/static/admin.js": "96cfe506e600eab84f36ecf192d3a0f61eb3b2db2e84790f3ccf170555b67589",
+    "app/static/app.js": "4d7b2f22087dca93d9214cb644b6733bde59bc730065250d7458ab6d7881efd5",
+    "app/static/effectiveness.html": "e37db53908e433613bae2d74fa6d323f17555dc31671e86295e8b78e6d5be09c",
+    "app/static/effectiveness.js": "d3e6175da38fba5fc45e35c5f77cbfa4c0c5f1bf435a1179c694dfd26a9257c0",
+    "app/static/index.html": "51cc0a3789ae35bf894a48a45bb689c1e308dbf59cc0c381424149541da49c9b",
+    "app/static/login.html": "a48015b3d851d7bad27894f29c2d379a244a833a45e5111e6ac642f440e57976",
+    "app/static/login.js": "d1b4f2c08f4784f0cd0e8be6fbeb84a578ff5ca44fbfb5f6c9f8701068e4d032",
+    "app/static/portal.html": "3b9ffba4970240a1aadf5da2094f8a5b722fbcafb26383e40286a1aafeca3b59",
+    "app/static/portal.js": "24f9df5c72660b310e015ae66bde2203dce5da1480c3e58271e8a70fded90034",
+    "app/static/price.html": "01d98e02a878cd040eb371346dbb6efabe63645c9edcba9ee7bb2261a2542ed4",
+    "app/static/price.js": "6ad18fa829c2b35d7b53753dc18214da11db9c016bb364710cdf7ccdf7315f6b",
+    "app/static/styles.css": "40a0e8a27b926a457d68ccec0d9c9f458837b41f4ad8f4222ffe832a8d07d919",
+    "app/store.py": "026b35a67d976bdb6afcf49f7322773f861a90bf1a36b71cad85fcea2da4e2ae",
+    "app/value_semantics.py": "a5c55ceab2dcc5cccb953e5eafca8b594c30fb0fc6df290855e12d81085ce565",
+    "app/wide_import.py": "5f9708e4bcf10740fb3d16aa75e78149482c4abc6b19b52c78e7e153a178a4a4",
+    "cost_effectiveness_analysis/__init__.py": "a4a9e1556460c5216d5320e9f1450e472f7990705c86e5c7dc2a3bbe4928da58",
+    "cost_effectiveness_analysis/analysis.py": "b84d093472077103f2d670bb7b2c539e8f151a431d6bc5bd9eab960d8b5f685e",
+    "cost_effectiveness_analysis/app.py": "0b037c960253d86796e3e3ac0596f6757b2209246b33117c344254eca0055b2a",
+    "cost_effectiveness_analysis/config.py": "1a75fff20074e0074a38146899a1684f8c83082d85949c57f20babd4a571c206",
+    "cost_effectiveness_analysis/db_reader.py": "e543bf506d1659170d8221a38d8efec120a082bc42f492869d393a0a14a5dfc3",
+    "cost_effectiveness_analysis/model_client.py": "e5aa9b597bad3e8629db7bff468bdcc47dae03bafe73c64f85eef64edcebb55b",
+    "cost_effectiveness_analysis/static/app.js": "7189c74f437580b48500e140854fdf1a99ca0858ba27d78d18271b7792f82a91",
+    "cost_effectiveness_analysis/static/index.html": "4213b81c339da84023cc37fab209f992f05460a8825b2c21c0cf36826da8c493",
+    "cost_effectiveness_analysis/static/styles.css": "1657750c0064afe7151a056ddc5b15cdac152e1bd5e1536726fa69213b09023b",
+    "cost_effectiveness_analysis/tests/__init__.py": "8b084a9f378124b2b1a51563bf3c22444eb7ff33692017da28b2136ae56987ed",
+    "cost_effectiveness_analysis/tests/test_analysis.py": "85a67c923fcdb3d9e7729aeb9983bd41c0a10c45aa14e2724f492603fa20b49e",
+    "cost_effectiveness_analysis/tests/test_api.py": "2d9c13fd26a513e262b299db28107be7a2f57c4a0ada5daf718ce92dc56d8c9c",
+    "cost_effectiveness_analysis/tests/test_config.py": "7d9dd6f408975bbced1e3786c092b69d751d4dc91aa203e4b59a3be864f6307e",
+    "cost_effectiveness_analysis/tests/test_db_readonly.py": "9e4b72ecedbccc6e4e2c783cc3555001ceb5b5b62b4353fd3c40e288e23c19a7",
+    "cost_effectiveness_analysis/tests/test_frontend_contract.py": "71331f087f8bb6ce7909e1f21857f6753ccfd0bfcd9d9d8e85148d865eb0e4b4",
+    "cost_effectiveness_analysis/tests/test_model_client.py": "b395ac7662212728130125c1f10f0ba68bce6857d60833ce23214a0670bf68d9"
+  },
+  "original_price_core_sha256": "f8f9877029e13535b97b40c429fb4afe6b5d613db635b6bee83307fca30b2899"
+}

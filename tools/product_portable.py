@@ -115,7 +115,7 @@ def prepare(source,price_engine=None):
     if settings.get("price_engine") == "r4":
         from tools.product_r4_input import prepare as prepare_r4
         return prepare_r4(source, ROOT, settings)
-    if settings.get("price_engine") in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5"):
+    if settings.get("price_engine") in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5","optuna_v6"):
         from tools.product_optuna_v2_input import prepare as prepare_optuna_v2
         return prepare_optuna_v2(source, ROOT, settings)
     config_path = ROOT / "config" / "price_automl_v2.json"
@@ -227,7 +227,7 @@ def latest_output(fingerprint=None):
             entry=selected_pointer(ROOT)
             if entry is None or (fingerprint is not None and entry.get('fingerprint')!=fingerprint):return None
             return (ROOT/entry['output']).resolve()
-        if settings.get('engine_selection_required') and settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5'):
+        if settings.get('engine_selection_required') and settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'):
             expected_engine=settings['price_engine']
             path=ROOT/'state'/('latest_'+settings['price_engine']+'.json')
     if not path.is_file():
@@ -301,7 +301,7 @@ def rebuild(source, prepared):
                                                "output": output.relative_to(ROOT).as_posix(), "fingerprint": details["fingerprint"],
                                                "input_sha256": details["input_sha256"],"price_engine":settings.get('price_engine')}
     write_json(ROOT/'state/latest.json',pointer)
-    if settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5'):write_json(ROOT/'state'/('latest_'+settings['price_engine']+'.json'),pointer)
+    if settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'):write_json(ROOT/'state'/('latest_'+settings['price_engine']+'.json'),pointer)
     if settings.get('mode_registry_enabled'):
         from tools.product_modes import register
         register(ROOT,pointer,price)
@@ -319,6 +319,7 @@ def main(argv=None):
     parser.add_argument("--price-port", type=int)
     parser.add_argument("--effect-port", type=int)
     parser.add_argument("--app-port", type=int)
+    parser.add_argument("--cost-port", type=int)
     args = parser.parse_args(argv)
     try:
         report = verify_runtime(args.full)
@@ -357,7 +358,8 @@ def main(argv=None):
             serve(output, activate_draft=True, no_browser=args.no_browser,
                   price_port=args.price_port if args.price_port is not None else settings["ports"]["price"],
                   effect_port=args.effect_port if args.effect_port is not None else settings["ports"]["effectiveness"],
-                  app_port=args.app_port if args.app_port is not None else settings["ports"]["recommendation"])
+                  app_port=args.app_port if args.app_port is not None else settings["ports"]["recommendation"],
+                  cost_port=args.cost_port if args.cost_port is not None else settings["ports"].get("cost_effectiveness",18793))
         return 0
     except KeyboardInterrupt:
         print("任务已停止。")

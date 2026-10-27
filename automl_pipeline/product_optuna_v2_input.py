@@ -20,6 +20,8 @@ def prepare(source,root,settings):
         from .product_price_optuna_v4 import load_config as loader
     elif engine=='optuna_v5':
         from .product_price_optuna_v5 import load_config as loader
+    elif engine=='optuna_v6':
+        from .product_price_optuna_v6 import load_config as loader
     cfg=loader(root/('config/price_'+engine+'.json'))
     table=product_table_rows(source.name,raw,require_dual_header=True)
     write_json(root/'logs/input_diagnostics.json',table['diagnostics'])
@@ -31,6 +33,15 @@ def prepare(source,root,settings):
     restore_configurations(analyzed['data'],table,cfg['expert']['field_types'],cfg['input']['missing_tokens'])
     frame,y,specs,mappings,groups,ids=dataset(analyzed['data'],cfg)
     _,split_report=training_split(len(y),cfg)
+    if engine=='optuna_v6':
+        from services.price_service.optuna_v6.protocol import make_plan
+        from .product_price_optuna_v2 import training_source_rows
+        rows=training_source_rows(analyzed['data'],ids,source);plan=make_plan(frame,rows,ids,cfg)
+        split_report={'sealed_plan':plan['public'],'min_samples':cfg['input']['min_samples'],'adjusted':False}
+        p=cfg['v6']['persistence']
+        if not p['directory']:p['directory']=str((root/'state/v6').resolve())
+        elif not Path(p['directory']).is_absolute():p['directory']=str((root/p['directory']).resolve())
+        if cfg['v6']['evaluation']['mode']=='locked_holdout' and cfg['v6']['evaluation']['require_declared_types'] and set(frame.columns)-set(cfg['expert']['field_types']):raise ValueError('V6固定留出须声明全部属性类型。')
     if engine=='optuna_v5':
         p=cfg['v5']['persistence']
         if not p['directory']:p['directory']=str((root/'state/v5').resolve())
@@ -70,6 +81,9 @@ def prepare(source,root,settings):
                 'services/price_service/optuna_v2/price_automl_core.py','services/price_service/optuna_v2/optimizer.py','services/price_service/optuna_v2/native_member.py',
                 'services/price_service/optuna_v2/typed_features.py','services/price_service/optuna_v2/search_history.py')
     if engine=='optuna_v3':code_files+=('automl_pipeline/product_price_optuna_v3.py','services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py')
+    if engine=='optuna_v6':code_files+=('automl_pipeline/product_price_optuna_v6.py','automl_pipeline/product_optuna_v6_adapter.py',
+        'services/price_service/optuna_v6/backend.py','services/price_service/optuna_v6/blend.py','services/price_service/optuna_v6/protocol.py',
+        'services/price_service/optuna_v6/search.py','services/price_service/optuna_v6/engine.py','services/price_service/optuna_v5/trace.py','services/price_service/optuna_v5/persistence.py')
     if engine=='optuna_v5':code_files+=('automl_pipeline/product_price_optuna_v5.py','automl_pipeline/product_optuna_v5_adapter.py',
         'services/price_service/optuna_v5/fixed_cv.py','services/price_service/optuna_v5/trace.py','services/price_service/optuna_v4/backend.py',
         'services/price_service/optuna_v5/engine.py','services/price_service/optuna_v5/fusion.py','services/price_service/optuna_v5/persistence.py','services/price_service/optuna_v5/review.py',
@@ -97,6 +111,9 @@ def prepare(source,root,settings):
     notes.append('属性只有数值与配置类型；配置独热编码，数值在训练集上MinMax缩放。')
     if split_report.get('adjusted'):notes.append('小样本验证自动调整：%d条训练、%d条验证；配置最低%d条。'%(split_report['training_rows'],split_report['validation_rows'],split_report['min_samples']))
     if engine=='optuna_v3':notes[0]='V3：NSGA-II广域搜索后，以Pareto多锚点MOTPE精修；总预算在两阶段共享。'
+    if engine=='optuna_v6':
+        notes[0]='V6独立搜索，不先运行V3；每轮在允许训练资料内部选参和学习收缩融合，封存价格只评分。'
+        notes[2]='4—7条逐条封存，单条不算R²，汇总计算；所有验收轮完成后才导出，固定留出则导出同一模型。START不训练。'
     if engine=='optuna_v5':
         notes[0]='V5：先保留V3基线%d轮，再用已有预测求融合权重；新增成员fit预算%d。'%(cfg['search']['n_trials'],cfg['v5']['enhancement']['max_new_fits'])
         notes[2]='默认运行实际获分快照；跨划分复核单独报告；全量重拟合另存。START不训练，RESUME/RETRAIN可读取同数据检查点继续。'

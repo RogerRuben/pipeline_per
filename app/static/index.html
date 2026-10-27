@@ -2,70 +2,72 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>工业技术协议智能推荐系统 V19.6.13</title><link rel="stylesheet" href="/styles.css">
+  <title>参数辅助设计系统 V21.6</title><link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <header class="app-header">
-  <div class="brand-lockup"><div class="brand-mark">IP</div><div><div class="brand-title">工业技术协议智能推荐系统 <span>V19.6.13</span></div><div class="brand-subtitle">需求匹配 · 智能推荐 · 方案优化</div></div></div>
-  <div class="header-actions"><span id="modelStatus" class="system-pill"><i></i>模型校验中</span><span id="demoModeBadge" class="system-pill demo hidden"><i></i>Cloudflare只读演示</span><a class="button secondary" href="/price">价格预测</a><a class="button secondary" href="/effectiveness">效能评价</a><a id="adminLink" class="button secondary" href="/admin">数据管理</a><button id="savedBtn" class="button secondary">方案库</button><button id="fontBtn" class="button secondary">A 字体</button><button id="logoutBtn" class="button secondary hidden">退出登录</button></div>
+  <div class="brand-lockup"><div class="brand-mark">PD</div><div><div class="brand-title">参数辅助设计系统 <span>V21.6</span></div><div class="brand-subtitle">需求定义 · 方案推荐 · 参数优化</div></div></div>
+  <div class="header-actions"><span id="modelStatus" class="system-pill"><i></i>模型校验中</span><span id="demoModeBadge" class="system-pill demo hidden"><i></i>Cloudflare只读演示</span><a class="button secondary" href="/portal">系统导航</a><button id="helpBtn" class="button secondary">使用帮助</button><button id="savedBtn" class="button secondary">方案库</button><button id="fontBtn" class="button secondary">A 字体</button><button id="logoutBtn" class="button secondary hidden">退出登录</button></div>
 </header>
 <div class="app-shell">
   <aside class="search-rail">
-    <section class="product-card card"><div class="eyebrow">CURRENT PRODUCT</div><h2 id="productName">正在加载成品</h2><p id="productDescription"></p><div class="data-stats"><div><b id="historyCount">-</b><span>参考方案</span></div><div><b id="liveCount">0</b><span>生成方案</span></div><div><b id="savedCount">-</b><span>已保存</span></div></div></section>
-
-    <section class="card filter-card">
-      <div class="section-heading"><div><span class="step-index">01</span><h3>场景与功能偏好</h3></div><button id="clearConditionBtn" class="link-button">清空条件</button></div>
-      <p class="section-copy">选择需要优先满足的场景、性能和功能。</p><div id="tagGroups"></div>
+    <section class="card scenario-card">
+      <div class="section-heading"><div><span class="step-index">01</span><h3>优化目标</h3></div><button id="clearConditionBtn" class="link-button">恢复默认</button></div>
+      <p class="section-copy">先选择优化方向，再补充价格、效能和评价要求。</p>
+      <div id="scenarioChoices" class="scenario-choices"></div>
+      <div id="scenarioDescription" class="scenario-description">正在读取优化策略……</div>
+      <div class="goal-fields form-grid compact-grid">
+        <label>最高价格（万元）<input id="maxPrice" type="number" step="0.1" placeholder="不限制"></label>
+        <label>最低效能评分<input id="minCapability" type="number" min="0" placeholder="不限制"></label>
+        <label class="full-field">效能评价协议<select id="targetProtocol"></select><small id="targetProtocolHint">协议作为100分参考，不参与模型训练。</small></label>
+      </div>
+      <details class="scenario-advanced"><summary>高级优化设置</summary>
+        <label>优化偏好<select id="optimizationIntensity"></select></label>
+        <div id="scenarioOptions" class="scenario-options"></div>
+      </details>
     </section>
 
-    <section class="card filter-card">
-      <div class="section-heading"><div><span class="step-index">02</span><h3>业务目标</h3></div></div>
-      <div class="form-grid compact-grid">
-        <label class="full-field">效能评价协议<select id="targetProtocol"></select><small id="targetProtocolHint">协议作为100分参考，不参与模型训练。</small></label>
-        <label>最高价格（万元）<input id="maxPrice" type="number" step="0.1" placeholder="不限制"></label>
-        <label>最低保守效能分（P10）<input id="minCapability" type="number" min="0" placeholder="不限制，可超过100"></label>
-        <label>最低效费比<input id="minCE" type="number" step="0.1" placeholder="不限制"></label>
-        <label>最低可行概率<input id="minFeasibility" type="number" min="0" max="1" step="0.01" value="0.75"></label>
+    <section class="card filter-card requirements-card">
+      <div class="section-heading"><div><span class="step-index">02</span><h3>设计要求</h3></div></div>
+      <div class="requirements-subsection"><div class="subsection-title">功能偏好</div><div id="tagGroups"></div></div>
+      <div class="requirements-subsection technical-requirements">
+        <div class="subsection-heading"><div><b>技术条件</b><small>精确设置需要满足的指标</small></div><button id="addFilterBtn" class="button tiny secondary">＋ 添加条件</button></div>
+        <div id="tagCoverageSummary" class="coverage-summary">当前标签尚未覆盖技术指标。</div>
+        <div class="mode-row persistent-filter-mode"><span>条件组合</span><select id="filterMode"><option value="all">需全部满足 AND</option><option value="any">任一满足即可 OR</option></select></div><details class="filter-options"><summary>显示设置</summary><label class="coverage-toggle"><input id="hideCoveredParams" type="checkbox" checked> 隐藏标签已覆盖指标</label></details>
+        <div id="indicatorFilters"></div>
       </div>
     </section>
-
-    <section class="card filter-card">
-      <div class="section-heading"><div><span class="step-index">03</span><h3>技术指标条件</h3></div><button id="addFilterBtn" class="button tiny secondary">＋ 添加条件</button></div>
-      <div class="mode-row"><span>条件组合</span><select id="filterMode"><option value="all">全部满足 AND</option><option value="any">任一满足 OR</option></select></div>
-      <div id="indicatorFilters"></div>
-    </section>
-
-    <section class="card action-card">
-      <div class="section-heading"><div><span class="step-index">04</span><h3>智能推荐</h3></div></div>
-      <label>推荐排序<select id="sortBy"><option value="comprehensive">综合得分</option><option value="price">价格由低到高</option><option value="capability">效能由高到低</option><option value="cost_effectiveness">效费比由高到低</option><option value="feasibility">可行概率</option><option value="tag_match">标签匹配率</option></select></label>
-      <button id="recommendBtn" class="button primary full">开始智能推荐</button>
-      <div class="generation-box"><div><b>智能生成新方案</b><p>根据当前需求形成新的候选参数组合。</p></div><div class="generation-options"><label>生成数量<input id="generationCount" type="number" min="1" max="30" value="10"></label></div><button id="generateBtn" class="button accent full">智能生成方案</button><button id="clearLiveBtn" class="link-button full">清空生成方案</button></div>
-    </section>
+    <section class="recommendation-cta" aria-live="polite"><div><b id="recommendationCtaTitle">当前需求</b><span id="demandSummary">当前将按照“综合优化”进行推荐</span></div><button id="recommendBtn" class="button primary">直接开始推荐</button></section>
   </aside>
 
+  <div id="railResizeHandle" class="rail-resize-handle" role="separator" aria-orientation="vertical" aria-label="调整条件面板宽度" tabindex="0" title="拖动调整宽度；双击恢复默认"></div>
+
   <main class="content-area">
-    <section class="hero-panel"><div><div class="eyebrow">DECISION WORKSPACE</div><h1>面向需求的智能方案推荐</h1><p>结合现有数据、模型评价和工程规则，推荐并生成候选方案。</p></div><div class="hero-status"><div><span>模型方式</span><b id="modelModeStatus">读取中</b></div><div><span>价格后端</span><b id="priceBackendStatus">-</b></div><div><span>效能后端</span><b id="effectBackendStatus">-</b></div></div></section>
+    <section class="hero-panel"><div class="hero-main"><div class="eyebrow">参数辅助设计</div><h1>方案智能推荐</h1><p>根据设计要求筛选、比较并生成候选方案。</p><div class="product-context"><span>当前成品</span><b id="productName">正在加载成品</b><em id="productDescription"></em><small>参考方案 <strong id="historyCount">-</strong> · 生成方案 <strong id="liveCount">0</strong> · 已保存 <strong id="savedCount">-</strong> · <button id="requirementVersionBtn" class="inline-action">当前需求 · 尚未版本化</button></small></div></div><details class="technical-details"><summary>技术信息</summary><div class="hero-status"><div><span>运行方式</span><b id="modelModeStatus">读取中</b></div><div><span>价格计算</span><b id="priceBackendStatus">-</b></div><div><span>效能计算</span><b id="effectBackendStatus">-</b></div></div></details></section>
     <section id="generationStatus" class="generation-status hidden"><div><b id="generationStatusTitle">正在智能生成方案</b><span id="generationStatusText">您可以继续浏览和调整当前页面。</span></div><div class="generation-progress"><i id="generationProgressBar"></i></div><strong id="generationStatusProgress">0%</strong></section>
     <section id="generationReport" class="generation-report hidden"></section>
-    <div class="results-toolbar"><div><div class="eyebrow">方案推荐</div><h2>智能推荐结果</h2><p id="resultSummary">设置需求后开始智能推荐。</p></div><label class="source-view-control">查看范围<select id="sourceMode"><option value="historical">已有参考方案</option><option value="generated">智能生成方案</option><option value="both">全部推荐方案</option></select></label></div>
+    <div class="results-toolbar"><div><div class="eyebrow">方案推荐</div><h2>智能推荐结果</h2><p id="resultSummary">设置需求后开始智能推荐。</p></div><div class="result-controls"><div class="source-tabs" role="tablist"><button data-source="historical" class="active">已有方案</button><button data-source="generated">生成方案</button><button data-source="both">全部方案</button><select id="sourceMode" aria-hidden="true"><option value="historical">已有参考方案</option><option value="generated">智能生成方案</option><option value="both">全部推荐方案</option></select></div><button id="compareBtn" class="toolbar-action">对比方案</button><button id="tradeoffBtn" class="toolbar-action">方案权衡</button><details id="generationPopover" class="toolbar-popover generation-popover"><summary>✦ 生成新方案</summary><div class="popover-panel"><h3>智能生成新方案</h3><p>根据当前设计要求探索新的参数组合。</p><div id="generationBasisSummary" class="generation-basis-summary">综合优化 · 标签 0 · 条件 0 · 冻结 0</div><label>探索程度<select id="explorationProfile"><option value="quick">快速探索 · 预计10～20秒</option><option value="standard" selected>标准探索 · 预计约30秒</option><option value="deep">深度探索 · 预计1～2分钟</option></select></label><div id="explorationEstimate" class="generation-count-note">标准探索兼顾速度和方案多样性</div><div class="generation-count-note">预计生成 <b id="generationCountSummary">5</b> 个候选</div><details class="generation-frozen"><summary>保持不变的指标（<span id="frozenSummaryCount">0</span>）</summary><div id="frozenParams" class="frozen-list"></div></details><div class="generation-advanced"><details><summary>高级探索设置</summary><label>生成数量<input id="generationCount" type="number" min="1" max="30" value="5"></label><label>候选评价额度<input id="generationBudget" type="number" min="1" placeholder="使用档位默认值"></label><label>最大搜索轮数<input id="generationRounds" type="number" min="1" max="15" placeholder="使用档位默认值"></label><label>时间预算（秒）<input id="generationTimeBudget" type="number" min="1" max="600" placeholder="使用档位默认值"></label></details></div><button id="generateBtn" class="button accent full">开始生成</button><button id="clearLiveBtn" class="link-button full hidden">清空生成方案</button></div></details><details id="sortMenu" class="toolbar-popover sort-popover"><summary>⌄ 排序：<span id="sortMenuLabel">综合推荐</span></summary><div class="popover-panel"><label>推荐排序<select id="sortBy"><option value="comprehensive">综合推荐</option><option value="cost_effectiveness">效费比最高</option><option value="price">价格</option><option value="capability">效能评分</option><option value="tag_match">标签匹配率</option></select></label><label>排序方向<select id="sortOrder"><option value="desc">从高到低</option><option value="asc">从低到高</option></select></label><div id="sortPolicyStatus" class="sort-policy-status">当前排序策略读取中……</div></div></details></div></div>
     <div id="loading" class="loading-state hidden"><div class="spinner"></div><b>模型正在计算</b><span>正在计算推荐结果</span></div>
-    <div id="results" class="result-grid"></div><div id="pagination" class="pagination"></div>
+    <div id="results" class="result-grid"><div class="recommendation-onboarding"><b>先告诉我们您更关注什么</b><p>您可以从左侧选择优化方向，并按需补充功能、价格、效能或技术要求；也可以不填写条件，直接按照综合优化开始推荐。</p></div></div><div id="pagination" class="pagination"></div>
   </main>
 </div>
 
 <div id="detailOverlay" class="overlay hidden"><article class="detail-drawer">
   <header class="drawer-header"><div><div class="eyebrow" id="detailSource">方案详情</div><h2 id="detailTitle">协议详情</h2><p id="detailMeta"></p></div><button id="closeDetail" class="icon-button">×</button></header>
   <div class="drawer-scroll">
-    <section class="metric-board"><div><span>预测价格</span><b id="detailPrice">-</b><small>万元</small></div><div><span>中心效能</span><b id="detailCapability">-</b><small>协议参考为100，可超过</small></div><div><span>保守效能</span><b id="detailConservative">-</b><small>P10工程排序值</small></div><div><span>效费比</span><b id="detailCE">-</b></div><div><span>可行概率</span><b id="detailFeasibility">-</b></div><div><span>预测可信度</span><b id="detailConfidence">-</b></div></section>
+    <section class="metric-board"><div><span>预测价格</span><b id="detailPrice">-</b><small>万元</small></div><div><span>效能评分</span><b id="detailCapability">-</b><small>协议参考为100，可超过</small></div><div><span>效费比</span><b id="detailCE">-</b><small>分/万元</small></div></section>
     <div class="detail-layout"><section class="editor-section"><div class="section-heading"><div><h3>方案属性调整</h3><p>修改属性不会自动调用模型；完成调整后请点击计算。</p><span id="evaluationStatus" class="evaluation-status">当前展示为方案初始结果</span></div><button id="evaluateBtn" class="button primary">重新计算价格与效能</button></div><label class="price-attribute-toggle"><input id="showPriceAttributes" type="checkbox"><span>显示价格相关属性</span><small>展开价格专用属性；共有属性已在上方显示</small></label><div id="parameterEditor" class="parameter-editor"></div></section>
-      <aside class="insight-column"><section class="insight-card guidance"><div class="insight-title"><span>✦</span><h3>调整建议</h3></div><div id="guidancePanel"></div></section><section class="insight-card"><div class="insight-title"><span>↗</span><h3>协议补差方案</h3></div><button id="improveBtn" class="button secondary full">计算低改动改进方案</button><div id="improvementPanel" class="empty-state">仅在需要时运行反事实搜索。</div></section><section class="insight-card"><div class="insight-title"><span>!</span><h3>约束与风险</h3></div><div id="riskPanel"></div></section><section class="insight-card"><div class="insight-title"><span>◎</span><h3>生成依据</h3></div><div id="generationBasisPanel"></div></section><section class="insight-card"><div class="insight-title"><span>⌁</span><h3>模型经验范围</h3></div><div id="couplingPanel"></div></section></aside>
+      <aside class="insight-column"><section class="insight-card requirement"><div class="insight-title"><span>✓</span><h3>需求匹配</h3></div><div id="requirementPanel"></div></section><section class="insight-card guidance"><div class="insight-title"><span>✦</span><h3>调整建议</h3></div><div id="guidancePanel"></div></section><section class="insight-card"><div class="insight-title"><span>↗</span><h3>优化建议</h3></div><button id="improveBtn" class="button secondary full">生成调整建议</button><div id="improvementPanel" class="empty-state">根据当前方案寻找改动较小的优化方向。</div></section><section class="insight-card"><div class="insight-title"><span>◈</span><h3>方案形成过程</h3></div><div id="generationPathPanel"></div></section><section class="insight-card"><div class="insight-title"><span>ⓘ</span><h3>范围提示</h3></div><div id="rangeDiagnosticsPanel"></div></section><section class="insight-card"><div class="insight-title"><span>!</span><h3>需求与风险</h3></div><div id="riskPanel"></div></section><section class="insight-card"><div class="insight-title"><span>◎</span><h3>生成依据</h3></div><div id="generationBasisPanel"></div></section><section class="insight-card"><div class="insight-title"><span>⌁</span><h3>经验参考</h3></div><div id="couplingPanel"></div></section></aside>
     </div>
   </div>
-  <footer class="drawer-footer"><input id="schemeName" placeholder="输入专家修订方案名称"><button id="exportJsonBtn" class="button secondary">导出 JSON</button><button id="exportCsvBtn" class="button secondary">导出 CSV</button><button id="saveSchemeBtn" class="button primary">保存专家方案</button></footer>
+  <footer class="drawer-footer"><input id="schemeName" placeholder="输入专家修订方案名称"><button id="finalDecisionBtn" class="button secondary">标记为最终方案</button><button id="exportJsonBtn" class="button secondary">导出 JSON</button><button id="exportCsvBtn" class="button secondary">导出 CSV</button><button id="saveSchemeBtn" class="button primary">保存专家方案</button></footer>
 </article></div>
 
 <div id="fontOverlay" class="overlay hidden"><div class="modal small-modal"><header class="drawer-header"><h2>界面字体与密度</h2><button id="closeFont" class="icon-button">×</button></header><div class="modal-body"><div class="font-presets"><button data-scale="100">标准</button><button data-scale="115">大</button><button data-scale="130">特大</button><button data-scale="145">超大</button></div><label>自定义比例<input id="fontRange" type="range" min="90" max="170" step="5"><b id="fontValue"></b></label><button id="resetFont" class="button secondary full">恢复默认 115%</button></div></div></div>
-<div id="savedOverlay" class="overlay hidden"><div class="modal saved-modal"><header class="drawer-header"><h2>专家方案库</h2><button id="closeSaved" class="icon-button">×</button></header><div id="savedList" class="modal-body"></div></div></div>
+<div id="savedOverlay" class="overlay hidden"><div class="modal saved-modal"><header class="drawer-header"><h2>专家方案库</h2><button id="closeSaved" class="icon-button">×</button></header><div class="saved-toolbar"><label><input id="savedSelectAll" type="checkbox"> 全选当前结果</label><div class="saved-filters"><button class="saved-filter active" data-filter="all">全部</button><button class="saved-filter" data-filter="eligible">可参与推荐</button><button class="saved-filter" data-filter="training">训练候选</button></div><button id="exportSavedCsv" class="button secondary">导出 CSV</button><button id="exportSavedJsonl" class="button secondary">导出 JSONL</button></div><div id="savedList" class="modal-body"></div></div></div>
+<div id="analysisOverlay" class="overlay hidden"><div class="modal analysis-modal"><header class="drawer-header"><h2 id="analysisTitle">方案辅助分析</h2><button id="closeAnalysis" class="icon-button">×</button></header><div id="analysisBody" class="modal-body"></div></div></div>
+<div id="versionOverlay" class="overlay hidden"><div class="modal"><header class="drawer-header"><h2>需求版本</h2><button id="closeVersions" class="icon-button">×</button></header><div id="versionList" class="modal-body"></div></div></div>
+<div id="tourOverlay" class="tour-overlay hidden"><div id="tourSpotlight" class="tour-spotlight"></div><div id="tourCard" class="tour-card"><div class="eyebrow">QUICK TOUR</div><h2 id="tourTitle">欢迎使用参数辅助设计系统</h2><p id="tourText">推荐流程只需要几个步骤，是否快速了解基本操作？</p><div><button id="tourSkip" class="button secondary">直接使用</button><button id="tourNext" class="button primary">开始引导</button></div></div></div>
 
 <div id="toast" class="toast hidden"></div><script src="/app.js"></script>
 </body></html>

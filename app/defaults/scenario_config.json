@@ -1,0 +1,84 @@
+{
+  "version": "V21.2",
+  "default_scenario": "balanced",
+  "system_default_sort": {
+    "key": "comprehensive",
+    "direction": "desc",
+    "display_name": "综合推荐"
+  },
+  "scenarios": {
+    "balanced": {
+      "scenario_name": "综合优化",
+      "icon": "⭐",
+      "short_description": "兼顾成本与性能，寻找最佳平衡",
+      "description": "综合考虑技术匹配、成本和效能，优先推荐单位成本下效能表现更好的方案。",
+      "default_sort": {
+        "key": "cost_effectiveness",
+        "direction": "desc",
+        "display_name": "需求匹配优先 · 同等匹配下效费比最高"
+      },
+      "ranking_weights": {
+        "technical": 0.4,
+        "price": 0.3,
+        "capability": 0.3
+      },
+      "intensity_weights": {
+        "balanced": {"technical": 0.4, "price": 0.3, "capability": 0.3},
+        "target": {"technical": 0.3, "price": 0.35, "capability": 0.35},
+        "extreme": {"technical": 0.2, "price": 0.4, "capability": 0.4}
+      },
+      "options": [],
+      "result_explanation": "该方案综合考虑成本和效能，单位成本下效能表现较好。"
+    },
+    "cost": {
+      "scenario_name": "成本优先",
+      "icon": "￥",
+      "short_description": "满足要求情况下寻找最低成本方案",
+      "description": "在满足显式技术和性能要求的前提下，优先寻找预测成本更低的方案。",
+      "default_sort": {
+        "key": "price",
+        "direction": "asc",
+        "display_name": "需求匹配优先 · 同等匹配下价格最低"
+      },
+      "ranking_weights": {
+        "technical": 0.3,
+        "price": 0.6,
+        "capability": 0.1
+      },
+      "intensity_weights": {
+        "balanced": {"technical": 0.35, "price": 0.5, "capability": 0.15},
+        "target": {"technical": 0.3, "price": 0.6, "capability": 0.1},
+        "extreme": {"technical": 0.15, "price": 0.8, "capability": 0.05}
+      },
+      "options": [
+        {"key": "min_capability", "label": "最低效能要求", "type": "number", "placeholder": "不限制"}
+      ],
+      "result_explanation": "该方案满足当前要求，并在可比较方案中具有成本优势。"
+    },
+    "performance": {
+      "scenario_name": "性能优先",
+      "icon": "📊",
+      "short_description": "预算范围内寻找最高性能方案",
+      "description": "在预算和显式技术要求范围内，优先寻找综合效能更高的方案。",
+      "default_sort": {
+        "key": "capability",
+        "direction": "desc",
+        "display_name": "需求匹配优先 · 同等匹配下效能最高"
+      },
+      "ranking_weights": {
+        "technical": 0.4,
+        "price": 0.1,
+        "capability": 0.5
+      },
+      "intensity_weights": {
+        "balanced": {"technical": 0.45, "price": 0.15, "capability": 0.4},
+        "target": {"technical": 0.4, "price": 0.1, "capability": 0.5},
+        "extreme": {"technical": 0.15, "price": 0.05, "capability": 0.8}
+      },
+      "options": [
+        {"key": "max_price", "label": "最高预算（万元）", "type": "number", "placeholder": "不限制"}
+      ],
+      "result_explanation": "该方案位于当前预算要求内，并在可比较方案中具有性能优势。"
+    }
+  }
+}

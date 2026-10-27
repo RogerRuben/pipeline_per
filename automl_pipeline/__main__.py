@@ -6,11 +6,12 @@ import numpy as np
 from pathlib import Path
 
 HERE=Path(__file__).resolve().parent
-ENGINES=('optuna_v2','optuna_v3','optuna_v4','optuna_v5')
+ENGINES=('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6')
 
 
 def config_loader(engine):
-    if engine=='optuna_v5':from .product_price_optuna_v5 import load_config
+    if engine=='optuna_v6':from .product_price_optuna_v6 import load_config
+    elif engine=='optuna_v5':from .product_price_optuna_v5 import load_config
     elif engine=='optuna_v4':from .product_price_optuna_v4 import load_config
     elif engine=='optuna_v3':from .product_price_optuna_v3 import load_config
     else:from .product_price_optuna_v2 import load_config
@@ -34,7 +35,11 @@ def inspect_input(source,engine,cfg):
     frame,y,specs,mappings,groups,ids=dataset(data,cfg);_,split=training_split(len(y),cfg)
     result={'status':'PASS','engine':engine,'records':len(y),'attributes':len(specs),'validation_split':split,
             'attribute_types':{p['parameter_id']:('配置类型' if p['parameter_id'] in mappings else '数值') for p in specs},'diagnostics':table['diagnostics']}
-    if engine=='optuna_v4':
+    if engine=='optuna_v6':
+        from services.price_service.optuna_v6.protocol import make_plan
+        plan=make_plan(frame,np.arange(len(frame)),ids,cfg)
+        result.update(evaluation_plan=plan['public'],budget=cfg['v6']['budget'],v6_mode=cfg['v6']['mode'])
+    elif engine=='optuna_v4':
         from .product_optuna_v4_adapter import groups_for
         from services.price_service.optuna_v4.splits import holdout_indices,make_splits
         from services.price_service.optuna_v4.optimizer import budget_plan
@@ -62,22 +67,23 @@ def main(argv=None):
     sub=p.add_subparsers(dest='command',required=True)
     for command in ('inspect','build'):
         parser=sub.add_parser(command,help='检查成品输入' if command=='inspect' else '在独立目录构建三环节产物')
-        parser.add_argument('input');parser.add_argument('--price-engine',choices=ENGINES,default='optuna_v5');parser.add_argument('--price-config')
+        parser.add_argument('input');parser.add_argument('--price-engine',choices=ENGINES,default='optuna_v6');parser.add_argument('--price-config')
         if command=='build':
             parser.add_argument('--output',required=True);parser.add_argument('--product-code',default='SOURCE_PRODUCT');parser.add_argument('--product-name',default='成品价格效能与推荐试用')
             parser.add_argument('--effect-config');parser.add_argument('--virtual-data',action='store_true')
     config=sub.add_parser('config',help='生成V2/V3/V4配置；不会训练')
-    config.add_argument('--price-engine',choices=ENGINES,default='optuna_v5');config.add_argument('--profile',choices=['standard','quick','deep'],default='standard');config.add_argument('--output',required=True)
+    config.add_argument('--price-engine',choices=ENGINES,default='optuna_v6');config.add_argument('--profile',choices=['standard','quick','deep'],default='standard');config.add_argument('--output',required=True)
     serve=sub.add_parser('serve',help='启动指定构建结果，不训练')
     serve.add_argument('--output',required=True);serve.add_argument('--activate-draft',action='store_true');serve.add_argument('--no-browser',action='store_true')
     serve.add_argument('--price-port',type=int,default=18701);serve.add_argument('--effect-port',type=int,default=18702);serve.add_argument('--app-port',type=int,default=18791)
+    serve.add_argument('--cost-port',type=int,default=18793)
     args=p.parse_args(argv)
     from app.console_compat import enable_plain_console
     enable_plain_console()
     try:
         if args.command=='serve':
             from .product_pipeline import serve as run
-            return run(args.output,args.activate_draft,args.no_browser,args.price_port,args.effect_port,args.app_port)
+            return run(args.output,args.activate_draft,args.no_browser,args.price_port,args.effect_port,args.app_port,args.cost_port)
         cfg=configuration(args.price_engine,getattr(args,'price_config',None))
         if args.command=='inspect':print(json.dumps(inspect_input(args.input,args.price_engine,cfg),ensure_ascii=False,indent=2));return 0
         if args.command=='config':
@@ -85,10 +91,12 @@ def main(argv=None):
             if path.exists():raise ValueError('配置文件已存在，请选择新路径以保留现有设置。')
             if args.profile=='quick':
                 cfg['search']['n_trials']=40
+                if args.price_engine=='optuna_v6':cfg['search']['n_trials']=12;cfg['search']['timeout_seconds']=300;cfg['v6']['budget']['max_member_fits']=700
                 if args.price_engine=='optuna_v4':cfg['v4']['splits']['max_splits']=12
                 if args.price_engine=='optuna_v5' and cfg['v5']['protocol']=='fixed_cv':cfg['v5']['enhancement']['max_new_fits']=20
             elif args.profile=='deep':
-                if args.price_engine=='optuna_v5':
+                if args.price_engine=='optuna_v6':cfg['search']['n_trials']=120;cfg['search']['timeout_seconds']=1800;cfg['v6']['budget']['max_member_fits']=6000
+                elif args.price_engine=='optuna_v5':
                     cfg['search']['n_trials']=300;cfg['search']['timeout_seconds']=1800;cfg['v5']['enhancement']['max_new_fits']=5000;cfg['v5']['budget']['max_member_fits']=5000
                     cfg['v5']['enhancement']['split_anchors']=1 if cfg['v5']['protocol']=='fixed_cv' else 3
                 else:cfg['search']['n_trials']=5000

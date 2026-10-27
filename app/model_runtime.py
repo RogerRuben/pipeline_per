@@ -468,6 +468,7 @@ class EffectivenessBundle(object):
         return {
             "canonical_parameters": canonical,
             "capability_score": round(capability, 4),
+            "capability_source": self.bundle.get("capability_source", "trial_snapshot"),
             "feasibility_probability": round(probability, 6),
             "feasibility_status": status,
             "hard_risk_reasons": reasons,
@@ -476,7 +477,6 @@ class EffectivenessBundle(object):
             "capability_contributors": capability_contributors,
             "anomaly_assessment": anomaly,
             "model_version": self.bundle["manifest"]["model_version"],
-            "capability_source": self.bundle.get("capability_source", "snapshot"),
         }
 
     def generate(self, count=10, seed=20260724, constraints=None, min_feasibility=0.75, pool_size=2200):
@@ -1051,6 +1051,31 @@ class IntegratedModelRuntime(object):
             if spec.get("source","product_parameter")!="product_parameter" or spec["key"] in seen: continue
             item=dict(spec); item.setdefault("min",item.get("training_min")); item.setdefault("max",item.get("training_max")); item.setdefault("preference","neutral")
             item["model_role"]="price_only"; item["default_visible"]=False; result.append(item); seen.add(spec["key"])
+        return result
+
+    def model_feature_specs(self):
+        """Return per-model feature contracts without deduplicating shared keys.
+
+        Conditional-relationship compatibility needs to see both the
+        effectiveness and price contract for a shared target, because their
+        allowed ranges may differ.
+        """
+        result = []
+        for spec in self.effectiveness.features:
+            item = dict(spec)
+            item["model_kind"] = "effectiveness"
+            item["model_role"] = "shared" if spec["key"] in self.feature_roles()["shared_features"] else "effectiveness_only"
+            result.append(item)
+        for spec in self.price.raw_contract:
+            if spec.get("source", "product_parameter") != "product_parameter":
+                continue
+            item = dict(spec)
+            item["model_kind"] = "price"
+            item["model_role"] = "price_only"
+            item.setdefault("min", item.get("training_min"))
+            item.setdefault("max", item.get("training_max"))
+            item.setdefault("preference", "neutral")
+            result.append(item)
         return result
 
     def feature_roles(self):

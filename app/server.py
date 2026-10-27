@@ -5,6 +5,7 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import mimetypes
 import os
 import shutil
@@ -19,7 +20,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 from .model_runtime import IntegratedModelRuntime, ModelInputError
-from .model_service_client import DegradedServiceRuntime, ModelServiceGateway, ServiceBackedRuntime
+from .model_service_client import DegradedServiceRuntime, ModelServiceGateway, ServiceBackedRuntime, build_model_request
 from .recommender import agreement_matches, rank_agreements, rank_historical_products
 from .store import Store
 from .wide_import import WideTableParser
@@ -27,7 +28,18 @@ from .data_master import DataMasterService
 from .product_releases import ProductReleaseService
 from .local_generator import HistorySeededGenerator
 from .generation_tasks import GenerationTaskManager
-from .configuration import load_model_service_config
+from .configuration import (_boolean, load_model_service_config, load_service_portal_config,
+                            load_workbench_defaults, save_price_output_config)
+from .range_diagnostics import build_range_diagnostics
+from .scenario_policy import ScenarioPolicyService
+from .recommendation_explanation import annotate_candidate_recommendations
+from .expert_scheme import ExpertSchemeService
+from .price_output import PriceOutputNormalizer
+from .semantic_snapshot import SemanticSnapshotService
+from .requirement_versions import RequirementVersionService, demand_fingerprint
+from .generation_profiles import public_profiles
+from .ranking_explanation import annotate_ranking_explanations
+from .relaxation_advisor import build_relaxation_suggestions
 
 
 class GeneratedSessions(object):
@@ -56,12 +68,29 @@ class GeneratedSessions(object):
             self._cleanup()
         return batch_id, list(prepared)
 
-    def get(self, session_id, batch_id=None):
+    def get(self, session_id, batch_id=None, fingerprint=None):
         with self.lock:
             self._cleanup()
             session = self.data.get(str(session_id), {})
             batch_id = str(batch_id or session.get("latest_batch_id") or "")
-            return list((session.get("batches") or {}).get(batch_id, {}).get("items", []))
+            batch = (session.get("batches") or {}).get(batch_id, {})
+            if fingerprint is not None and batch and batch.get("fingerprint") != fingerprint:
+                return []
+            return list(batch.get("items", []))
+
+    def batch_metadata(self, session_id, batch_id):
+        with self.lock:
+            self._cleanup()
+            session = self.data.get(str(session_id), {})
+            batch = (session.get("batches") or {}).get(str(batch_id or ""))
+            if not batch:
+                return None
+            return {
+                "batch_id": str(batch_id),
+                "fingerprint": batch.get("fingerprint"),
+                "updated": batch.get("updated"),
+                "count": len(batch.get("items") or []),
+            }
 
     def batches(self, session_id):
         with self.lock:
@@ -117,6 +146,9 @@ class Application(object):
         self.login_lock = threading.RLock()
         self.login_attempts = {}
         self.model_config = load_model_service_config(self.root)
+        self.portal_config = load_service_portal_config(self.root)
+        self.workbench_defaults = load_workbench_defaults(self.root)
+        self.scenario_policy = ScenarioPolicyService(self.root / "config" / "scenario_config.json")
         self.model_execution_mode = self.model_config["execution_mode"]
         self.local_runtime = None
         self.model_gateway = None
@@ -130,6 +162,7 @@ class Application(object):
                 effectiveness_url=self.model_config["effectiveness_service_url"],
                 timeout=self.model_config["timeout_seconds"],
                 fallback=self.model_config["local_fallback"],
+                price_output_config=self.model_config.get("price_output"),
             )
             try:
                 schemas = self.model_gateway.schemas()
@@ -163,7 +196,14 @@ class Application(object):
             read_only=self.demo_read_only,
         )
         self.data_master = DataMasterService(self.store, self.runtime)
-        self.product_releases = ProductReleaseService(self.store, self.runtime)
+        self.requirement_versions = RequirementVersionService(self.store)
+        self.semantic_snapshot = SemanticSnapshotService(
+            self.store, self.data_master, self._semantic_runtime_contract
+        )
+        self.product_releases = ProductReleaseService(
+            self.store, self.runtime, self.data_master, self._semantic_runtime_contract,
+        )
+        self._sync_wire_product_code()
         # A newly created installation is initialized from an operator-visible
         # DataMaster workbook, never from product-specific Python constants.
         if not self.demo_read_only and self.store.is_empty():
@@ -181,35 +221,97 @@ class Application(object):
         self.model_parameter_coverage = {}
         if not self.demo_read_only:
             self._refresh_model_data_readiness(raise_local=True)
+        self.expert_schemes = ExpertSchemeService(
+            self.store.parameter_map(), self.store.current_product_code(), self.runtime,
+            encode_parameters=self.store.runtime_parameters,
+        )
         self.sessions = GeneratedSessions()
         self.model_lock = threading.RLock()
         self.evaluation_lock = threading.RLock()
         self.evaluation_cache = {}
+        self.expert_evaluation_cache = {}
         self.generator = HistorySeededGenerator(
             self.store, self.runtime, self._evaluate_with_rules,
             self._evaluate_batch_with_rules if hasattr(self.runtime, "evaluate_batch") else None,
         )
         self.generation_tasks = GenerationTaskManager(self)
 
+    def _semantic_runtime_contract(self):
+        manifest = self.runtime.manifest()
+        return {
+            "product_code": self.store.current_product_code(),
+            "price_output": self._current_price_output_contract(),
+            "model_versions": manifest.get("model_versions") or {
+                "price": (manifest.get("price") or {}).get("model_version"),
+                "effectiveness": (manifest.get("effectiveness") or {}).get("model_version"),
+            },
+            "schemas": {
+                "price": (manifest.get("price") or {}).get("schema_version"),
+                "effectiveness": (manifest.get("effectiveness") or {}).get("schema_version"),
+            },
+        }
+
+    def capture_requirement_version(self, request, source):
+        if self.demo_read_only:
+            return {"id": None, "version_no": None,
+                    "demand_fingerprint": demand_fingerprint(request), "read_only": True}
+        return self.requirement_versions.capture(request, created_by="operator", change_source=source)
+
     def _invalidate_runtime_caches(self):
-        self.sessions.clear_all()
+        # Cancel running workers before removing their session batches.  The
+        # generation manager and final add_batch use one epoch-protected commit.
         self.generation_tasks.invalidate_all()
+        self.sessions.clear_all()
         with self.evaluation_lock:
             self.evaluation_cache.clear()
+        self.expert_evaluation_cache.clear()
         self.generator = HistorySeededGenerator(
             self.store, self.runtime, self._evaluate_with_rules,
             self._evaluate_batch_with_rules if hasattr(self.runtime, "evaluate_batch") else None,
         )
+
+    def _sync_wire_product_code(self):
+        """Point the wire product code at the current business product.
+
+        The model services declare their own ``product_code`` in their Schema;
+        that is a diagnostic only.  The recommendation system operates on the
+        business product in the database, so every request envelope carries that
+        code instead of the model's declared code.
+        """
+        if self.model_gateway is None:
+            return
+        business = self.store.current_product_code() if hasattr(self, "store") else ""
+        if business:
+            self.model_gateway.product_code = business
+
+    def on_business_data_changed(self):
+        """Single hook for every business-data write path.
+
+        Recomputes model readiness (Schema diagnostics + parameter coverage +
+        dual-service probe) and then invalidates the in-memory caches so the
+        management page never shows a stale product_ready / parameter_coverage.
+        """
+        self._sync_wire_product_code()
+        readiness = self._refresh_model_data_readiness()
+        self.expert_schemes = ExpertSchemeService(
+            self.store.parameter_map(), self.store.current_product_code(), self.runtime,
+            encode_parameters=self.store.runtime_parameters,
+        )
+        self._invalidate_runtime_caches()
+        return readiness
 
     def _bind_runtime(self, runtime):
         """Switch all runtime consumers together after HTTP services recover."""
         self.runtime = runtime
         if hasattr(self, "store"):
             self.store.runtime = runtime
+        if hasattr(self, "expert_schemes"):
+            self.expert_schemes.runtime = runtime
         if hasattr(self, "data_master"):
             self.data_master.runtime = runtime
         if hasattr(self, "product_releases"):
             self.product_releases.runtime = runtime
+        self._sync_wire_product_code()
         if hasattr(self, "sessions"):
             self._invalidate_runtime_caches()
 
@@ -397,6 +499,7 @@ class Application(object):
             "local_fallback_enabled": bool(self.model_config.get("local_fallback")),
             "price_service_url": self.model_config.get("price_service_url"),
             "effectiveness_service_url": self.model_config.get("effectiveness_service_url"),
+            "price_output": dict(self.model_config.get("price_output") or {}),
             "product_ready": not bool(self.model_data_sync_error),
             "calculation_available": not bool(self.model_data_sync_error),
             "historical_recommendation_available": True,
@@ -406,10 +509,26 @@ class Application(object):
             "dynamic_target_protocol_enabled": bool(
                 ((self.runtime.manifest().get("effectiveness") or {}).get("target_protocol_contract") or {}).get("supported")
             ),
+            "generation_limits": {
+                "max_budget": self.generation_budget_limit(),
+                "max_rounds": self.generation_rounds_limit(),
+            },
         }
         effect_manifest = self.runtime.manifest().get("effectiveness") or {}
         payload["protocols"] = effect_manifest.get("protocol_profiles") or []
         payload["active_protocol"] = effect_manifest.get("active_protocol")
+        payload["optimization_scenarios"] = self.scenario_policy.catalog()
+        payload["scenario_policy"] = self.scenario_policy.resolve({"scenario": self.scenario_policy.config["default_scenario"]})
+        payload["generation_profiles"] = public_profiles()
+        payload["semantic_signature"] = self.semantic_snapshot.build().get("semantic_signature")
+        coverage = {}
+        for rule in self.store.tag_rule_rows():
+            key = str(rule.get("parameter_id") or "")
+            if key and not key.startswith("__"):
+                coverage.setdefault(str(rule.get("tag_id")), []).append(key)
+        payload["tag_parameter_coverage"] = dict(
+            (key, sorted(set(values))) for key, values in coverage.items()
+        )
         return payload
 
     def admin_snapshot(self):
@@ -420,6 +539,7 @@ class Application(object):
             "local_fallback_enabled": bool(self.model_config.get("local_fallback")),
             "price_service_url": self.model_config.get("price_service_url"),
             "effectiveness_service_url": self.model_config.get("effectiveness_service_url"),
+            "price_output": self.price_output_settings(),
             "product_ready": not bool(self.model_data_sync_error),
             "model_data_sync_error": self.model_data_sync_error,
             "model_data_sync_warnings": list(self.model_data_sync_warnings),
@@ -527,11 +647,6 @@ class Application(object):
                     result[key] = value
                     sources[key] = "historical_agreement"
 
-        for key, value in self.store.configured_model_inputs(None).items():
-            if key in allowed_keys and result.get(key) in (None, ""):
-                result[key] = value
-                sources[key] = "configured_model_input"
-
         for key in ordered_keys:
             if result.get(key) not in (None, ""):
                 continue
@@ -594,32 +709,71 @@ class Application(object):
         effect_fields = (((inspected.get("effectiveness") or {}).get("schema") or {}).get("fields") or [])
         business, sources = self._complete_business_parameters(price_fields + effect_fields)
         encoded = self.store.runtime_parameters(business)
-        product_code = self.store.current_product_code()
+        business_code = self.store.current_product_code()
+        price_declared = str((((inspected.get("price") or {}).get("schema") or {}).get("product_code")) or "")
+        effect_declared = str((((inspected.get("effectiveness") or {}).get("schema") or {}).get("product_code")) or "")
+        wire_code = self.model_gateway.product_code
         examples = {}
         for kind in ("price", "effectiveness"):
             service = inspected.get(kind) or {}
-            parameters = dict(encoded)
             endpoint = "/api/v1/predict" if kind == "price" else "/api/v1/evaluate"
+            # The example body is built by the same envelope builder used for the
+            # real recommendation request, so it is the exact wire JSON.
+            envelope = build_model_request(kind, encoded, request_id="DATA-CENTER-EXAMPLE", product_code=wire_code)
             examples[kind] = {
                 "method": "POST", "url": service.get("url", "") + endpoint,
-                "body": {"request_id": "DATA-CENTER-EXAMPLE", "product_code": product_code,
-                         "parameters": parameters},
+                "body": envelope,
             }
         return {
             "source": "independent_http_services", "local_model_files_read": False,
-            "current_business_product_code": product_code,
+            "current_business_product_code": business_code,
+            "identity": {
+                "business_product_code": business_code,
+                "price_declared_product_code": price_declared,
+                "effectiveness_declared_product_code": effect_declared,
+                "wire_product_code": wire_code,
+            },
             "business_parameters": business, "value_sources": sources,
             "parameter_coverage": self._parameter_coverage_diagnostics(
                 encoded, price_fields=price_fields, effect_fields=effect_fields
             ),
             "services": inspected, "request_examples": examples,
+            "price_output": self.price_output_settings(),
         }
+
+    def price_output_settings(self):
+        config = dict(self.model_config.get("price_output") or {})
+        description = (self.model_gateway.price_normalizer.describe()
+                       if self.model_gateway is not None else dict(config))
+        description.update({
+            "configured": dict(self.model_config.get("price_output_configured") or config),
+            "source": self.model_config.get("price_output_source", "default"),
+            "environment_override": bool(self.model_config.get("price_output_environment_override")),
+        })
+        return description
+
+    def save_model_service_settings(self, request):
+        if self.demo_read_only:
+            raise ValueError("当前为只读演示，不能修改模型服务设置。")
+        requested = request.get("price_output") or {}
+        saved = save_price_output_config(self.root, requested)
+        self.model_config = load_model_service_config(self.root)
+        if self.model_gateway is not None:
+            self.model_gateway.set_price_output_config(self.model_config.get("price_output"))
+        self._invalidate_runtime_caches()
+        self.store.audit_event("update", "model_service_settings", "price_output", {
+            "saved": saved.get("price_output"),
+            "effective": self.model_config.get("price_output"),
+            "source": self.model_config.get("price_output_source"),
+        })
+        return {"saved": True, "settings": self.price_output_settings(),
+                "backup_path": saved.get("backup_path"), "caches_invalidated": True}
 
     def effectiveness_workbench_schema(self):
         if self.model_gateway is None:
             manifest = self.runtime.manifest().get("effectiveness") or {}
             fields = manifest.get("fields") or self.runtime.schema.get("features") or []
-            return {
+            schema = {
                 "product_code": self.runtime.schema.get("product_code"),
                 "product_name": self.runtime.schema.get("product_name"),
                 "backend": manifest.get("backend", "local_compatibility"),
@@ -628,19 +782,173 @@ class Application(object):
                 "active_protocol": manifest.get("active_protocol"),
                 "capabilities": manifest.get("capabilities") or {},
             }
-        return self.model_gateway.effectiveness_schema()
+        else:
+            schema = self.model_gateway.effectiveness_schema()
+        schema["integration_source"] = os.environ.get("IPDEMO_EFFECT_INTEGRATION_KIND", "")
+        return self._enrich_workbench_schema(schema, "effectiveness")
 
     def price_workbench_schema(self):
         if self.model_gateway is None:
             manifest = self.runtime.manifest().get("price") or {}
-            return {
+            schema = {
                 "product_code": self.runtime.schema.get("product_code"),
                 "product_name": self.runtime.schema.get("product_name"),
                 "backend": manifest.get("backend", "local_compatibility"),
                 "model_version": manifest.get("model_version"),
                 "fields": manifest.get("fields") or self.runtime.price.raw_contract,
             }
-        return self.model_gateway.price_schema()
+        else:
+            schema = self.model_gateway.price_schema()
+        return self._enrich_workbench_schema(schema, "price")
+
+    @staticmethod
+    def _json_array(raw):
+        if isinstance(raw, list):
+            return list(raw)
+        try:
+            parsed = json.loads(raw or "[]")
+            return parsed if isinstance(parsed, list) else []
+        except Exception:
+            return []
+
+    @staticmethod
+    def _workbench_fallback(field):
+        allowed = field.get("allowed_values") or field.get("categories") or []
+        if field.get("default_value") is not None:
+            return field.get("default_value"), "model_default"
+        if field.get("training_mean") is not None:
+            return field.get("training_mean"), "training_mean"
+        if allowed:
+            return allowed[0], "allowed_value"
+        lower = field.get("generation_min", field.get("training_min"))
+        upper = field.get("generation_max", field.get("training_max"))
+        if lower is not None and upper is not None:
+            return (float(lower) + float(upper)) / 2.0, "reference_midpoint"
+        if lower is not None:
+            return lower, "reference_lower"
+        dtype = str(field.get("business_value_type") or field.get("dtype") or field.get("type") or "").lower()
+        return (0, "boolean_fallback") if dtype == "boolean" else ("", "empty")
+
+    def _enrich_workbench_schema(self, raw_schema, model_kind):
+        schema = dict(raw_schema or {})
+        definitions = self.store.parameter_map()
+        preferred = self.workbench_defaults.get("historical_example_agreement_id")
+        example = self.store.workbench_example(preferred)
+        historical = dict((example or {}).get("parameters") or {})
+        fields, values, sources = [], {}, {}
+        for raw in schema.get("fields") or []:
+            field = dict(raw)
+            key = str(field.get("field_name") or field.get("key") or "")
+            if not key:
+                continue
+            definition = definitions.get(key) or {}
+            field["field_name"] = key
+            field["field_label"] = definition.get("label") or field.get("field_label") or field.get("label") or key
+            field["unit"] = definition.get("unit") or field.get("unit") or ""
+            field["parameter_id"] = key
+            field["display_value_mapping_json"] = definition.get("display_value_mapping_json")
+            field["special_value_keys_json"] = definition.get("special_value_keys_json")
+            field["business_value_type"] = definition.get("value_type")
+            business_allowed = self._json_array(definition.get("allowed_values_json"))
+            if business_allowed:
+                field["allowed_values"] = business_allowed
+            def compatible_allowed(candidate):
+                for allowed_value in business_allowed:
+                    if str(allowed_value) == str(candidate):
+                        return allowed_value
+                    try:
+                        if float(allowed_value) == float(candidate):
+                            return allowed_value
+                    except (TypeError, ValueError):
+                        pass
+                return None
+            if key in historical and historical[key] not in (None, ""):
+                historical_value = historical[key]
+                compatible = compatible_allowed(historical_value) if business_allowed else historical_value
+                if business_allowed and compatible is None:
+                    fallback, _fallback_source = self._workbench_fallback(field)
+                    fallback = self.store.business_parameters({key: fallback}).get(key, fallback)
+                    value = compatible_allowed(fallback)
+                    if value is None:
+                        value = compatible_allowed(definition.get("business_default"))
+                    if value is None:
+                        value = business_allowed[0]
+                    source = "historical_incompatible_fallback"
+                    field["example_warning"] = "该字段历史值已不在当前业务枚举中，已使用当前业务默认值。"
+                else:
+                    value, source = compatible, "historical"
+            else:
+                value, source = self._workbench_fallback(field)
+                # Model schemas may expose encoded defaults.  Workbench controls
+                # always stay in DataMaster business-value space; encoding happens
+                # only at the model-service boundary.
+                value = self.store.business_parameters({key: value}).get(key, value)
+            compatible = compatible_allowed(value) if business_allowed else None
+            if compatible is not None:
+                value = compatible
+            field["example_value"] = value
+            field["example_source"] = source
+            values[key], sources[key] = value, source
+            fields.append(field)
+        schema["fields"] = fields
+        schema["example"] = {
+            "agreement_id": (example or {}).get("agreement_id"),
+            "agreement_name": (example or {}).get("agreement_name"),
+            "source_year": (example or {}).get("source_year"),
+            "parameters": values, "value_sources": sources, "model_kind": model_kind,
+        }
+        schema["example_parameters"] = values
+        return schema
+
+    def portal(self):
+        services = []
+        for key, raw in (self.portal_config.get("services") or {}).items():
+            item = dict(raw)
+            if not item.get("visible", True) or (key == "admin" and self.disable_admin):
+                continue
+            item["key"] = key
+            item["external"] = bool(item.get("enabled") and urlparse(str(item.get("url") or "")).scheme in ("http", "https"))
+            services.append(item)
+        return {"title": self.portal_config.get("title") or "工业技术协议智能系统",
+                "services": services, "config_path": self.portal_config.get("config_path")}
+
+    def save_portal_config(self, request):
+        """Validate and atomically replace navigation config without touching model config."""
+        if not isinstance(request, dict) or not isinstance(request.get("services"), dict):
+            raise ValueError("服务导航配置必须包含services JSON对象")
+        current = self.portal_config.get("services") or {}
+        services = {}
+        for key in list(current) + [key for key in request["services"] if key not in current]:
+            raw = request["services"].get(key, {})
+            if not isinstance(raw, dict):
+                raise ValueError("服务%s的配置必须是JSON对象" % key)
+            item = dict(current.get(key) or {})
+            item.update(raw)
+            item["label"] = str(item.get("label") or key).strip()
+            item["description"] = str(item.get("description") or "").strip()
+            item["url"] = str(item.get("url") or "").strip()
+            item["visible"] = _boolean(item.get("visible"), True)
+            item["enabled"] = _boolean(item.get("enabled"), True)
+            if item["url"]:
+                parsed = urlparse(item["url"])
+                local = item["url"].startswith("/") and not item["url"].startswith("//") and not parsed.scheme and not parsed.netloc
+                external = parsed.scheme in ("http", "https") and bool(parsed.netloc)
+                if "\\" in item["url"] or any(ord(char) < 32 for char in item["url"]) or not (local or external):
+                    raise ValueError("服务%s的url不安全或无效" % key)
+            elif item["enabled"]:
+                raise ValueError("服务%s启用时必须配置url" % key)
+            services[str(key)] = item
+        path = self.root / "config" / "service_portal.json"
+        payload = {"title": str(request.get("title") or self.portal_config.get("title") or "工业技术协议智能系统"), "services": services}
+        backup = None
+        if path.is_file():
+            backup = path.with_name("service_portal.%s.bak.json" % datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
+            shutil.copy2(str(path), str(backup))
+        temporary = path.with_name("service_portal.json.tmp")
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        os.replace(str(temporary), str(path))
+        self.portal_config = load_service_portal_config(self.root)
+        return {"saved": True, "config": self.portal_config, "backup": str(backup) if backup else None}
 
     def price_workbench_predict(self, request):
         schema = self.price_workbench_schema()
@@ -649,7 +957,7 @@ class Application(object):
             str(item.get("field_name") or item.get("key")) for item in fields
             if item.get("field_name") or item.get("key")
         )
-        business = dict(request.get("parameters") or request.get("params") or {})
+        business = self.store.canonical_business_parameters(request.get("parameters") or request.get("params") or {})
         encoded = self.store.runtime_parameters(business)
         model_params = dict((key, encoded[key]) for key in field_names if key in encoded)
         if self.model_gateway is not None:
@@ -684,7 +992,7 @@ class Application(object):
             str(item.get("field_name") or item.get("key")) for item in fields
             if item.get("field_name") or item.get("key")
         )
-        business = dict(request.get("parameters") or request.get("params") or {})
+        business = self.store.canonical_business_parameters(request.get("parameters") or request.get("params") or {})
         encoded = self.store.runtime_parameters(business)
         model_params = dict((key, encoded[key]) for key in field_names if key in encoded)
         target = request.get("target_protocol")
@@ -731,6 +1039,17 @@ class Application(object):
 
     def _evaluate_with_rules(self, params, base_params=None, target_protocol=None):
         business_params = dict(params or {})
+        definitions = self.store.parameter_map()
+        for key, value in business_params.items():
+            value_type = str((definitions.get(key) or {}).get("value_type") or "").lower()
+            if value_type not in ("number", "ip_grade", "boolean") or value in (None, ""):
+                continue
+            try:
+                number = float(str(value).upper().replace("IP", ""))
+            except (TypeError, ValueError):
+                raise ModelInputError("%s（%s）不是合法数值" % ((definitions.get(key) or {}).get("label") or key, key))
+            if not math.isfinite(number):
+                raise ModelInputError("%s（%s）不能是NaN或Infinity" % ((definitions.get(key) or {}).get("label") or key, key))
         prepared = self.store.runtime_parameters(business_params)
         evaluation = (
             self.runtime.evaluate(prepared, target_protocol=target_protocol)
@@ -742,11 +1061,95 @@ class Application(object):
         evaluation["parameters"] = self.store.business_parameters(model_parameters, business_params)
         return self._decorate_evaluation(evaluation, base_params)
 
+    def _evaluate_historical_with_rules(self, params, historical_price_wan=None, target_protocol=None):
+        """Evaluate an unchanged historical sample without re-predicting price.
+
+        Stored historical samples keep their transaction price; only the current
+        effectiveness model is run so the sample can be ranked against the user's
+        requirements. Price is re-predicted only when a price-related attribute
+        is modified and the user explicitly recalculates.
+        """
+        business_params = dict(params or {})
+        prepared = self.store.runtime_parameters(business_params)
+        if hasattr(self.runtime, "evaluate_effectiveness_only"):
+            evaluation = self.runtime.evaluate_effectiveness_only(
+                prepared, target_protocol=target_protocol, historical_price_wan=historical_price_wan,
+            )
+        else:
+            evaluation = (
+                self.runtime.evaluate(prepared, target_protocol=target_protocol)
+                if target_protocol not in (None, "")
+                else self.runtime.evaluate(prepared)
+            )
+        model_parameters = dict(evaluation.get("parameters") or {})
+        evaluation["model_parameters"] = model_parameters
+        evaluation["parameters"] = self.store.business_parameters(model_parameters, business_params)
+        return self._decorate_evaluation(evaluation, base_params=params)
+
     def _decorate_evaluation(self, evaluation, base_params=None):
+        hard_details = list(evaluation.get("hard_violation_details") or evaluation.get("hard_violations") or [])
+        advisory_range_violations = []
+        explicit_hard_details = []
+        for violation in hard_details:
+            code = str(violation.get("code") or "") if isinstance(violation, dict) else ""
+            if code.startswith("range_low_") or code.startswith("range_high_"):
+                advisory_range_violations.append(violation)
+            else:
+                explicit_hard_details.append(violation)
+        if advisory_range_violations:
+            evaluation["advisory_range_violations"] = advisory_range_violations
+            evaluation["hard_violation_details"] = explicit_hard_details
+            evaluation["hard_violations"] = explicit_hard_details
+            evaluation["hard_risk_reasons"] = [
+                item.get("message", str(item)) if isinstance(item, dict) else str(item)
+                for item in explicit_hard_details
+            ]
+            gate_update = dict(evaluation.get("physical_gate") or {})
+            if gate_update.get("decision") == "reject_hard_violation" and not explicit_hard_details:
+                if gate_update.get("mature_boundary_violations"):
+                    gate_update["decision"] = "reject_mature_expert_boundary"
+                elif gate_update.get("severe_coupling_mismatches"):
+                    gate_update["decision"] = "reject_severe_coupling"
+                elif float(gate_update.get("probability") or 0) < float(gate_update.get("probability_threshold") or 0.65):
+                    gate_update["decision"] = "reject_low_feasibility_probability"
+                else:
+                    gate_update["decision"] = "pass"
+                    gate_update["passed"] = True
+                evaluation["physical_gate"] = gate_update
+        definitions = self.store.parameter_map()
+        feature_specs = []
+        if hasattr(self.runtime, "model_feature_specs"):
+            feature_specs = self.runtime.model_feature_specs()
+        elif hasattr(self.runtime, "all_feature_specs"):
+            for spec in self.runtime.all_feature_specs():
+                item = dict(spec)
+                role = item.get("model_role")
+                item["model_kind"] = "price" if role == "price_only" else "effectiveness"
+                feature_specs.append(item)
+        evaluation["range_diagnostics"] = build_range_diagnostics(
+            evaluation.get("parameters") or {}, definitions, feature_specs,
+            evaluation.get("model_parameters") or evaluation.get("parameters") or {},
+        )
         rule_messages = self.store.assess_rules(evaluation["parameters"], base_params)
         messages = list(rule_messages)
-        for reason in evaluation.get("hard_risk_reasons", []):
-            messages.append({"source":"model", "severity":"error", "title":"模型硬风险", "message":reason, "detail":"该参数组合违反效能模型中的工程可行性规则。", "suggestion":"根据右侧耦合可行区间调整相关指标。", "parameters":[]})
+        for violation in evaluation.get("hard_violation_details") or []:
+            key = violation.get("parameter_id") or violation.get("attribute_key")
+            definition = definitions.get(key) or {}
+            label = definition.get("label") or violation.get("label") or key or "未指明指标"
+            actual = violation.get("actual")
+            bounds = ""
+            if violation.get("lower") is not None or violation.get("upper") is not None:
+                bounds = "；明确规则范围 %s～%s%s" % (violation.get("lower"), violation.get("upper"), (" " + (definition.get("unit") or "")) if definition.get("unit") else "")
+            messages.append({
+                "source": violation.get("source") or "effectiveness_service",
+                "severity": "error", "title": "模型服务返回的明确风险",
+                "message": "%s（%s）当前值：%s%s" % (label, key or "unknown", actual, bounds),
+                "detail": violation.get("message") or "模型服务返回了结构化硬约束违反。",
+                "suggestion": "核对明确工程规则或当前模型运行版本。", "parameters": [key] if key else [],
+            })
+        if not evaluation.get("hard_violation_details"):
+            for reason in evaluation.get("hard_risk_reasons", []):
+                messages.append({"source":"model", "severity":"error", "title":"模型硬风险", "message":reason, "detail":"模型服务返回硬风险，但未提供具体指标结构。", "suggestion":"检查模型服务版本并补充parameter_id。", "parameters":[]})
         gate = evaluation.get("physical_gate") or {}
         if gate.get("passed") is False and not evaluation.get("hard_risk_reasons"):
             labels = {
@@ -770,7 +1173,6 @@ class Application(object):
 
     def _evaluate_batch_with_rules(self, items):
         prepared = []
-        configured = self.store.configured_model_inputs("price")
         for index, item in enumerate(items or []):
             business_params = dict(item.get("parameters") or item.get("params") or {})
             params = self.store.runtime_parameters(business_params)
@@ -922,15 +1324,28 @@ class Application(object):
             "historical_profile": history,
         }
 
+    def generation_budget_limit(self):
+        return max(60, int(self.model_config.get("generation_max_budget") or 2400))
+
+    def generation_rounds_limit(self):
+        return max(3, int(self.model_config.get("generation_max_rounds") or 15))
+
     def _generate_sync(self, request, progress_callback=None):
         self._require_product_ready()
-        req = dict(request or {})
+        req, scenario_policy = self.scenario_policy.apply(request)
+        req = self.generation_tasks.canonicalize_generation_controls(req)
         session_id = str(req.get("session_id") or "default")
-        count = max(1, min(int(req.get("count") or 10), 30))
-        req["count"] = count
+        count = req["count"]
         search_profile = dict(req.get("search_profile") or self.generation_search_profile(req))
+        search_profile.update({
+            "exploration_profile": req.get("exploration_profile"),
+            "effective_exploration_profile": req.get("effective_exploration_profile"),
+            "profile_definition": req.get("exploration_profile_definition") or {},
+        })
         req["search_profile"] = search_profile
         search_mode = search_profile.get("mode") or "fast"
+        if req.get("exploration_profile") == "deep" and search_mode != "deep_extrapolation":
+            search_mode = "deep"
         if req.get("min_feasibility") not in (None, ""):
             req["min_feasibility"] = max(float(req.get("min_feasibility")), 0.0)
         if progress_callback:
@@ -939,6 +1354,7 @@ class Application(object):
                 search_profile.get("warning") or "正在分析相近方案与当前需求",
             )
         has_output_target = any(req.get(key) not in (None, "") for key in ("max_price", "min_capability", "min_cost_effectiveness", "min_feasibility"))
+        max_budget = self.generation_budget_limit()
         # HTTP-backed models are the dominant cost.  A compact adaptive budget
         # plus convergence stopping gives the same staged search semantics while
         # avoiding hundreds of redundant single-candidate service calls.
@@ -946,6 +1362,12 @@ class Application(object):
             budget = max(360, count * 60)
         else:
             budget = max(120, count * 22) if has_output_target else max(80, count * 14)
+        # Automatic budgets are also clamped by server limits.
+        budget = min(budget, max_budget)
+        # User-tunable candidate evaluation budget is a strict hard cap.
+        if req.get("generation_budget") not in (None, ""):
+            budget = int(req["generation_budget"])
+        req["generation_budget"] = budget
         result = self.generator.generate(
             req, count=count, seed=req.get("seed"), budget=budget,
             search_mode=search_mode, progress_callback=progress_callback,
@@ -967,7 +1389,12 @@ class Application(object):
             "model_versions": self.runtime.manifest(),
             "generation_method": result.get("generation_method", "batched_directional_beam_search"),
             "search_profile": search_profile,
+            "exploration_profile": req.get("exploration_profile"),
+            "effective_exploration_profile": req.get("effective_exploration_profile"),
             "search_warning": search_profile.get("warning") or "",
+            "scenario": scenario_policy["scenario"],
+            "scenario_policy": scenario_policy,
+            "applied_ranking": scenario_policy["applied_ranking"],
         })
         if progress_callback:
             progress_callback(96, "方案已准备完成")
@@ -975,22 +1402,38 @@ class Application(object):
 
     def generate_live(self, request):
         """Backward-compatible synchronous generation endpoint."""
-        result = self._generate_sync(request)
-        batch_id, prepared = self.sessions.add_batch(str((request or {}).get("session_id") or "default"), result.get("candidates", []))
+        prepared_request, _policy = self.scenario_policy.apply(request)
+        prepared_request = self.generation_tasks.canonicalize_generation_controls(prepared_request)
+        requirement_version = self.capture_requirement_version(prepared_request, "generate")
+        fingerprint = self.generation_tasks.fingerprint(prepared_request)
+        result = self._generate_sync(prepared_request)
+        batch_id, prepared = self.sessions.add_batch(
+            str(prepared_request.get("session_id") or "default"),
+            result.get("candidates", []), fingerprint=fingerprint,
+        )
         result["batch_id"] = batch_id
         result["candidates"] = prepared
+        result["requirement_version"] = requirement_version
         return result
 
     def request_generation(self, request):
         self._require_product_ready()
-        req = dict(request or {})
-        req["count"] = max(1, min(int(req.get("generation_count") or req.get("count") or 10), 30))
+        req, _policy = self.scenario_policy.apply(request)
+        req = self.generation_tasks.canonicalize_generation_controls(req)
+        requirement_version = self.capture_requirement_version(req, "generate")
+        req["requirement_version_id"] = requirement_version.get("id")
+        req["demand_fingerprint"] = requirement_version.get("demand_fingerprint")
         req["search_profile"] = self.generation_search_profile(req)
-        return self.generation_tasks.start(req, force=bool(req.get("force_regenerate")))
+        result = self.generation_tasks.start(req, force=bool(req.get("force_regenerate")))
+        result["requirement_version"] = requirement_version
+        return result
 
     def _refresh_candidates_for_protocol(self, candidates, request):
         target_protocol = request.get("target_protocol")
         if not candidates or target_protocol in (None, ""):
+            return candidates
+        evaluatable = [item for item in candidates if item.get("model_evaluation_available") is not False]
+        if not evaluatable:
             return candidates
         prepared = [
             {
@@ -999,13 +1442,13 @@ class Application(object):
                 "base_parameters": item.get("params") or {},
                 "target_protocol": target_protocol,
             }
-            for index, item in enumerate(candidates)
+            for index, item in enumerate(evaluatable)
         ]
         evaluations = self._evaluate_batch_with_rules(prepared)
         definitions = self.store.parameter_map()
         tag_map = self.store.tag_map()
         refreshed = []
-        for source, evaluation in zip(candidates, evaluations):
+        for source, evaluation in zip(evaluatable, evaluations):
             item = dict(source)
             params = dict(evaluation.get("parameters") or item.get("params") or {})
             tags = self.store.derive_tags(params, evaluation, item.get("tags") or [])
@@ -1025,19 +1468,22 @@ class Application(object):
                 "physical_gate": evaluation.get("physical_gate") or {},
                 "cost_effectiveness": evaluation.get("cost_effectiveness"),
             })
-            demand_unmet, demand_penalty = self.generator._demand_assessment(item, request, definitions, tag_map)
+            demand_unmet, demand_penalty, requirement_assessment = self.generator._demand_assessment(item, request, definitions, tag_map)
             hard_conflicts, hard_penalty = self.generator._engineering_conflicts(evaluation)
             item["demand_unmet_conditions"] = demand_unmet
+            item["requirement_assessment"] = requirement_assessment
             item["engineering_conflicts"] = hard_conflicts
             item["unmet_conditions"] = demand_unmet + hard_conflicts
             item["strict_filter_satisfied"] = not demand_unmet and not hard_conflicts
             item["best_effort"] = bool(demand_unmet or hard_conflicts)
             item["fit_penalty"] = round(demand_penalty + 2.5 * hard_penalty, 6)
             refreshed.append(item)
-        return refreshed
+        refreshed_by_id = dict((item.get("agreement_id"), item) for item in refreshed)
+        return [refreshed_by_id.get(item.get("agreement_id"), item) for item in candidates]
 
     def recommend(self, request):
-        request = dict(request or {})
+        request, scenario_policy = self.scenario_policy.apply(request)
+        requirement_version = self.capture_requirement_version(request, "recommend")
         self._try_restore_model_services()
         calculation_available = not bool(self.model_data_sync_error)
         session_id = str(request.get("session_id") or "default")
@@ -1047,7 +1493,7 @@ class Application(object):
         task_info = None
         if request.get("start_generation") and calculation_available:
             generation_request = dict(request)
-            generation_request["count"] = max(1, min(int(request.get("generation_count") or request.get("count") or 10), 30))
+            generation_request["count"] = max(1, min(int(request.get("generation_count") or request.get("count") or 5), 30))
             generation_request["search_profile"] = self.generation_search_profile(generation_request)
             task_info = self.generation_tasks.start(generation_request, force=False)
 
@@ -1058,46 +1504,89 @@ class Application(object):
         historical_items = self.store.historical_agreements(
             target_protocol=target_protocol, recalculate=calculation_available
         )
-        generated_items = self.sessions.get(session_id, request.get("generation_batch_id")) if calculation_available else []
+        expert_items = self.expert_recommendation_schemes(
+            target_protocol=target_protocol, recalculate=calculation_available,
+        )
+        requested_batch_id = request.get("generation_batch_id")
+        batch_metadata = self.sessions.batch_metadata(session_id, requested_batch_id) if requested_batch_id else None
+        batch_request = self.generation_tasks.canonicalize_generation_controls(request)
+        expected_batch_fingerprint = self.generation_tasks.fingerprint(batch_request) if requested_batch_id else None
+        generation_batch_stale = bool(
+            batch_metadata and batch_metadata.get("fingerprint") != expected_batch_fingerprint
+        )
+        if generation_batch_stale:
+            source_mode = "historical"
+        generated_items = (
+            self.sessions.get(session_id, requested_batch_id, fingerprint=expected_batch_fingerprint)
+            if calculation_available and requested_batch_id else []
+        )
         generated_items = self._refresh_candidates_for_protocol(generated_items, request) if calculation_available else []
         if not calculation_available:
             source_mode = "historical"
         if source_mode == "historical":
-            candidates = historical_items
+            candidates = historical_items + expert_items
         elif source_mode == "generated":
             candidates = generated_items
         else:
-            candidates = historical_items + generated_items
+            candidates = historical_items + expert_items + generated_items
         ranking_request = dict(request)
         ranking_request["include_best_effort"] = source_mode in ("generated", "both")
         tag_weights = dict((item["tag_id"], item["weight"]) for item in self.bootstrap()["tags"])
+        definitions = self.store.parameter_map()
+        tag_map = self.store.tag_map()
+        constraint_rules = self.store.constraint_rows()
         ranked = (
-            rank_agreements(candidates, ranking_request, tag_weights)
+            rank_agreements(candidates, ranking_request, tag_weights, definitions=definitions, tag_map=tag_map, constraint_rules=constraint_rules)
             if calculation_available else
-            rank_historical_products(candidates, ranking_request, tag_weights)
+            rank_historical_products(candidates, ranking_request, tag_weights, definitions=definitions, tag_map=tag_map, constraint_rules=constraint_rules)
         )
+        ranked = annotate_candidate_recommendations(ranked, scenario_policy, definitions=definitions)
+        ranked = annotate_ranking_explanations(ranked, request, definitions=definitions)
+        for item in ranked:
+            item["scenario"] = scenario_policy["scenario"]
+        analysis_fields = (
+            "agreement_id", "agreement_name", "agreement_source", "rank", "params",
+            "predicted_price_wan", "capability_score", "cost_effectiveness",
+            "strict_filter_satisfied", "model_evaluation_available", "is_generated",
+            "engineering_conflicts", "ranking_trace",
+        )
+        analysis_items = [dict((key, item.get(key)) for key in analysis_fields)
+                          for item in ranked[:100]]
         page, page_size = max(1, int(request.get("page", 1))), max(1, min(int(request.get("page_size", 12)), 50))
         start = (page - 1) * page_size
         best_effort_count = sum(1 for item in ranked if item.get("best_effort"))
+        relaxation_suggestions = build_relaxation_suggestions(
+            request, candidates, definitions, tag_map, constraint_rules,
+            requirement_version=requirement_version,
+        ) if ranked and not any(item.get("strict_filter_satisfied") for item in ranked) else []
         return {
             "items": ranked[start:start + page_size],
+            "analysis_items": analysis_items,
             "total": len(ranked),
             "page": page,
             "page_size": page_size,
             "pages": max(1, (len(ranked) + page_size - 1) // page_size),
             "source_mode": source_mode,
-            "historical_available": len(historical_items),
+            "historical_available": len(historical_items) + len(expert_items),
+            "expert_available": len(expert_items),
             "live_generated_available": len(generated_items),
+            "generation_batch_stale": generation_batch_stale,
             "best_effort_count": best_effort_count,
             "generation_task": task_info,
             "calculation_available": calculation_available,
             "recommendation_mode": "model_evaluated" if calculation_available else "historical_only_degraded",
             "warning": None if calculation_available else "价格和效能服务当前不可用；结果仅按历史价格、成品属性和标签筛选，未执行模型计算。",
             "protocol": (
-                ranked[0].get("evaluation", {}).get("protocol")
+                (ranked[0].get("evaluation") or {}).get("protocol")
                 if ranked
                 else target_protocol
             ),
+            "scenario": scenario_policy["scenario"],
+            "scenario_policy": scenario_policy,
+            "applied_ranking": scenario_policy["applied_ranking"],
+            "ranking_trace": ranked[0].get("ranking_trace") if ranked else None,
+            "requirement_version": requirement_version,
+            "relaxation_suggestions": relaxation_suggestions,
         }
 
     def agreement_detail(self, agreement_id, session_id, target_protocol=None):
@@ -1107,6 +1596,20 @@ class Application(object):
             target_protocol=target_protocol,
         )
         if item is None: return None
+        if item.get("model_evaluation_available") is False:
+            item["current_model_evaluation"] = item.get("evaluation") or {
+                "model_evaluation_available": False,
+                "parameters": item.get("params") or {}, "predicted_price_wan": None,
+                "capability_score": None, "conservative_capability_score": None,
+                "cost_effectiveness": None, "feasibility_probability": None,
+                "prediction_confidence": "unavailable", "coupling_assessments": [],
+                "range_diagnostics": [], "tag_evidence": item.get("tag_evidence") or {},
+                "rule_messages": [{"severity":"warning", "title":"模型评价不可用",
+                                   "message":"模型服务拒绝该参数组合；当前仅保留参数探索方案。",
+                                   "detail":"可调整参数后重新尝试计算。"}],
+                "adjustment_guidance": {"tips": []},
+            }
+            return item
         if not calculation_available:
             item["model_evaluation_available"] = False
             item["current_model_evaluation"] = {
@@ -1121,21 +1624,78 @@ class Application(object):
                 "adjustment_guidance": {"tips": []},
             }
             return item
-        current = self._evaluate_with_rules(
-            item["params"],
-            item["params"],
-            target_protocol=target_protocol,
-        )
+        historical_price = item.get("historical_price_wan")
+        if item.get("is_generated") or historical_price in (None, ""):
+            # Generated candidates have no stored transaction price; run the
+            # full price+effectiveness evaluation.
+            current = self._evaluate_with_rules(
+                item["params"], item["params"], target_protocol=target_protocol,
+            )
+        else:
+            current = self._evaluate_historical_with_rules(
+                item["params"], historical_price, target_protocol=target_protocol,
+            )
         item["current_model_evaluation"] = current
         item["predicted_price_wan"] = current["predicted_price_wan"]
+        item["price_source"] = current.get("price_source", "historical")
         return item
+
+    @staticmethod
+    def _parameters_changed(params, base):
+        """True when a business attribute actually differs from its base value.
+
+        The editor may round-trip values through Number() while the stored
+        historical JSON keeps strings, so compare tolerantly (string-equal or
+        numeric-equal).  A field that the historical sample left unset is not a
+        user modification, so it never counts as "changed"; clearing a field the
+        sample did set does count.
+        """
+        params = dict(params or {})
+        base = dict(base or {})
+        for key in set(params) | set(base):
+            a = params.get(key)
+            b = base.get(key)
+            if b in (None, ""):
+                continue
+            if a == b:
+                continue
+            if a in (None, ""):
+                return True
+            try:
+                if float(a) == float(b):
+                    continue
+            except (TypeError, ValueError):
+                pass
+            return True
+        return False
 
     def evaluate(self, request):
         self._require_product_ready()
         params = request.get("parameters") or request.get("params") or {}
         base = request.get("base_parameters") or request.get("base_params")
         target_protocol = request.get("target_protocol")
-        evaluation = self._evaluate_with_rules(params, base, target_protocol=target_protocol)
+        base_agreement_id = request.get("base_agreement_id")
+        is_generated = bool(request.get("is_generated"))
+        evaluation = None
+        if base_agreement_id and base and not is_generated:
+            # An unchanged historical sample keeps its real transaction price;
+            # only the effectiveness model is re-run. Generated schemes (which
+            # reuse a historical seed for tag inheritance) always re-predict
+            # their own price, so they never take this path.
+            base_item = self.store.get_historical(base_agreement_id, target_protocol=target_protocol, recalculate=False)
+            if base_item:
+                historical_price = base_item.get("historical_price_wan")
+                if historical_price not in (None, ""):
+                    # Compare only the current business field set so stale keys
+                    # left in older agreement JSON never look like a user edit.
+                    defined_keys = set(self.store.parameter_map().keys())
+                    base_defined = {k: v for k, v in (base or {}).items() if k in defined_keys}
+                    if not self._parameters_changed(params, base_defined):
+                        evaluation = self._evaluate_historical_with_rules(
+                            params, historical_price, target_protocol=target_protocol,
+                        )
+        if evaluation is None:
+            evaluation = self._evaluate_with_rules(params, base, target_protocol=target_protocol)
         context = dict(request.get("recommendation_context") or {})
         if not context:
             return self._register_evaluation(params, evaluation, target_protocol)
@@ -1153,8 +1713,11 @@ class Application(object):
             "params": evaluation.get("parameters") or params,
             "tags": current_tags,
             "evaluation": evaluation,
+            "predicted_price_wan": evaluation.get("predicted_price_wan"),
+            "capability_score": evaluation.get("capability_score"),
+            "historical_price_wan": None,
         }
-        demand_unmet, demand_penalty = self.generator._demand_assessment(item, context, definitions, tag_map)
+        demand_unmet, demand_penalty, _requirement_assessment = self.generator._demand_assessment(item, context, definitions, tag_map)
         hard_conflicts, hard_penalty = self.generator._engineering_conflicts(evaluation)
         locked = set(context.get("locked_parameters") or [])
         contour_details = []
@@ -1197,11 +1760,302 @@ class Application(object):
             params,
             request.get("target_protocol"),
         )
-        has_risk = evaluation.get("has_blocking_risk") or evaluation["feasibility_probability"] < 0.45
+        feasibility = evaluation.get("feasibility_probability")
+        has_risk = bool(evaluation.get("has_blocking_risk")) or (
+            feasibility is not None and float(feasibility) < 0.45
+        )
         risk_confirmed = bool(request.get("risk_confirmed"))
         if has_risk and not risk_confirmed: return {"saved":False,"requires_risk_confirmation":True,"evaluation":evaluation}
-        scheme_id = self.store.save_scheme(request.get("scheme_name") or "专家修订方案", request.get("base_agreement_id"), request.get("source_type") or "expert_modified", evaluation["parameters"], evaluation, risk_confirmed)
-        return {"saved":True,"scheme_id":scheme_id,"evaluation":evaluation}
+        final_params = self.store.canonical_business_parameters(evaluation["parameters"])
+        base_params = self.store.canonical_business_parameters(request.get("base_parameters") or {})
+        delta = self.expert_schemes.build_delta(base_params, final_params)
+        recommendation_eligible = not has_risk
+        # Persist the output contract with the immutable evaluation snapshot.
+        # Adding this after save_scheme would only decorate the response object
+        # and leave evaluation_json without provenance.
+        evaluation["price_output_contract"] = self._current_price_output_contract()
+        scheme_id = self.store.save_scheme(
+            request.get("scheme_name"), request.get("base_agreement_id"),
+            request.get("source_type") or "expert_modified", final_params, evaluation, risk_confirmed,
+            base_params=base_params, delta=delta, changed_parameter_ids=sorted(delta),
+            target_protocol=request.get("target_protocol"),
+            schema_signature=self.expert_schemes.schema_signature(),
+            recommendation_eligible=recommendation_eligible, training_candidate=True,
+            base_scheme_name=request.get("base_agreement_name"),
+        )
+        saved_item = next((item for item in self.store.list_saved() if int(item.get("id")) == int(scheme_id)), {})
+        return {"saved":True,"scheme_id":scheme_id,"evaluation":evaluation,
+                "changed_parameter_ids":sorted(delta),
+                "recommendation_eligible":recommendation_eligible,
+                "scheme_name":saved_item.get("scheme_name"),
+                "expert_revision_no":saved_item.get("expert_revision_no"),
+                "root_base_agreement_id":saved_item.get("root_base_agreement_id"),
+                "parent_saved_scheme_id":saved_item.get("parent_saved_scheme_id")}
+
+    def saved_schemes(self):
+        items = self.store.list_saved()
+        for item in items:
+            item["compatibility"] = self.expert_schemes.compatibility(item)
+            item["changed_count"] = len(item.get("changed_parameter_ids") or [])
+            self._annotate_saved_price_contract(item)
+        return items
+
+    def _current_price_output_contract(self):
+        normalizer = (self.model_gateway.price_normalizer
+                      if getattr(self, "model_gateway", None) is not None
+                      else PriceOutputNormalizer())
+        return {
+            "signature": normalizer.signature(),
+            "unit": normalizer.config["unit"],
+            "scale": normalizer.config["scale"],
+            "normalized_unit": "wan_yuan",
+            "contract_version": normalizer.VERSION,
+        }
+
+    def _annotate_saved_price_contract(self, item):
+        evaluation = dict(item.get("evaluation") or item.get("saved_evaluation") or {})
+        saved_contract = dict(evaluation.get("price_output_contract") or {})
+        normalization = dict(evaluation.get("price_output_normalization") or {})
+        if not saved_contract and normalization:
+            saved_contract = {
+                "signature": normalization.get("signature"),
+                "unit": normalization.get("raw_unit"),
+                "scale": normalization.get("scale"),
+                "normalized_unit": normalization.get("normalized_unit") or "wan_yuan",
+                "contract_version": normalization.get("contract_version"),
+            }
+        # Records saved before V21.5.2 used the application's historical
+        # wan-yuan/scale-1 contract.  Preserve that provenance explicitly;
+        # never reinterpret the stored number using today's settings.
+        saved_contract.setdefault("unit", "wan_yuan")
+        saved_contract.setdefault("scale", 1.0)
+        saved_contract.setdefault("normalized_unit", "wan_yuan")
+        if not saved_contract.get("signature"):
+            try:
+                saved_contract["signature"] = PriceOutputNormalizer({
+                    "unit": saved_contract.get("unit") or "wan_yuan",
+                    "scale": saved_contract.get("scale", 1.0),
+                }).signature()
+            except ValueError:
+                saved_contract["signature"] = "invalid-saved-price-contract"
+        current = self._current_price_output_contract()
+        stale = saved_contract.get("signature") != current.get("signature")
+        item["price_evaluation_contract"] = {
+            "stale": stale,
+            "saved": saved_contract,
+            "current": current,
+            "display_source": "saved_snapshot_stale" if stale else "saved_snapshot_current_contract",
+            "message": ("保存时价格采用旧输出单位或尺度；该数值不再作为当前万元价格展示。"
+                        if stale else "保存时价格与当前输出契约一致。"),
+        }
+        return item
+
+    def relaxation_suggestions(self, request):
+        version = self.capture_requirement_version(request, "relaxation")
+        calculation_available = not bool(self.model_data_sync_error)
+        candidates = self.store.historical_agreements(
+            target_protocol=request.get("target_protocol"), recalculate=calculation_available
+        ) + self.expert_recommendation_schemes(
+            target_protocol=request.get("target_protocol"), recalculate=calculation_available
+        )
+        batch_id = request.get("generation_batch_id")
+        if batch_id:
+            candidates += self.sessions.get(str(request.get("session_id") or "default"), batch_id)
+        return {
+            "requirement_version": version,
+            "items": build_relaxation_suggestions(
+                request, candidates, self.store.parameter_map(), self.store.tag_map(),
+                self.store.constraint_rows(), requirement_version=version,
+            ),
+        }
+
+    def save_final_decision(self, request):
+        # Final decisions are audit records: always resolve the authoritative
+        # server-side scheme by id and never trust a client supplied snapshot.
+        scheme_id = str(request.get("scheme_id") or "").strip()
+        snapshot = self.sessions.find(request.get("session_id") or "default", scheme_id)
+        if snapshot is None and scheme_id.upper().startswith("SAVED-"):
+            snapshot = self.saved_detail(scheme_id.split("-", 1)[1], request.get("target_protocol"))
+        if snapshot is None:
+            snapshot = self.agreement_detail(
+                scheme_id, request.get("session_id") or "default",
+                request.get("target_protocol"),
+            ) or {}
+        if not snapshot:
+            raise ValueError("未找到要标记的方案。")
+        version_id = request.get("demand_version_id")
+        with self.store.lock:
+            conn = self.store.connect()
+            try:
+                if version_id not in (None, ""):
+                    version = conn.execute(
+                        "SELECT id FROM requirement_versions WHERE id=? AND product_code=?",
+                        (int(version_id), self.store.current_product_code()),
+                    ).fetchone()
+                    if not version:
+                        raise ValueError("需求版本不属于当前成品。")
+                cur = conn.execute(
+                    "INSERT INTO final_decisions(scheme_id,scheme_snapshot_json,source,"
+                    "demand_version_id,product_code,created_at) VALUES(?,?,?,?,?,?)",
+                    (scheme_id or str(snapshot.get("agreement_id") or ""),
+                     json.dumps(snapshot, ensure_ascii=False),
+                     str(request.get("source") or snapshot.get("agreement_source") or "unknown"),
+                     int(version_id) if version_id not in (None, "") else None,
+                     self.store.current_product_code(), datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
+                conn.commit()
+                return {"id": cur.lastrowid, "saved": True, "demand_version_id": version_id}
+            finally:
+                conn.close()
+
+    def final_decisions(self, limit=100):
+        conn = self.store.connect()
+        try:
+            rows = conn.execute(
+                "SELECT * FROM final_decisions WHERE product_code=? ORDER BY id DESC LIMIT ?",
+                (self.store.current_product_code(), max(1, min(int(limit), 500)))
+            ).fetchall()
+            items = []
+            for row in rows:
+                item = dict(row)
+                item["scheme_snapshot"] = json.loads(item.pop("scheme_snapshot_json") or "{}")
+                items.append(item)
+            return items
+        finally:
+            conn.close()
+
+    def _dedupe_expert_snapshots(self, items, near_threshold=0.018):
+        definitions = self.store.parameter_map()
+        kept, signatures = [], {}
+        for item in items:
+            signature = self.expert_schemes.canonical_parameter_signature(item.get("params") or {})
+            if signature in signatures:
+                signatures[signature]["expert_prior_count"] += 1
+                continue
+            near = next((existing for existing in kept if self.generator._normalized_distance(
+                item.get("params") or {}, existing.get("params") or {}, definitions,
+            ) < near_threshold), None)
+            if near is not None:
+                near["expert_prior_count"] += 1
+                continue
+            item = dict(item)
+            item["expert_prior_count"] = 1
+            item["canonical_parameter_signature"] = signature
+            kept.append(item)
+            signatures[signature] = item
+        return kept
+
+    def _expert_candidate(self, saved, evaluation, model_evaluation_available=True):
+        item = dict(saved)
+        business_params = dict((evaluation or {}).get("parameters") or saved.get("params") or {})
+        item["params"] = business_params
+        item["evaluation"] = dict(evaluation or saved.get("evaluation") or {})
+        item["saved_evaluation"] = dict(saved.get("evaluation") or saved.get("saved_evaluation") or {})
+        item["agreement_id"] = "SAVED-%s" % item["id"]
+        item["agreement_name"] = item["scheme_name"]
+        item["agreement_source"] = "expert_saved"
+        item["is_generated"] = False
+        item["positioning"] = "专家保存方案"
+        item["model_evaluation_available"] = bool(model_evaluation_available)
+        for key in ("predicted_price_wan", "capability_score", "conservative_capability_score",
+                    "feasibility_probability", "cost_effectiveness"):
+            item[key] = item["evaluation"].get(key)
+        item["tags"] = self.store.derive_tags(business_params, item["evaluation"])
+        return item
+
+    def expert_recommendation_schemes(self, target_protocol=None, recalculate=True):
+        eligible = [item for item in self.saved_schemes()
+                    if item["compatibility"].get("recommendation_eligible_effective")]
+        eligible = self._dedupe_expert_snapshots(eligible)
+        if not recalculate:
+            return [self._expert_candidate(item, item.get("evaluation"), False) for item in eligible]
+        result, pending, pending_keys = [], [], []
+        protocol_key = str(target_protocol or "")
+        cache_identity = self._expert_evaluation_identity()
+        for item in eligible:
+            key = (int(item["id"]), item.get("canonical_parameter_signature"),
+                   self.expert_schemes.schema_signature(), protocol_key, cache_identity)
+            with self.evaluation_lock:
+                cached = self.expert_evaluation_cache.get(key)
+            if cached is not None:
+                result.append(self._expert_candidate(item, cached, True))
+            else:
+                pending.append({
+                    "candidate_id": "SAVED-%s" % item["id"], "parameters": item.get("params") or {},
+                    "base_parameters": item.get("base_params") or item.get("params") or {},
+                    "target_protocol": target_protocol, "saved": item,
+                })
+                pending_keys.append(key)
+        if pending:
+            try:
+                evaluations = self._evaluate_batch_with_rules(pending)
+                for source, key, evaluation in zip(pending, pending_keys, evaluations):
+                    with self.evaluation_lock:
+                        self.expert_evaluation_cache[key] = evaluation
+                    result.append(self._expert_candidate(source["saved"], evaluation, True))
+            except Exception:
+                # Batch failure is isolated so one stale expert snapshot cannot
+                # hide the rest.  This slow path runs only for the failed batch.
+                for source, key in zip(pending, pending_keys):
+                    try:
+                        evaluation = self._evaluate_with_rules(
+                            source["parameters"], source["base_parameters"], target_protocol=target_protocol,
+                        )
+                        with self.evaluation_lock:
+                            self.expert_evaluation_cache[key] = evaluation
+                        result.append(self._expert_candidate(source["saved"], evaluation, True))
+                    except Exception:
+                        continue
+        return result
+
+    def _expert_evaluation_identity(self):
+        runtime = getattr(self, "runtime", None)
+        manifest = runtime.manifest() if runtime is not None and hasattr(runtime, "manifest") else {}
+        price = manifest.get("price") or {}
+        effectiveness = manifest.get("effectiveness") or {}
+        price_version = price.get("model_version")
+        effect_version = effectiveness.get("model_version")
+        if getattr(self, "model_gateway", None) is not None:
+            try:
+                live_schemas = self.model_gateway.schemas()
+                price_version = (live_schemas.get("price") or {}).get("model_version") or price_version
+                effect_version = (live_schemas.get("effectiveness") or {}).get("model_version") or effect_version
+            except Exception:
+                # A service outage is handled by the existing degraded expert
+                # path; identity probing must not hide persisted snapshots.
+                pass
+        identity = {
+            "price_model_version": price_version,
+            "effectiveness_model_version": effect_version,
+            "price_output_contract": (
+                self.model_gateway.price_normalizer.signature()
+                if getattr(self, "model_gateway", None) is not None else "local-price-output"
+            ),
+        }
+        # Services that omit model_version cannot safely own an unbounded cache.
+        if not price_version or not effect_version:
+            identity["versionless_ttl_bucket"] = int(time.time() // 300)
+        raw = json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    def set_saved_recommendation_eligibility(self, scheme_id, enabled):
+        saved = next((item for item in self.saved_schemes() if int(item.get("id")) == int(scheme_id)), None)
+        if saved is None:
+            raise ValueError("专家方案不存在。")
+        if enabled:
+            probe = dict(saved)
+            probe["recommendation_eligible"] = 1
+            compatibility = self.expert_schemes.compatibility(probe)
+            if not compatibility.get("product_match") or not compatibility.get("schema_compatible"):
+                raise ValueError("当前专家方案与当前成品或字段定义不兼容，不能参与推荐。")
+        return self.store.set_saved_recommendation_eligibility(scheme_id, enabled)
+
+    def export_saved_schemes(self, scheme_ids):
+        items = self.store.saved_by_ids(scheme_ids)
+        return [self.expert_schemes.training_export_record(item) for item in items]
+
+    def set_saved_training_candidate(self, scheme_id, enabled):
+        return self.store.set_saved_training_candidate(scheme_id, enabled)
 
     def improve(self, request):
         self._require_product_ready()
@@ -1248,17 +2102,42 @@ class Application(object):
         result["improvement_plan"] = plan
         return result
 
-    def saved_detail(self, scheme_id):
-        self._require_product_ready()
-        item = self.store.get_saved(scheme_id, recalculate=True)
+    def saved_detail(self, scheme_id, target_protocol=None):
+        item = self.store.get_saved(scheme_id, recalculate=False)
         if item is None:
             return None
-        current = self._evaluate_with_rules(item["params"], item["params"])
+        item["compatibility"] = self.expert_schemes.compatibility(item)
+        self._annotate_saved_price_contract(item)
+        if self.model_data_sync_error:
+            current = dict(item.get("saved_evaluation") or item.get("evaluation") or {})
+            current["parameters"] = dict(item.get("params") or {})
+            current["model_evaluation_available"] = False
+            current["evaluation_notice"] = "计算服务当前不可用；保存时评价已保留，但未作为当前评价结果展示。"
+        else:
+            try:
+                current = self._evaluate_with_rules(
+                    item["params"], item.get("base_params") or item["params"],
+                    target_protocol=target_protocol,
+                )
+                current["model_evaluation_available"] = True
+            except Exception as exc:
+                current = dict(item.get("saved_evaluation") or item.get("evaluation") or {})
+                current["parameters"] = dict(item.get("params") or {})
+                current["model_evaluation_available"] = False
+                current["evaluation_notice"] = "当前模型未能重新评价；保存时评价已保留，仅供历史追溯：%s" % exc
         item["current_model_evaluation"] = current
-        item["predicted_price_wan"] = current["predicted_price_wan"]
-        item["capability_score"] = current["capability_score"]
-        item["feasibility_probability"] = current["feasibility_probability"]
-        item["cost_effectiveness"] = current["cost_effectiveness"]
+        item["model_evaluation_available"] = current.get("model_evaluation_available", True)
+        stale_unavailable = (
+            item["model_evaluation_available"] is False
+            and item.get("price_evaluation_contract", {}).get("stale") is True
+        )
+        # Top-level metrics always mean a currently usable evaluation.  The
+        # immutable historical values remain available under saved_evaluation
+        # and current_model_evaluation with model_evaluation_available=false.
+        item["predicted_price_wan"] = None if stale_unavailable else current.get("predicted_price_wan")
+        item["capability_score"] = None if stale_unavailable else current.get("capability_score")
+        item["feasibility_probability"] = None if stale_unavailable else current.get("feasibility_probability")
+        item["cost_effectiveness"] = None if stale_unavailable else current.get("cost_effectiveness")
         return item
 
     def wide_table_parser(self):
@@ -1310,8 +2189,7 @@ class Application(object):
 
     def activate_product_release(self, release_id):
         result = self.product_releases.activate(str(release_id or ""))
-        result["runtime_readiness"] = self._refresh_model_data_readiness()
-        self._invalidate_runtime_caches()
+        result["runtime_readiness"] = self.on_business_data_changed()
         return result
 
     def import_product_release_package(self, request):
@@ -1392,6 +2270,7 @@ class Handler(BaseHTTPRequestHandler):
     PUBLIC_PATHS = {"/login", "/login.html", "/login.js", "/styles.css", "/api/health", "/api/auth/status", "/api/auth/login", "/api/auth/logout"}
     WRITE_PATHS = {
         "/api/save-scheme", "/api/admin/upsert", "/api/admin/delete", "/api/admin/toggle", "/api/admin/purge",
+        "/api/admin/conditional-constraint/upsert", "/api/admin/conditional-constraint/delete",
         "/api/admin/backup", "/api/admin/restore-backup",
         "/api/admin/upload-database", "/api/admin/models/replace",
         "/api/admin/wide-import/commit", "/api/admin/datamaster/commit",
@@ -1400,6 +2279,8 @@ class Handler(BaseHTTPRequestHandler):
         "/api/admin/product-releases/module/stage", "/api/admin/product-releases/section/save",
         "/api/admin/product-releases/history/create", "/api/admin/product-releases/maintenance/import",
         "/api/admin/product-releases/validate", "/api/admin/product-releases/activate",
+        "/api/admin/portal-config", "/api/admin/model-service-settings",
+        "/api/requirements/version", "/api/requirements/restore", "/api/final-decisions",
     }
 
     def log_message(self, fmt, *args): print("[%s] %s" % (self.log_date_time_string(), fmt % args))
@@ -1437,15 +2318,24 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
 
+    @staticmethod
+    def _safe_next(value):
+        value = unquote(str(value or "")).strip()
+        parsed = urlparse(value)
+        if (not value.startswith("/") or value.startswith("//") or "\\" in value or
+                any(ord(char) < 32 for char in value) or parsed.scheme or parsed.netloc):
+            return None
+        return value
+
     def _auth_required(self, path):
         if not self.app.auth_enabled or path in self.PUBLIC_PATHS:
             return False
         if self._is_authenticated():
             return False
         if path.startswith("/api/"):
-            self._json({"error":"authentication_required","message":"请先登录后访问演示系统。","login_path":"/login"}, 401)
+            self._json({"error":"authentication_required","message":"请先登录后访问演示系统。","login_path":"/login?next=" + quote(self.path, safe="")}, 401)
         else:
-            self._redirect("/login")
+            self._redirect("/login?next=" + quote(self.path, safe=""))
         return True
 
     def _demo_forbidden(self, message="当前为登录只读演示，页面和数据可以查看，但服务器端写入操作已禁用。"):
@@ -1455,7 +2345,7 @@ class Handler(BaseHTTPRequestHandler):
         self._json({"error":"admin_disabled","message":"当前公开演示未开放数据管理功能。请在本地启动或受保护的正式隧道中使用。"}, 403)
 
     def _json(self, payload, status=200):
-        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        data = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
         self.send_response(status); self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store"); self.end_headers(); self.wfile.write(data)
 
     def _body(self):
@@ -1487,9 +2377,15 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(data)
 
     def _static(self, path):
+        if path.rstrip("/") in ("/cost-effectiveness", "/cost-analysis", "/cost_effectiveness"):
+            item = (self.app.portal_config.get("services") or {}).get("cost_effectiveness_analysis") or {}
+            if item.get("enabled") and item.get("url"):
+                self._redirect(item["url"]); return
+            self._json({"error":"analysis_unavailable", "message":"效费分析台未启动，请使用统一START入口。"},503); return
         if path in ("/admin","/admin/") and self.app.disable_admin:
             self._admin_forbidden(); return
         if path in ("/login", "/login.html"): rel = "login.html"
+        elif path in ("/portal", "/portal/"): rel = "portal.html"
         elif path in ("/admin","/admin/"): rel = "admin.html"
         elif path in ("/effectiveness", "/effectiveness/"): rel = "effectiveness.html"
         elif path in ("/price", "/price/"): rel = "price.html"
@@ -1497,13 +2393,13 @@ class Handler(BaseHTTPRequestHandler):
         target = (self.app.static_dir / rel).resolve()
         if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return
         data = target.read_bytes(); ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
-        self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
+        self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store, no-cache, must-revalidate"); self.send_header("Pragma","no-cache"); self.end_headers(); self.wfile.write(data)
 
     def do_GET(self):
         parsed = urlparse(self.path); path, query = parsed.path, parse_qs(parsed.query)
         try:
             if path in ("/login", "/login.html") and self.app.auth_enabled and self._is_authenticated():
-                self._redirect("/"); return
+                self._redirect(self._safe_next((query.get("next") or [""])[0]) or "/portal"); return
             if self._auth_required(path):
                 return
             if path == "/api/auth/status":
@@ -1515,22 +2411,32 @@ class Handler(BaseHTTPRequestHandler):
                     "persistent_writes_enabled": not self.app.demo_read_only,
                 })
             elif path == "/api/health":
-                payload = {"status":"ok","version":"V19.6.14","mode":self.app.model_execution_mode if hasattr(self.app,"model_execution_mode") else "local","auth_required":self.app.auth_enabled,"demo_read_only":self.app.demo_read_only}
+                payload = {"status":"ok","version":"V21","mode":self.app.model_execution_mode if hasattr(self.app,"model_execution_mode") else "local","auth_required":self.app.auth_enabled,"demo_read_only":self.app.demo_read_only}
                 if self._is_authenticated() or not self.app.auth_enabled:
                     payload.update({"admin_enabled":not self.app.disable_admin,"manifest":self.app.runtime.manifest(),"database":self.app.store.integrity_check()})
                 self._json(payload)
+            elif path == "/api/portal": self._json(self.app.portal())
             elif path == "/api/bootstrap": self._json(self.app.bootstrap())
+            elif path == "/api/scenario-policy":
+                self._json(self.app.scenario_policy.resolve({
+                    "scenario": (query.get("scenario") or [None])[0],
+                    "optimization_intensity": (query.get("optimization_intensity") or [None])[0],
+                }))
             elif path == "/api/effectiveness-workbench/schema": self._json(self.app.effectiveness_workbench_schema())
             elif path == "/api/price-workbench/schema": self._json(self.app.price_workbench_schema())
             elif path.startswith("/api/generation-tasks/"):
                 task_id = unquote(path.split("/api/generation-tasks/",1)[1]); task = self.app.generation_tasks.get(task_id); self._json(task if task else {"error":"not_found"}, 200 if task else 404)
             elif path.startswith("/api/agreements/"):
                 agreement_id = unquote(path.split("/api/agreements/",1)[1]); item = self.app.agreement_detail(agreement_id,(query.get("session_id") or ["default"])[0],(query.get("protocol_id") or [None])[0]); self._json(item if item else {"error":"not_found"},200 if item else 404)
-            elif path == "/api/saved": self._json({"items":self.app.store.list_saved()})
+            elif path == "/api/saved": self._json({"items":self.app.saved_schemes()})
+            elif path == "/api/requirements/versions": self._json({"items":self.app.requirement_versions.list(int((query.get("limit") or [50])[0]))})
+            elif path == "/api/final-decisions": self._json({"items":self.app.final_decisions(int((query.get("limit") or [100])[0]))})
             elif path.startswith("/api/saved/"):
-                scheme_id = unquote(path.split("/api/saved/",1)[1]); item = self.app.saved_detail(scheme_id); self._json(item if item else {"error":"not_found"},200 if item else 404)
+                scheme_id = unquote(path.split("/api/saved/",1)[1]); item = self.app.saved_detail(scheme_id,(query.get("protocol_id") or [None])[0]); self._json(item if item else {"error":"not_found"},200 if item else 404)
             elif path.startswith("/api/admin/") and self.app.disable_admin: self._admin_forbidden()
             elif path == "/api/admin/snapshot": self._json(self.app.admin_snapshot())
+            elif path == "/api/admin/portal-config": self._json(self.app.portal_config)
+            elif path == "/api/admin/model-service-settings": self._json(self.app.price_output_settings())
             elif path == "/api/admin/backups": self._json({"items":self.app.store.list_backups()})
             elif path == "/api/admin/database/download": self._file(self.app.store.db_path, "protocol_demo.db")
             elif path == "/api/admin/export-json": self._json(self.app.store.export_json())
@@ -1558,6 +2464,9 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/admin/wide-import/template": self._bytes(self.app.wide_table_parser().template_csv(), "text/csv; charset=utf-8", "protocol_wide_table_template.csv")
             elif path == "/api/admin/datamaster/template": self._bytes(self.app.data_master.template(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "DataMaster_Template.xlsx")
             elif path == "/api/admin/datamaster/current": self._bytes(self.app.data_master.export_current(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "DataMaster_Current.xlsx")
+            elif path == "/api/admin/semantic-package":
+                package, filename = self.app.semantic_snapshot.package()
+                self._bytes(package, "application/zip", filename)
             elif path.startswith("/api/"): self._json({"error":"not_found","path":path},404)
             else: self._static(path)
         except Exception as exc: traceback.print_exc(); self._json({"error":type(exc).__name__,"message":str(exc)},500)
@@ -1580,7 +2489,8 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"error":"invalid_credentials","message":"账号或密码不正确。"}, 401); return
                 self.app.clear_login_failures(client_id)
                 token = self.app.make_auth_token(username)
-                data = json.dumps({"authenticated":True,"username":username,"redirect":"/"}, ensure_ascii=False).encode("utf-8")
+                redirect = self._safe_next(request.get("next")) or "/portal"
+                data = json.dumps({"authenticated":True,"username":username,"redirect":redirect}, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")
                 self.send_header("Content-Length",str(len(data)))
@@ -1599,6 +2509,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if self.app.demo_read_only and path in self.WRITE_PATHS:
                 self._demo_forbidden(); return
+            if self.app.demo_read_only and path.startswith("/api/saved/"):
+                self._demo_forbidden(); return
             if path == "/api/recommend": self._json(self.app.recommend(request))
             elif path == "/api/generation/request": self._json(self.app.request_generation(request))
             elif path == "/api/generate-live": self._json(self.app.generate_live(request))
@@ -1607,35 +2519,57 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/effectiveness-workbench/evaluate": self._json(self.app.effectiveness_workbench_evaluate(request))
             elif path == "/api/price-workbench/predict": self._json(self.app.price_workbench_predict(request))
             elif path == "/api/save-scheme": self._json(self.app.save(request))
+            elif path == "/api/requirements/version": self._json(self.app.capture_requirement_version(request, "manual"))
+            elif path == "/api/requirements/restore": self._json(self.app.requirement_versions.restore(request.get("version_id"), created_by="operator"))
+            elif path == "/api/final-decisions": self._json(self.app.save_final_decision(request))
+            elif path == "/api/relaxation-suggestions": self._json(self.app.relaxation_suggestions(request))
+            elif path == "/api/saved/export":
+                self._json({"items": self.app.export_saved_schemes(request.get("scheme_ids") or [])})
+            elif path.startswith("/api/saved/") and path.endswith("/recommendation-eligibility"):
+                scheme_id = unquote(path.split("/api/saved/", 1)[1].split("/", 1)[0])
+                self._json(self.app.set_saved_recommendation_eligibility(scheme_id, _boolean(request.get("enabled"), False)))
+            elif path.startswith("/api/saved/") and path.endswith("/training-candidate"):
+                scheme_id = unquote(path.split("/api/saved/", 1)[1].split("/", 1)[0])
+                self._json(self.app.set_saved_training_candidate(scheme_id, _boolean(request.get("enabled"), False)))
             elif path == "/api/clear-live-generated":
                 session_id = request.get("session_id") or "default"
-                self.app.sessions.clear(session_id)
                 self.app.generation_tasks.invalidate_session(session_id)
+                self.app.sessions.clear(session_id)
                 self._json({"cleared":True})
             elif path.startswith("/api/admin/") and self.app.disable_admin: self._admin_forbidden()
             elif path == "/api/admin/upsert":
                 result = self.app.store.admin_upsert(request.get("section"), request.get("item") or {})
-                self.app._invalidate_runtime_caches()
+                self.app.on_business_data_changed()
+                self._json(result)
+            elif path == "/api/admin/portal-config": self._json(self.app.save_portal_config(request))
+            elif path == "/api/admin/model-service-settings": self._json(self.app.save_model_service_settings(request))
+            elif path == "/api/admin/conditional-constraint/upsert":
+                result = self.app.store.upsert_conditional_template(request.get("template") or {})
+                self.app.on_business_data_changed()
+                self._json(result)
+            elif path == "/api/admin/conditional-constraint/delete":
+                result = self.app.store.delete_conditional_template(request.get("constraint_group"))
+                self.app.on_business_data_changed()
                 self._json(result)
             elif path == "/api/admin/delete":
                 result = self.app.store.admin_delete(request.get("section"), str(request.get("id")))
-                self.app._invalidate_runtime_caches()
+                self.app.on_business_data_changed()
                 self._json(result)
             elif path == "/api/admin/toggle":
                 result = self.app.store.admin_toggle(request.get("section"), str(request.get("id")), bool(request.get("enabled")))
-                self.app._invalidate_runtime_caches()
+                self.app.on_business_data_changed()
                 self._json(result)
             elif path == "/api/admin/purge":
                 result = self.app.store.admin_purge(request.get("section"), str(request.get("id")))
-                self.app._invalidate_runtime_caches()
+                self.app.on_business_data_changed()
                 self._json(result)
             elif path == "/api/admin/backup": self._json(self.app.store.create_backup("manual"))
             elif path == "/api/admin/restore-backup":
-                result = self.app.store.restore_backup(request.get("name")); self.app._invalidate_runtime_caches(); self._json(result)
+                result = self.app.store.restore_backup(request.get("name")); self.app.on_business_data_changed(); self._json(result)
             elif path == "/api/admin/upload-database":
                 data = base64.b64decode(request.get("database_base64") or ""); target = self.app.root / "uploads" / ("restore_%d.db" % int(time.time()*1000)); target.write_bytes(data)
                 try:
-                    result = self.app.store.restore_uploaded(target); self.app._invalidate_runtime_caches(); self._json(result)
+                    result = self.app.store.restore_uploaded(target); self.app.on_business_data_changed(); self._json(result)
                 finally:
                     try: target.unlink()
                     except OSError: pass
@@ -1671,15 +2605,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(self.app.activate_product_release(request.get("release_id")))
             elif path == "/api/admin/wide-import/preview": self._json(self.app.parse_wide_table(request, commit=False))
             elif path == "/api/admin/wide-import/commit":
-                result = self.app.parse_wide_table(request, commit=True); self.app._invalidate_runtime_caches(); self._json(result)
+                result = self.app.parse_wide_table(request, commit=True); self.app.on_business_data_changed(); self._json(result)
             elif path == "/api/admin/datamaster/preview":
                 data = base64.b64decode(request.get("file_base64") or ""); self._json(self.app.data_master.parse(request.get("filename") or "DataMaster.xlsx", data))
             elif path == "/api/admin/datamaster/commit":
                 data = base64.b64decode(request.get("file_base64") or "")
                 report = self.app.data_master.parse(request.get("filename") or "DataMaster.xlsx", data)
                 commit_result = self.app.data_master.commit(report)
-                runtime_readiness = self.app._refresh_model_data_readiness()
-                self.app._invalidate_runtime_caches()
+                runtime_readiness = self.app.on_business_data_changed()
                 self._json(dict(report, commit_result=commit_result, runtime_readiness=runtime_readiness))
             else: self._json({"error":"not_found","path":path},404)
         except ModelInputError as exc: self._json({"error":"model_input_error","message":str(exc),"model_kind":exc.model_kind,"missing_features":exc.missing_features},400)

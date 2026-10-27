@@ -22,7 +22,7 @@ def export_saved(target=None,version=None):
         path=(source/manifest[key]).resolve()
         if not product_portable.inside(path,source) or product_portable.digest(path)!=manifest["artifact_sha256"][key]: raise ValueError("保存模型校验失败："+key)
     timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
-    prefix={'optuna_v2':'ProductOptunaV2_Saved_','optuna_v3':'ProductOptunaV3_Saved_','optuna_v4':'ProductOptunaV4_Saved_','optuna_v5':'ProductOptunaV5_Saved_'}.get(manifest.get('price_engine'),'ProductR4_Saved_')
+    prefix={'optuna_v2':'ProductOptunaV2_Saved_','optuna_v3':'ProductOptunaV3_Saved_','optuna_v4':'ProductOptunaV4_Saved_','optuna_v5':'ProductOptunaV5_Saved_','optuna_v6':'ProductOptunaV6_Saved_'}.get(manifest.get('price_engine'),'ProductR4_Saved_')
     target=Path(target).resolve() if target else ROOT/"exports"/(prefix+timestamp+".zip")
     if target.exists(): raise ValueError("导出文件已存在，请换一个名称。")
     if product_portable.inside(target,source): raise ValueError("导出ZIP不能放进被导出的版本目录。")
@@ -30,13 +30,13 @@ def export_saved(target=None,version=None):
     settings=json.loads((ROOT/"config"/"portable.json").read_text(encoding="utf-8"))
     settings.update(startup_policy="saved_only",engine_selection_required=False,mode_registry_enabled=False,price_engine=manifest.get('price_engine',settings.get('price_engine')))
     relative=source.relative_to(ROOT).as_posix(); entries={}
-    skip={"__pycache__",".pytest_cache","oof_cache","node_modules","backups"}
+    skip={"__pycache__",".pytest_cache","oof_cache","node_modules","backups","transient_search","checkpoints"}
     def add(directory,prefix):
         for path in directory.rglob("*"):
             if not path.is_file() or path.is_symlink() or set(path.relative_to(directory).parts)&skip or path.suffix in (".pyc",".pyo",".log"): continue
             if prefix==relative and (path.relative_to(directory).parts[0] in ("input","nested","development") or path.name=="running.json"): continue
             entries[prefix+"/"+path.relative_to(directory).as_posix()]=path
-    for folder in ("runtime","app","services","tools","automl_pipeline"):
+    for folder in ("runtime","app","services","tools","automl_pipeline","cost_effectiveness_analysis"):
         add(ROOT/folder,folder)
     add(source,relative)
     package_name=prefix+timestamp
@@ -44,6 +44,8 @@ def export_saved(target=None,version=None):
         for name,path in sorted(entries.items()): archive.write(str(path),package_name+"/"+name)
         archive.writestr(package_name+"/START.bat",saved_start_launcher_bytes())
         archive.writestr(package_name+"/RUN_SAVED.bat",saved_start_launcher_bytes())
+        importer='\r\n'.join(['@echo off','setlocal','chcp 65001 >nul',r'"%~dp0runtime\python38\python.exe" -X utf8 "%~dp0tools\product_effectiveness_import.py" install %*','if errorlevel 1 (','  if not defined PRODUCT_NO_PAUSE pause','  exit /b 1',')','endlocal',''])
+        archive.writestr(package_name+'/IMPORT_EFFECTIVENESS.bat',importer.encode('ascii'))
         archive.writestr(package_name+"/config/portable.json",json.dumps(settings,ensure_ascii=False,indent=2))
         archive.writestr(package_name+"/state/latest.json",json.dumps({"status":"ready","output":relative,"format":"product-portable-latest-1.0"},indent=2))
         note='已训练运行包。双击START.bat载入保存模型。无需原训练表，无训练入口。运行环境、价格/效能模型和推荐数据随包保留。\n'

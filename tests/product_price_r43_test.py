@@ -125,7 +125,9 @@ class R43Tests(unittest.TestCase):
         from app.gflownet_generator import TabularTrajectoryBalanceGFlowNet
         price={'prediction':{'predicted_price_wan':1.,'recommendation_price_wan':150.,'price_risk':{'is_extrapolation':True}}}
         effect={'evaluation':{'effectiveness_score':90.,'conservative_capability_score':80.,'feasibility_probability':.99}}
-        result=ModelServiceGateway._merge({'parameters':{}},price,effect)
+        from app.price_output import PriceOutputNormalizer
+        gateway=object.__new__(ModelServiceGateway);gateway.price_normalizer=PriceOutputNormalizer()
+        result=gateway._merge({'parameters':{}},price,effect)
         self.assertEqual(result['recommendation_price_wan'],150.);self.assertEqual(result['predicted_price_wan'],1.)
         self.assertAlmostEqual(result['cost_effectiveness'],round(80./150.,4))
         risky=dict(result);nominal=dict(result,recommendation_price_wan=1.,cost_effectiveness=80.)

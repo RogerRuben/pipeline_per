@@ -16,6 +16,7 @@ import os
 import pickle
 import platform
 import sys
+import time
 from pathlib import Path
 
 
@@ -50,7 +51,12 @@ def save_bundle(path, bundle):
     temporary = target.with_suffix(target.suffix + ".tmp")
     with temporary.open("wb") as handle:
         pickle.dump(data, handle, protocol=4)  # protocol 4 is supported by Python 3.8
-    os.replace(str(temporary), str(target))
+    for attempt in range(9):
+        try:
+            os.replace(str(temporary),str(target));break
+        except PermissionError:
+            if attempt==8:raise
+            time.sleep(min(.05*2**attempt,.5))
     return target
 
 

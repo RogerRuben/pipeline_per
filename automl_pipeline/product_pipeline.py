@@ -147,11 +147,11 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             write_json(source.parent / "effectiveness_config.json", config)
         elif input_path:
             source = Path(input_path).resolve()
-            config = load_config(source, effect_config,allow_legacy=price_engine not in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5'))
+            config = load_config(source, effect_config,allow_legacy=price_engine not in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'))
         else:
             raise ValueError("请提供双行表头CSV/XLSX，或使用--demo。")
         raw = source.read_bytes()
-        if price_engine in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5') and missing_tokens is None:
+        if price_engine in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6') and missing_tokens is None:
             from .product_price_optuna_v2 import load_config as load_optuna_config
             if price_engine=='optuna_v3':
                 from .product_price_optuna_v3 import load_config as load_optuna_config
@@ -159,6 +159,8 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
                 from .product_price_optuna_v4 import load_config as load_optuna_config
             elif price_engine=='optuna_v5':
                 from .product_price_optuna_v5 import load_config as load_optuna_config
+            elif price_engine=='optuna_v6':
+                from .product_price_optuna_v6 import load_config as load_optuna_config
             missing_tokens=load_optuna_config(price_config,price_overrides)['input']['missing_tokens']
         table = product_table_rows(source.name, raw, require_dual_header=True)
         write_json(output / "input_diagnostics.json", table["diagnostics"])
@@ -169,7 +171,7 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             raise ValueError("成品表须包含中文价格列，建议注明价格(万元)。")
         data = report["data"]
         progress("已读取%d条成品记录、%d个属性，英文代号已保留。" % (report["row_count"], report["attribute_count"]), "price")
-        if price_engine in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5"):
+        if price_engine in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5","optuna_v6"):
             from .product_price_optuna_v2 import train_price_optuna_v2,load_config as load_optuna_config,workbook_config
             from services.price_service.optuna_v2.typed_features import apply_types,restore_configurations
             if price_engine=='optuna_v3':
@@ -178,10 +180,15 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
                 from .product_price_optuna_v4 import load_config as load_optuna_config
             elif price_engine=='optuna_v5':
                 from .product_price_optuna_v5 import load_config as load_optuna_config
+            elif price_engine=='optuna_v6':
+                from .product_price_optuna_v6 import load_config as load_optuna_config
             optuna_config=workbook_config(source,load_optuna_config(price_config,price_overrides),{p['parameter_id'] for p in data['parameters']},loader=load_optuna_config)
             restore_configurations(data,table,optuna_config['expert']['field_types'],optuna_config['input']['missing_tokens'])
             apply_types(data,optuna_config['expert']['field_types'])
-            if price_engine=='optuna_v5':
+            if price_engine=='optuna_v6':
+                from .product_price_optuna_v6 import train_price_optuna_v6
+                price_bundle,price_report=train_price_optuna_v6(data,output/"price",price_config,progress,optuna_config,input_path=source)
+            elif price_engine=='optuna_v5':
                 from .product_price_optuna_v5 import train_price_optuna_v5
                 price_bundle,price_report=train_price_optuna_v5(data,output/"price",price_config,progress,optuna_config,input_path=source)
             elif price_engine=='optuna_v4':
@@ -238,9 +245,20 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
                     "elapsed_seconds": round(time.monotonic() - started, 2)}
         manifest["artifact_sha256"] = dict((name, hashlib.sha256((output / manifest[name]).read_bytes()).hexdigest())
                                           for name in ("price_model", "effectiveness_model", "business_package"))
-        if price_engine in ('optuna_v4','optuna_v5'):manifest.update(quality_status=price_report['quality_status'],search_mode=price_report['search_mode'])
+        if price_engine in ('optuna_v4','optuna_v5','optuna_v6'):manifest.update(quality_status=price_report['quality_status'],search_mode=price_report['search_mode'])
         write_json(output / "prototype_manifest.json", manifest)
         cv, holdout = price_report["cv_metrics"], price_report["holdout_metrics"]
+        if price_engine=='optuna_v6':
+            from tools.product_saved_start import fixed_version_launcher_bytes
+            text=('# %s：V6独立目标导向流水线\n\n模式：%s；状态：%s。\n\n'
+                  '实际部署训练MAPE %.10g%%，R² %s。\n封存验收MAPE %.10g%%，R² %s；范围：%s。\n'
+                  '完成外层%d轮；实际fit尝试%d；本次新增%d；缓存命中%d。\n\n'
+                  '价格、效能和推荐草稿均已保存；START不训练，EXPORT含模型及环境。\n\n%s\n')%(
+                      product_name,price_report['search_mode'],price_report['quality_status'],price_report['train_metrics']['mape_percent'],str(price_report['train_metrics']['r2']),
+                      price_report['test_metrics']['mape_percent'],str(price_report['test_metrics']['r2']),cv['scope'],price_report['outer_rounds'],
+                      price_report['fit_statistics']['total_attempts'],price_report['model_fits_this_session'],price_report['fit_statistics']['cache_hits_this_session'],price_report['warning'])
+            (output/'构建结果.md').write_text(text,encoding='utf-8');(output/'START_PROTOTYPE_WIN7.bat').write_bytes(fixed_version_launcher_bytes())
+            status.update(status='completed',stage='complete',targets_met=manifest['targets_met']);progress('V6价格、效能与推荐草稿构建完成：'+str(output));return manifest
         if price_engine=='optuna_v5':
             from tools.product_saved_start import fixed_version_launcher_bytes
             text=('# %s：V5保留基线流水线\n\n模式：%s；状态：%s。\n\n'
@@ -371,7 +389,7 @@ def available_port(preferred):
         sock.close()
 
 
-def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, effect_port=18702, app_port=18791):
+def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, effect_port=18702, app_port=18791, cost_port=18793):
     if os.name == "nt":
         import signal
         signal.signal(signal.SIGBREAK, signal.default_int_handler)
@@ -387,9 +405,9 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
         if hashlib.sha256(artifact.read_bytes()).hexdigest() != manifest["artifact_sha256"][key]:
             raise ValueError("初版产物发生变更，摘要不一致：%s" % key)
         paths[key] = artifact
-    ports = [available_port(p) for p in (price_port, effect_port, app_port)]
-    if len(set(ports)) != 3:
-        raise ValueError("价格、效能和推荐系统端口须不同。")
+    ports = [available_port(p) for p in (price_port, effect_port, app_port, cost_port)]
+    if len(set(ports)) != 4:
+        raise ValueError("价格、效能、推荐系统和效费分析台端口须不同。")
     workspace = output / "recommendation"
     if Path(manifest.get("workspace", "recommendation")) != Path("recommendation"):
         raise ValueError("推荐工作区位置无效。")
@@ -398,31 +416,54 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
         raise ValueError("此模型须在Win11 Python3.11运行；Win7请使用run_tabpfn_win7_client.py调用Win11服务。")
     config = {"execution_mode": "services", "local_fallback": False,
               "price_service_url": "http://127.0.0.1:%d" % ports[0],
-              "effectiveness_service_url": "http://127.0.0.1:%d" % ports[1], "timeout_seconds": 180 if is_tabpfn else 20, "batch_size": 64 if is_tabpfn else 100}
+              "effectiveness_service_url": "http://127.0.0.1:%d" % ports[1], "timeout_seconds": 180 if is_tabpfn else 20, "batch_size": 64 if is_tabpfn else 100,
+              "price_output": {"unit":"wan_yuan","scale":1.0}}
     write_json(workspace / "config" / "model_services.json", config)
-    children, handles, server = [], [], None
+    analysis_url="http://127.0.0.1:%d/" % ports[3]
+    portal_path=workspace/'config/service_portal.json'
+    portal=json.loads(portal_path.read_text(encoding='utf-8')) if portal_path.is_file() else {}
+    service_links=portal.setdefault('services',{})
+    for key,label,url in [('recommendation','智能推荐','/'),('quick_price','简易价格预测','/price'),
+                          ('effectiveness','效能评价','/effectiveness'),('admin','数据管理','/admin'),
+                          ('cost_effectiveness_analysis','效费分析台',analysis_url)]:
+        service_links.setdefault(key,{}).update(label=label,url=url,enabled=True,visible=True)
+    write_json(portal_path,portal)
+    from .process_group import OwnedServices
+    managed=OwnedServices();children,handles,server=managed.children,[],None
+    old_term=None
+    if threading.current_thread() is threading.main_thread():
+        import signal
+        old_term=signal.signal(signal.SIGTERM,signal.default_int_handler)
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
         child_env = dict(os.environ)
         child_env.update({"PYTHONIOENCODING": "utf-8", "PRICE_ALLOW_DEGRADED": "0", "PRICE_ALLOW_MODEL_FALLBACK": "0",
                           "EFFECT_SOURCE_ROOT": "", "EFFECT_WORKBOOK": "", "EFFECT_RUNTIME_PACKAGE": ""})
+        child_env.update(COST_EFFECTIVENESS_DATABASE=str(workspace/'data/protocol_demo.db'),
+                         COST_EFFECTIVENESS_RECOMMENDATION_URL='http://127.0.0.1:%d/portal'%ports[2],
+                         COST_EFFECTIVENESS_PRICE_URL=config['price_service_url'],
+                         COST_EFFECTIVENESS_EFFECTIVENESS_URL=config['effectiveness_service_url'],
+                         COST_EFFECTIVENESS_PRICE_OUTPUT_UNIT='wan_yuan',COST_EFFECTIVENESS_PRICE_OUTPUT_SCALE='1')
         price_module = "services.tabpfn_price_service.app" if is_tabpfn else "services.price_service.app"
+        effect_args=['--package',str(paths['effectiveness_model']),'--snapshot',''] if manifest.get('effectiveness_backend')=='expert_package' else ['--package','','--snapshot',str(paths['effectiveness_model'])]
         commands = [[sys.executable, "-m", price_module, "--model", str(paths["price_model"]), "--port", str(ports[0])],
-                    [sys.executable, "-m", "services.effectiveness_service.app", "--package", "", "--snapshot", str(paths["effectiveness_model"]), "--port", str(ports[1])]]
+                    [sys.executable, "-m", "services.effectiveness_service.app"]+effect_args+["--port",str(ports[1])],
+                    [sys.executable,"-m","cost_effectiveness_analysis.app","--host","127.0.0.1","--port",str(ports[3])]]
         for i, command in enumerate(commands):
-            handle = (output / ("price_service.log" if i == 0 else "effectiveness_service.log")).open("ab")
+            command=command[:1]+[str(ROOT/'automl_pipeline/service_runner.py')]+command[2:]
+            handle = (output / ("price_service.log","effectiveness_service.log","cost_effectiveness_service.log")[i]).open("ab")
             handles.append(handle)
-            children.append(subprocess.Popen(command, cwd=str(ROOT), env=child_env, stdout=handle, stderr=handle,
-                                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)))
+            managed.spawn(command,cwd=str(ROOT),env=child_env,stdout=handle,stderr=handle,
+                          creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
         deadline = time.monotonic() + 45
-        for i, url in enumerate((config["price_service_url"], config["effectiveness_service_url"])):
+        for i, url in enumerate((config["price_service_url"], config["effectiveness_service_url"],analysis_url.rstrip('/'))):
             while True:
                 if children[i].poll() is not None:
                     raise RuntimeError("模型服务启动失败，详情见输出目录的服务日志。")
                 try:
                     with opener.open(url + "/health", timeout=2) as response:
                         health = json.loads(response.read().decode("utf-8"))
-                    if health.get("product_code") == manifest["product_code"]:
+                    if (i < 2 and health.get("product_code") == manifest["product_code"]) or (i == 2 and health.get('service')=='cost-effectiveness-analysis' and health.get('status')=='ok'):
                         break
                 except Exception:
                     pass
@@ -432,7 +473,8 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
         # These overrides are local to this launcher and prevent old project env settings from redirecting services.
         os.environ.update({"IPDEMO_MODEL_EXECUTION_MODE": "services", "IPDEMO_PRICE_SERVICE_URL": config["price_service_url"],
                            "IPDEMO_EFFECT_SERVICE_URL": config["effectiveness_service_url"], "IPDEMO_MODEL_SERVICE_FALLBACK": "0",
-                           "IPDEMO_DEMO_READ_ONLY": "0"})
+                           "IPDEMO_PRICE_OUTPUT_UNIT":"wan_yuan","IPDEMO_PRICE_OUTPUT_SCALE":"1",
+                           "IPDEMO_DEMO_READ_ONLY": "0",'IPDEMO_EFFECT_INTEGRATION_KIND':manifest.get('effectiveness_backend','trial_snapshot')})
         staging_runtime = DegradedServiceRuntime(None, manifest["product_code"], manifest["product_name"])
         staging_store = Store(workspace / "data" / "protocol_demo.db", workspace / "data" / "unused.csv", staging_runtime)
         releases = ProductReleaseService(staging_store, staging_runtime)
@@ -442,26 +484,26 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
             raise ValueError("首次试运行请加--activate-draft，系统只切换输出目录中的业务数据。")
         from app.server import create_server
         server = create_server(workspace, "127.0.0.1", ports[2])
+        # Saved models carry historical static copies. Always serve the current
+        # verified UI; this upgrade must also apply when selecting an old model.
+        server.RequestHandlerClass.app.static_dir=ROOT/'app/static'
         url = "http://127.0.0.1:%d/" % ports[2]
+        portal_url=url+'portal'
         write_json(output / "running.json", {"pid": os.getpid(), "url": url, "price_url": config["price_service_url"],
-                                            "effectiveness_url": config["effectiveness_service_url"], "workspace": str(workspace)})
-        print("初版试用页面：%s\n数据中心：%sadmin\n按Ctrl+C停止三个服务。" % (url, url), flush=True)
+                                            "effectiveness_url": config["effectiveness_service_url"], "workspace": str(workspace),
+                                            'portal_url':portal_url,'cost_effectiveness_url':analysis_url,
+                                            'child_pids':[p.pid for p in children],'process_group_managed':os.name=='nt'})
+        print("统一门户：%s\n推荐系统（V21.6）：%s\n效费分析台：%s\n数据中心：%sadmin\n关闭启动窗口或按Ctrl+C会一并停止四个服务。" % (portal_url,url,analysis_url,url), flush=True)
         if not no_browser:
-            webbrowser.open(url)
+            webbrowser.open(portal_url)
         server.serve_forever(poll_interval=.25)
     except KeyboardInterrupt:
         print("正在停止初版服务。", flush=True)
     finally:
         if server:
             server.server_close()
-        for child in children:
-            if child.poll() is None:
-                child.terminate()
-                try:
-                    child.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    child.kill()
-                    child.wait(timeout=5)
+        managed.close()
+        if old_term is not None:signal.signal(signal.SIGTERM,old_term)
         for handle in handles:
             handle.close()
         if (output / "running.json").exists():
@@ -479,7 +521,7 @@ def main(argv=None):
     builder.add_argument("--product-code", default="VIRTUAL_PIPELINE_PRODUCT")
     builder.add_argument("--product-name", default="虚拟执行机构（初版试用）")
     builder.add_argument("--effect-config", help="可选效能偏好与耦合JSON；XLSX也可带属性配置、耦合关系表")
-    builder.add_argument("--price-engine", choices=["v1", "v2", "r4", "tabpfn", "optuna_v2", "optuna_v3", "optuna_v4", "optuna_v5"], default="v1", help="V2/V3/V4/V5可切换价格搜索引擎")
+    builder.add_argument("--price-engine", choices=["v1", "v2", "r4", "tabpfn", "optuna_v2", "optuna_v3", "optuna_v4", "optuna_v5", "optuna_v6"], default="v1", help="V2/V3/V4/V5/V6可切换价格搜索引擎")
     builder.add_argument("--price-config", help="与所选训练引擎匹配的JSON；旧版搜索参数仅用于V1")
     builder.add_argument("--trials", type=int, default=24)
     builder.add_argument("--folds", type=int, default=3)
@@ -499,6 +541,7 @@ def main(argv=None):
     launcher.add_argument("--price-port", type=int, default=18701)
     launcher.add_argument("--effect-port", type=int, default=18702)
     launcher.add_argument("--app-port", type=int, default=18791)
+    launcher.add_argument("--cost-port", type=int, default=18793)
     fixture = sub.add_parser("fixture", help="生成示例工作簿作者工具使用的虚拟数据JSON")
     fixture.add_argument("--output", required=True)
     args = parser.parse_args(argv)
@@ -519,7 +562,7 @@ def main(argv=None):
                          args.price_engine, args.price_config)
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
     elif args.command == "serve":
-        serve(args.output, args.activate_draft, args.no_browser, args.price_port, args.effect_port, args.app_port)
+        serve(args.output, args.activate_draft, args.no_browser, args.price_port, args.effect_port, args.app_port,args.cost_port)
     elif args.command == "fixture":
         write_json(args.output, virtual_fixture())
     else:

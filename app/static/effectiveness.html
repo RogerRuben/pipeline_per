@@ -2,22 +2,22 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>效能评价工作台 V19.6</title><link rel="stylesheet" href="/styles.css">
+  <title>简易效能评价 V21</title><link rel="stylesheet" href="/styles.css">
 </head>
 <body class="effect-workbench-body">
 <header class="app-header">
-  <div class="brand-lockup"><div class="brand-mark">EF</div><div><div class="brand-title">效能评价工作台 <span>V19.6</span></div><div class="brand-subtitle">参数录入 · 独立效能评价 · 工程风险解释</div></div></div>
-  <div class="header-actions"><span id="effectServiceStatus" class="system-pill"><i></i>正在连接效能服务</span><a class="button secondary" href="/price">价格预测</a><a class="button secondary" href="/">返回推荐系统</a><a class="button secondary" href="/admin">数据管理</a></div>
+  <div class="brand-lockup"><div class="brand-mark">EF</div><div><div class="brand-title">简易效能评价 <span>V21.1.1</span></div><div class="brand-subtitle">评估综合效能与主要风险</div></div></div>
+  <div class="header-actions"><span id="effectServiceStatus" class="system-pill"><i></i>正在连接效能服务</span><a class="button secondary" href="/portal">系统导航</a><a class="button secondary" href="/price">简易价格预测</a><a class="button secondary" href="/">智能推荐</a></div>
 </header>
 <main class="effect-workbench-shell">
   <section class="effect-intro">
-    <div><div class="eyebrow">EFFECTIVENESS WORKBENCH</div><h1 id="effectProductName">独立成品效能评价</h1><p>只调用效能模型，不调用价格服务，也不会写入历史成品库。填写完整参数后，由操作人员点击按钮开始评价。</p></div>
-    <div class="effect-model-meta"><div><span>成品代号</span><b id="effectProductCode">-</b></div><div><span>模型版本</span><b id="effectModelVersion">-</b></div><div><span>运行后端</span><b id="effectBackend">-</b></div></div>
+    <div><div class="eyebrow">简易效能评价</div><h1 id="effectProductName">简易效能评价</h1><p>根据成品参数评估综合效能与主要风险。页面已加载历史方案作为示例，可修改参数后重新评价。</p></div>
+    <details class="technical-details"><summary>技术信息</summary><div class="effect-model-meta"><div><span>成品代号</span><b id="effectProductCode">-</b></div><div><span>模型版本</span><b id="effectModelVersion">-</b></div><div><span>运行后端</span><b id="effectBackend">-</b></div></div></details>
   </section>
   <div id="effectError" class="workbench-message error hidden"></div>
   <section class="effect-workbench-grid">
     <article class="effect-form-card">
-      <div class="section-heading"><div><span class="step-index">01</span><h2>输入成品参数</h2><p>界面会按当前效能模型字段自动生成，不要求价格服务成品与之相同。</p></div><button id="effectResetBtn" class="button secondary">恢复建议值</button></div>
+      <div class="section-heading"><div><span class="step-index">01</span><h2>成品参数</h2><p>根据需要调整参数，再开始效能评价。</p></div><button id="effectResetBtn" class="button secondary">恢复示例</button></div><div id="effectExample" class="workbench-example">正在加载示例方案……</div>
       <label id="effectProtocolWrap" class="effect-protocol">评价基准协议<select id="effectProtocol"></select><small id="effectProtocolHint">正在读取模型协议能力。</small></label>
       <form id="effectForm"><div id="effectFields" class="effect-field-grid"><div class="loading-state"><div class="spinner"></div><b>正在读取模型字段</b></div></div>
       <div class="effect-submit-bar"><div><b>参数调整后不会自动计算</b><span>确认输入无误后，再点击右侧按钮。</span></div><button id="effectEvaluateBtn" type="submit" class="button primary">开始评价效能</button></div></form>
@@ -25,10 +25,10 @@
     <aside class="effect-result-column">
       <section id="effectEmpty" class="effect-empty"><div class="effect-empty-icon">100</div><h2>等待评价</h2><p>评价结果将在这里显示，包括中心效能、保守效能、可行概率、物理门控及主要贡献因素。</p></section>
       <div id="effectResults" class="hidden">
-        <section class="effect-score-card"><div class="effect-score-head"><div><span>中心效能</span><strong id="effectScore">-</strong><small>协议参考 = 100</small></div><span id="effectGate" class="effect-gate">-</span></div><div class="effect-score-metrics"><div><span>保守效能 P10</span><b id="effectConservative">-</b></div><div><span>可行概率</span><b id="effectFeasibility">-</b></div><div><span>稳健区间</span><b id="effectInterval">-</b></div></div></section>
+        <section class="effect-score-card"><div class="effect-score-head"><div><span>综合效能</span><strong id="effectScore">-</strong><small>协议参考 = 100</small></div><span id="effectGate" class="effect-gate">-</span></div><div class="effect-score-metrics"><div><span>保守效能</span><b id="effectConservative">-</b></div><div><span>可行概率</span><b id="effectFeasibility">-</b></div><div><span>稳健区间</span><b id="effectInterval">-</b></div></div></section>
         <section class="effect-detail-card"><h3>指标贡献</h3><div id="effectContributors"></div></section>
         <section class="effect-detail-card"><h3>耦合与经验边界</h3><div id="effectRisks"></div></section>
-        <section class="effect-detail-card"><h3>本次评价信息</h3><div id="effectTrace" class="effect-trace"></div></section>
+        <details class="effect-detail-card technical-details"><summary>技术信息</summary><div id="effectTrace" class="effect-trace"></div><p>P10 为保守效能的技术口径。</p></details>
       </div>
     </aside>
   </section>

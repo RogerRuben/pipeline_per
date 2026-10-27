@@ -1,12 +1,14 @@
 # AutoML → 快速建立成品流水线
 
-本目录是V2/V3/V4/V5快速建模的实际源码。当前V5入口默认使用2026-10-27的V5.1固定CV与冻结权重协议，旧单划分协议保留作对照。推荐系统位于[`../app/`](../app/README.md)，价格和效能HTTP服务位于`../services/`。
+本目录是V2—V6快速建模的实际源码。默认V6独立搜索和封存验收，V2/V3/V4/V5/V5.1均保留作可切换对照。推荐系统位于[`../app/`](../app/README.md)，价格和效能HTTP服务位于`../services/`，效费分析台位于`../cost_effectiveness_analysis/`。完整操作、指标边界和预算见[V6说明](../docs/OPTUNA_V6_PIPELINE.md)。
 
 ## 主要文件
 
 | 文件 | 职责 |
 | --- | --- |
-| `__main__.py` | 源码命令：生成配置、检查输入、构建、运行保存结果；默认V5 |
+| `__main__.py` | 源码命令：生成配置、检查输入、构建、运行保存结果；默认V6 |
+| `product_price_optuna_v6.py` / `product_optuna_v6_adapter.py` | V6配置、独立搜索适配、原生导出与封存验收报告；算法位于`services/price_service/optuna_v6/` |
+| `process_group.py` / `product_effectiveness_import.py` | Windows服务进程组及独立专家效能组件导入 |
 | `product_pipeline.py` | 从成品表构建价格模型、效能快照及推荐业务草稿，管理构建状态与独立三服务试用 |
 | `product_price_optuna_v2.py` / `product_price_optuna_v3.py` / `product_price_optuna_v4.py` | 各版本配置和训练适配入口 |
 | `product_optuna_v4_adapter.py` | V4划分、搜索、实际重拟合检查、原生导出及报告 |
@@ -38,7 +40,7 @@ python -m automl_pipeline serve --output outputs/example/build --activate-draft 
 
 ## 离线打包与已保存导出
 
-`tools/product_portable.py`、`product_saved_start.py`、`product_export_saved.py`是离线包的操作层；源码运行使用上面的模块命令。`tools/build_product_v51.py`与`upgrade_product_v51.py`负责当前打包和补丁安装，V5.0、V4和双版本构建工具仍保留。
+`tools/product_portable.py`、`product_saved_start.py`、`product_export_saved.py`是离线包的操作层；源码运行使用上面的模块命令。`tools/build_product_v6.py`与`upgrade_product_v6.py`负责当前打包和补丁安装，旧构建工具仍保留。V6完整包共用一个固定环境并包含15个已保存模式。
 
 打包及导出必须同时包含`app/`、`automl_pipeline/`、相关`services/`和`tools/`；兼容入口与实际实现应一起交付。`tools/pipeline_source_layout.py`列出流水线必需文件，依赖检查也检查`automl_pipeline`导入。
 

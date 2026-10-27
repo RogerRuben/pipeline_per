@@ -15,13 +15,15 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import ProxyHandler, Request, build_opener, urlopen
 
+from .price_output import PriceOutputNormalizer
+
 
 class ModelServiceUnavailable(RuntimeError):
     pass
 
 
 def _json_request(url, payload=None, timeout=15.0):
-    data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    data = None if payload is None else json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
     request = Request(url, data=data, headers={"Content-Type": "application/json", "Accept": "application/json"})
     try:
         host = (urlparse(url).hostname or "").lower()
@@ -42,17 +44,45 @@ def _json_request(url, payload=None, timeout=15.0):
         raise ModelServiceUnavailable("%s: %s" % (url, exc))
 
 
+def build_model_request(kind, business_parameters, request_id=None, target_protocol=None,
+                        product_code=None, scenario="recommendation_evaluation",
+                        context_source="industrial_recommendation_system"):
+    """Build one model-service HTTP request envelope (single source of truth).
+
+    ``kind`` is ``"price"`` or ``"effectiveness"`` (informational; both services
+    accept the same envelope).  ``product_code`` is the *wire* code actually
+    sent on the wire — the business product the recommendation is operating on.
+    The model's own declared code is a diagnostic and is not what gets sent.
+    """
+    envelope = {
+        "request_id": request_id or ("REQ-%s" % uuid.uuid4().hex[:16]),
+        "product_code": product_code,
+        "scenario": scenario,
+        "parameters": dict(business_parameters or {}),
+        "context": {"source": context_source, "locale": "zh-CN"},
+    }
+    if target_protocol not in (None, ""):
+        envelope["target_protocol"] = target_protocol
+    return envelope
+
+
 class ModelServiceGateway(object):
-    def __init__(self, local_runtime=None, price_url=None, effectiveness_url=None, timeout=15.0, fallback=False):
+    def __init__(self, local_runtime=None, price_url=None, effectiveness_url=None, timeout=15.0,
+                 fallback=False, price_output_config=None):
         self.local_runtime = local_runtime
         self.price_url = (price_url or os.environ.get("IPDEMO_PRICE_SERVICE_URL") or "http://127.0.0.1:18101").rstrip("/")
         self.effectiveness_url = (effectiveness_url or os.environ.get("IPDEMO_EFFECT_SERVICE_URL") or "http://127.0.0.1:18102").rstrip("/")
         self.timeout = float(timeout)
         self.fallback = bool(fallback)
+        self.price_normalizer = PriceOutputNormalizer(price_output_config)
         if self.fallback and self.local_runtime is None:
             raise ValueError("启用本地回退时必须提供本地模型运行时")
         self.product_code = self.local_runtime.schema.get("product_code") if self.local_runtime is not None else None
         self.last_status = {"mode": "not_called", "price": None, "effectiveness": None}
+
+    def set_price_output_config(self, config):
+        self.price_normalizer = PriceOutputNormalizer(config)
+        return self.price_normalizer.describe()
 
     def health(self):
         def probe(name, url):
@@ -117,14 +147,13 @@ class ModelServiceGateway(object):
         return _json_request(self.price_url + "/api/v1/schema", None, self.timeout)
 
     def predict_price(self, params, product_code=None):
-        envelope = {
-            "request_id": "PRICE-WORKBENCH-%s" % uuid.uuid4().hex[:16],
-            "product_code": product_code or self.product_code,
-            "scenario": "operator_price_workbench",
-            "parameters": dict(params or {}),
-            "context": {"source": "price_workbench", "locale": "zh-CN"},
-        }
-        return _json_request(self.price_url + "/api/v1/predict", envelope, self.timeout)
+        envelope = build_model_request(
+            "price", params, request_id="PRICE-WORKBENCH-%s" % uuid.uuid4().hex[:16],
+            product_code=product_code or self.product_code,
+            scenario="operator_price_workbench", context_source="price_workbench",
+        )
+        response = _json_request(self.price_url + "/api/v1/predict", envelope, self.timeout)
+        return self.price_normalizer.normalize_response(response)
 
     def evaluate_effectiveness(self, params, target_protocol=None):
         """Evaluate one scheme without requiring the price service."""
@@ -136,15 +165,11 @@ class ModelServiceGateway(object):
             )
             if not dynamic_protocol:
                 target_protocol = None
-        envelope = {
-            "request_id": "EFFECT-WORKBENCH-%s" % uuid.uuid4().hex[:16],
-            "product_code": None,
-            "scenario": "operator_effectiveness_workbench",
-            "parameters": dict(params or {}),
-            "context": {"source": "effectiveness_workbench", "locale": "zh-CN"},
-        }
-        if target_protocol not in (None, ""):
-            envelope["target_protocol"] = target_protocol
+        envelope = build_model_request(
+            "effectiveness", params, request_id="EFFECT-WORKBENCH-%s" % uuid.uuid4().hex[:16],
+            product_code=None, target_protocol=target_protocol,
+            scenario="operator_effectiveness_workbench", context_source="effectiveness_workbench",
+        )
         return _json_request(
             self.effectiveness_url + "/api/v1/evaluate", envelope, self.timeout
         )
@@ -158,16 +183,10 @@ class ModelServiceGateway(object):
             return self.local_runtime.evaluate(params)
 
     def evaluate(self, params, target_protocol=None):
-        request_id = "REC-%s" % uuid.uuid4().hex[:16]
-        envelope = {
-            "request_id": request_id,
-            "product_code": self.product_code,
-            "scenario": "recommendation_evaluation",
-            "parameters": dict(params or {}),
-            "context": {"source": "industrial_recommendation_system", "locale": "zh-CN"},
-        }
-        if target_protocol not in (None, ""):
-            envelope["target_protocol"] = target_protocol
+        envelope = build_model_request(
+            "recommendation", params, request_id="REC-%s" % uuid.uuid4().hex[:16],
+            product_code=self.product_code, target_protocol=target_protocol,
+        )
         started = time.time()
         try:
             with ThreadPoolExecutor(max_workers=2) as pool:
@@ -235,16 +254,75 @@ class ModelServiceGateway(object):
                 for item in items
             ]
 
-    def improve(self, params, target_protocol=None):
-        envelope = {
-            "request_id": "IMPROVE-%s" % uuid.uuid4().hex[:16],
+    def evaluate_effectiveness_only(self, params, target_protocol=None, historical_price_wan=None):
+        """Evaluate effectiveness without re-predicting price.
+
+        Unchanged historical samples already carry a real transaction price, so
+        the price service is deliberately not called. Only effectiveness is
+        computed; the stored historical price is used for ranking.
+        """
+        envelope = build_model_request(
+            "effectiveness", params, request_id="REC-EFFECT-ONLY-%s" % uuid.uuid4().hex[:16],
+            product_code=self.product_code, target_protocol=target_protocol,
+            scenario="historical_effectiveness_only",
+        )
+        started = time.time()
+        try:
+            effect = _json_request(self.effectiveness_url + "/api/v1/evaluate", envelope, self.timeout)
+            result = self._merge_effectiveness_only(envelope, effect, historical_price_wan)
+            self.last_status = {"mode": "effectiveness_only", "elapsed_ms": round((time.time() - started) * 1000, 1), "effectiveness": effect.get("model")}
+            return result
+        except Exception as exc:
+            if not self.fallback:
+                raise
+            result = self._local_evaluate(params, target_protocol=target_protocol)
+            result["model_source"] = "local_fallback_after_service_error"
+            result["service_error"] = str(exc)
+            # The in-process fallback runs the local price model too, so this is
+            # a predicted price again rather than the stored historical price.
+            result["price_source"] = "predicted"
+            self.last_status = {"mode": "local_fallback", "elapsed_ms": round((time.time() - started) * 1000, 1), "error": str(exc)}
+            return result
+
+    def evaluate_effectiveness_only_batch(self, items, target_protocol=None):
+        payload = {
+            "request_id": "BATCH-EFFECT-ONLY-%s" % uuid.uuid4().hex[:16],
             "product_code": self.product_code,
-            "scenario": "counterfactual_improvement",
-            "parameters": dict(params or {}),
-            "context": {"source": "industrial_recommendation_system", "locale": "zh-CN"},
+            "items": [
+                {
+                    "candidate_id": str(i.get("candidate_id") or index),
+                    "parameters": dict(i.get("parameters") or i.get("params") or {}),
+                    "target_protocol": i.get("target_protocol", target_protocol),
+                }
+                for index, i in enumerate(items)
+            ],
         }
         if target_protocol not in (None, ""):
-            envelope["target_protocol"] = target_protocol
+            payload["target_protocol"] = target_protocol
+        effect = _json_request(self.effectiveness_url + "/api/v1/evaluate/batch", payload, self.timeout)
+        emap = dict((str(x.get("candidate_id")), x) for x in effect.get("items", []))
+        results = []
+        for index, item in enumerate(items):
+            candidate_id = str(item.get("candidate_id") or index)
+            if candidate_id not in emap:
+                raise ModelServiceUnavailable("批量效能服务缺少候选%s的返回结果" % candidate_id)
+            envelope = {
+                "request_id": payload["request_id"],
+                "product_code": self.product_code,
+                "parameters": dict(item.get("parameters") or item.get("params") or {}),
+            }
+            item_protocol = item.get("target_protocol", target_protocol)
+            if item_protocol not in (None, ""):
+                envelope["target_protocol"] = item_protocol
+            results.append(self._merge_effectiveness_only(envelope, emap[candidate_id], item.get("historical_price_wan")))
+        return results
+
+    def improve(self, params, target_protocol=None):
+        envelope = build_model_request(
+            "effectiveness", params, request_id="IMPROVE-%s" % uuid.uuid4().hex[:16],
+            product_code=self.product_code, target_protocol=target_protocol,
+            scenario="counterfactual_improvement",
+        )
         response = _json_request(
             self.effectiveness_url + "/api/v1/improve",
             envelope,
@@ -268,16 +346,70 @@ class ModelServiceGateway(object):
             "model": response.get("model") or {},
         }
 
+    def _merge(self, envelope, price, effect):
+        normalized_price = self.price_normalizer.normalize_response(price)
+        prediction = normalized_price.get("prediction") or {}
+        price_value = float(prediction.get("predicted_price_wan"))
+        domain_warnings = list((price.get("domain_status") or {}).get("warnings") or [])
+        filled_fields = (price.get("input_status") or {}).get("filled_fields", {})
+        result = ModelServiceGateway._merge_core(
+            envelope,
+            effect,
+            price_value=price_value,
+            price_interval_wan=prediction.get("price_interval_wan") or [price_value, price_value],
+            domain_warnings=domain_warnings,
+            price_imputed_features=[
+                {"parameter_id": key, "policy": item.get("strategy"), "value": item.get("value")}
+                for key, item in filled_fields.items()
+            ],
+            price_model=price.get("model") or {},
+            effect_parameters=effect.get("parameters") or {},
+            price_filled_fields=filled_fields,
+            price_source="predicted",
+            price_output_normalization=normalized_price.get("price_output_normalization"),
+        )
+        if prediction.get('recommendation_price_wan') is not None:
+            result['recommendation_price_wan']=max(price_value,float(prediction['recommendation_price_wan']))
+            result['price_risk']=prediction.get('price_risk') or {}
+            result['cost_effectiveness']=round(result['conservative_capability_score']/max(result['recommendation_price_wan'],1e-9),4)
+        return result
+
     @staticmethod
-    def _merge(envelope, price, effect):
-        prediction = price.get("prediction") or {}
+    def _merge_effectiveness_only(envelope, effect, historical_price_wan=None):
+        """Merge an effectiveness-only evaluation with the stored historical price.
+
+        Historical samples already have a real transaction price. Re-running the
+        price model on them would overwrite a known value with an out-of-domain
+        prediction and waste a service call. Effectiveness is still evaluated so
+        the sample can be ranked against user requirements.
+        """
+        price_value = None
+        if historical_price_wan not in (None, ""):
+            try:
+                price_value = float(historical_price_wan)
+            except (TypeError, ValueError):
+                price_value = None
+        return ModelServiceGateway._merge_core(
+            envelope,
+            effect,
+            price_value=price_value,
+            price_interval_wan=[price_value, price_value] if price_value is not None else None,
+            domain_warnings=[],
+            price_imputed_features=[],
+            price_model=None,
+            price_source="historical",
+        )
+
+    @staticmethod
+    def _merge_core(envelope, effect, price_value, price_interval_wan, domain_warnings,
+                     price_imputed_features, price_model, effect_parameters=None,
+                     price_filled_fields=None, price_source="predicted",
+                     price_output_normalization=None):
         evaluation = effect.get("evaluation") or {}
         parameters = dict(envelope.get("parameters") or {})
-        parameters.update(effect.get("parameters") or {})
-        for key, item in (price.get("input_status") or {}).get("filled_fields", {}).items():
+        parameters.update(effect_parameters or effect.get("parameters") or {})
+        for key, item in (price_filled_fields or {}).items():
             parameters.setdefault(key, item.get("value"))
-        price_value = float(prediction.get("predicted_price_wan"))
-        ranking_price=max(price_value,float(prediction.get('recommendation_price_wan') or price_value))
         score = float(evaluation.get("effectiveness_score", evaluation.get("capability_score")))
         requirement = effect.get("requirement_assessment") or {}
         conservative_raw = evaluation.get("conservative_capability_score")
@@ -285,9 +417,17 @@ class ModelServiceGateway(object):
             conservative_raw = requirement.get("robust_p10")
         conservative_score = float(score if conservative_raw is None else conservative_raw)
         feasibility = float(evaluation.get("feasibility_probability"))
-        domain_warnings = list((price.get("domain_status") or {}).get("warnings") or [])
         experience = list(effect.get("experience_extrapolations") or [])
         hard = list(effect.get("hard_violations") or [])
+        hard_details = []
+        for violation in hard:
+            if isinstance(violation, dict):
+                detail = dict(violation)
+            else:
+                detail = {"message": str(violation)}
+            detail["parameter_id"] = detail.get("parameter_id") or detail.get("attribute") or detail.get("attribute_key")
+            detail.setdefault("source", "effectiveness_service")
+            hard_details.append(detail)
         physical_gate = dict(effect.get("physical_gate") or {})
         if not physical_gate:
             physical_gate = {
@@ -329,10 +469,13 @@ class ModelServiceGateway(object):
                     "score_delta": item.get("score_delta"),
                     "explanation": item.get("explanation"),
                 })
+        cost_effectiveness = round(conservative_score / max(price_value, 1e-9), 4) if price_value is not None else None
+        center_cost_effectiveness = round(score / max(price_value, 1e-9), 4) if price_value is not None else None
         return {
             "predicted_price_wan": price_value,
-            'recommendation_price_wan':ranking_price,'price_risk':prediction.get('price_risk'),
-            "price_interval_wan": prediction.get("price_interval_wan") or [price_value, price_value],
+            "price_interval_wan": price_interval_wan or ([price_value, price_value] if price_value is not None else None),
+            "price_source": price_source,
+            "price_output_normalization": price_output_normalization,
             "capability_score": score,
             "conservative_capability_score": conservative_score,
             "protocol_score_interval": interval,
@@ -343,8 +486,8 @@ class ModelServiceGateway(object):
             "robust_conclusion": evaluation.get("robust_conclusion", requirement.get("robust_conclusion")),
             "robust_conclusion_label": evaluation.get("robust_conclusion_label", requirement.get("robust_conclusion_label")),
             "score_uncertainty_width": uncertainty_width,
-            "cost_effectiveness": round(conservative_score / max(ranking_price, 1e-9), 4),
-            "center_cost_effectiveness": round(score / max(price_value, 1e-9), 4),
+            "cost_effectiveness": cost_effectiveness,
+            "center_cost_effectiveness": center_cost_effectiveness,
             "feasibility_probability": feasibility,
             "feasibility_status": evaluation.get("feasibility_status"),
             "physical_gate": physical_gate,
@@ -352,19 +495,21 @@ class ModelServiceGateway(object):
             "anomaly_assessment": {"status": combined_status, "is_anomaly": combined_status != "in_domain", "score": 1.0 - feasibility, "items": experience, "price_feature_anomalies": domain_warnings, "message": "模型服务评价完成。" if combined_status == "in_domain" else "至少一个模型服务报告边界、外推或硬风险。"},
             "effectiveness_anomaly_assessment": {"status": "caution" if experience else "in_domain", "is_anomaly": bool(experience), "items": experience},
             "price_anomaly_assessment": {"status": "caution" if domain_warnings else "in_domain", "is_anomaly": bool(domain_warnings), "items": domain_warnings},
-            "price_imputed_features": [{"parameter_id": key, "policy": item.get("strategy"), "value": item.get("value")} for key, item in (price.get("input_status") or {}).get("filled_fields", {}).items()],
+            "price_imputed_features": price_imputed_features,
             "risk_contributors": effect.get("risk_contributors") or [],
             "hard_risk_reasons": [x.get("message", str(x)) if isinstance(x, dict) else str(x) for x in hard],
+            "hard_violation_details": hard_details,
+            "hard_violations": hard_details,
             "learned_boundary_violations": effect.get("learned_boundary_violations") or [],
             "coupling_assessments": coupling,
             "capability_contributors": contributors,
             "requirement_assessment": requirement,
             "protocol": effect.get("protocol"),
             "effectiveness_source": evaluation.get("effectiveness_source"),
-            "model_versions": {"effectiveness": (effect.get("model") or {}).get("model_version"), "price": (price.get("model") or {}).get("model_version")},
-            "model_audit": {"effectiveness": effect.get("model") or {}, "price": price.get("model") or {}},
+            "model_versions": {"effectiveness": (effect.get("model") or {}).get("model_version"), "price": (price_model or {}).get("model_version")},
+            "model_audit": {"effectiveness": effect.get("model") or {}, "price": price_model or {}},
             "model_source": "independent_http_model_services",
-            "service_trace": {"request_id": envelope.get("request_id"), "price": price.get("model"), "effectiveness": effect.get("model")},
+            "service_trace": {"request_id": envelope.get("request_id"), "price": price_model, "effectiveness": effect.get("model")},
             "parameters": parameters,
         }
 
@@ -431,8 +576,8 @@ def _remote_field(field):
         "parser": parser,
         "min": lower,
         "max": upper,
-        "training_min": field.get("training_min", lower),
-        "training_max": field.get("training_max", upper),
+        "training_min": field.get("training_min"),
+        "training_max": field.get("training_max"),
         "training_mean": field.get("training_mean"),
         "default_value": field.get("default_value"),
         "required": bool(field.get("required", True)),
@@ -528,6 +673,30 @@ class ServiceBackedRuntime(object):
             seen.add(item["key"])
         return result
 
+    def model_feature_specs(self):
+        """Return per-model contracts without deduplicating shared keys.
+
+        Conditional-relationship compatibility needs both the effectiveness and
+        price contract for a shared target, because their allowed ranges may
+        differ in the HTTP service mode.
+        """
+        roles = self.feature_roles()
+        shared = set(roles["shared_features"])
+        result = []
+        for source in self._effect_features:
+            item = dict(source)
+            item["model_kind"] = "effectiveness"
+            item["model_role"] = "shared" if item["key"] in shared else "effectiveness_only"
+            result.append(item)
+        for source in self._price_features:
+            if source.get("source", "product_parameter") != "product_parameter":
+                continue
+            item = dict(source)
+            item["model_kind"] = "price"
+            item["model_role"] = "shared" if item["key"] in shared else "price_only"
+            result.append(item)
+        return result
+
     def evaluate(self, params, target_protocol=None):
         target_protocol = self._supported_target_protocol(target_protocol)
         try:
@@ -550,6 +719,21 @@ class ServiceBackedRuntime(object):
             if target_protocol not in (None, ""):
                 raise
             return self.gateway.evaluate_batch(items)
+
+    def evaluate_effectiveness_only(self, params, target_protocol=None, historical_price_wan=None):
+        target_protocol = self._supported_target_protocol(target_protocol)
+        return self.gateway.evaluate_effectiveness_only(
+            params, target_protocol=target_protocol, historical_price_wan=historical_price_wan
+        )
+
+    def evaluate_batch_effectiveness_only(self, items, target_protocol=None):
+        target_protocol = self._supported_target_protocol(target_protocol)
+        if not self.dynamic_target_protocol_supported:
+            items = [
+                dict((key, value) for key, value in item.items() if key != "target_protocol")
+                for item in items
+            ]
+        return self.gateway.evaluate_effectiveness_only_batch(items, target_protocol=target_protocol)
 
     def improve(self, params, target_protocol=None):
         if not self.counterfactual_improvement_supported:

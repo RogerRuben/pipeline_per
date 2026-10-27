@@ -1,0 +1,115 @@
+{
+  "schema_version": "price-optuna-v6-pipeline-1.0",
+  "search": {
+    "n_trials": 60,
+    "optimizer_seed": 42,
+    "seed_low": 0,
+    "seed_high": 10000,
+    "timeout_seconds": 900
+  },
+  "validation": {
+    "test_size": 0.2,
+    "price_bins": 3,
+    "auto_adjust_test_size": true
+  },
+  "targets": {
+    "r2_min": 0.9,
+    "mape_percent_max": 10.0,
+    "hard_gate": false
+  },
+  "expert": {
+    "enabled": true,
+    "default_score": 1.0,
+    "use_supplied_defaults": true,
+    "scores": {},
+    "records": [],
+    "field_types": {}
+  },
+  "input": {
+    "missing_tokens": [],
+    "remove_outliers": false,
+    "min_samples": 4
+  },
+  "deployment": {
+    "model_scope": "full_data"
+  },
+  "v6": {
+    "mode": "goal_first",
+    "families": [
+      "ridge",
+      "lasso",
+      "svr",
+      "expert_tree",
+      "extratrees",
+      "gbdt"
+    ],
+    "evaluation": {
+      "mode": "nested_cv",
+      "outer_splits": 4,
+      "outer_repeats": 1,
+      "inner_splits": 3,
+      "inner_repeats": 1,
+      "seed": 20261027,
+      "tiny_threshold": 8,
+      "group_field": null,
+      "holdout_ids": [],
+      "holdout_fraction": 0.2,
+      "require_declared_types": true
+    },
+    "train_gate": {
+      "mode": "hard",
+      "mape_percent_max": 10.0,
+      "r2_min": 0.9,
+      "soft_penalty": 1.0
+    },
+    "budget": {
+      "max_member_fits": 2400,
+      "tiny_trials": 12,
+      "cache_entries": 128
+    },
+    "screening": {
+      "enabled": true,
+      "folds": 2,
+      "startup_candidates": 8,
+      "keep_quantile": 0.65,
+      "exploration_fraction": 0.2
+    },
+    "ensemble": {
+      "enabled": true,
+      "weight_policy": "auto",
+      "max_members": 3,
+      "tiny_max_members": 2,
+      "shrinkage": 0.5,
+      "max_weight": 0.85,
+      "max_combinations": 60,
+      "pool_per_family": 2,
+      "fixed_weights_below": 6
+    },
+    "features": {
+      "subset_sizes": [
+        0,
+        4,
+        8,
+        12
+      ]
+    },
+    "selection": {
+      "min_trials": 8,
+      "continue_after_targets": false,
+      "finalists": 3,
+      "tail_weight": 0.05
+    },
+    "persistence": {
+      "enabled": true,
+      "resume": true,
+      "directory": null,
+      "checkpoint_interval": 5
+    },
+    "logging": {
+      "heartbeat_seconds": 10.0
+    },
+    "publish": {
+      "policy": "allow_draft"
+    }
+  }
+}

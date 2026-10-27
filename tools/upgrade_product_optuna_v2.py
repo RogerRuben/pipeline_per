@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from tools.product_price_optuna_v2 import load_config
 from tools.pipeline_source_layout import SOURCE_FILES
+from tools.recommendation_source_layout import SOURCE_FILES as RECOMMENDATION_FILES
 
 PATCH_FILES=(
  'services/price_service/optuna_v2/__init__.py','services/price_service/optuna_v2/price_automl_core.py',
@@ -21,6 +22,10 @@ PATCH_FILES=(
  'services/price_service/optuna_v5/__init__.py','services/price_service/optuna_v5/engine.py','services/price_service/optuna_v5/fusion.py',
  'services/price_service/optuna_v5/persistence.py','services/price_service/optuna_v5/review.py',
  'services/price_service/optuna_v5/fixed_cv.py','services/price_service/optuna_v5/trace.py',
+ 'services/price_service/optuna_v6/__init__.py','services/price_service/optuna_v6/backend.py','services/price_service/optuna_v6/blend.py',
+ 'services/price_service/optuna_v6/protocol.py','services/price_service/optuna_v6/search.py','services/price_service/optuna_v6/engine.py',
+ 'tools/product_price_optuna_v6.py','tools/product_optuna_v6_adapter.py',
+ 'tools/product_effectiveness_import.py','app/server.py','app/static/portal.html','tools/recommendation_source_layout.py',
  'services/price_service/optuna_v2/cached_backend.py','services/price_service/optuna_v2/optimizer_v3.py',
  'services/price_service/optuna_v2/V3_DESIGN_PROVENANCE.json','tools/product_price_optuna_v3.py','tools/product_optuna_versions.py',
  'tools/product_price_optuna_v2.py','tools/product_optuna_v2_input.py','tools/upgrade_product_optuna_v2.py',
@@ -29,7 +34,7 @@ PATCH_FILES=(
  'services/price_service/native_bundle.py','services/price_service/app.py',
  'app/console_compat.py','app/product_table.py','app/static/price_ensemble.js',
  'APPLY_OPTUNA_V2.bat','APPLY_OPTUNA_V2_QUICK.bat','APPLY_OPTUNA_V2_DEEP.bat',
- 'docs/OPTUNA_V2_PIPELINE.md','tools/pipeline_source_layout.py')+SOURCE_FILES
+ 'docs/OPTUNA_V2_PIPELINE.md','tools/pipeline_source_layout.py')+SOURCE_FILES+RECOMMENDATION_FILES
 
 
 def atomic_json(path,value):

@@ -22,7 +22,7 @@ def validate_local_imports(payload,base,optional_modules=()):
                 else:name=node.module or ''
                 if name:names=[name]
             for name in names:
-                if name.split('.')[0] not in ('app','tools','services','automl_pipeline'):continue
+                if name.split('.')[0] not in ('app','tools','services','automl_pipeline','cost_effectiveness_analysis'):continue
                 checked+=1
                 if not exists(name):
                     row={'source':path,'line':node.lineno,'module':name}

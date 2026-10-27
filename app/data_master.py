@@ -8,22 +8,28 @@ from collections import OrderedDict
 
 from .wide_import import parse_bool, split_tags
 from .xlsx_utils import read_workbook_bytes, write_workbook_bytes
+from .display_mapping import dump_display_mapping, normalize_display_mapping
 
 
 SHEETS = OrderedDict([
     ("成品信息", ["成品代号", "成品名称", "成品说明", "是否启用"]),
-    ("指标定义", ["指标编号", "指标名称", "单位", "取值类型", "搜索类型", "工程下限", "工程上限", "效能方向", "指标说明", "调整提示", "允许值", "是否必填", "允许自动调整", "显示小数位", "显示顺序", "是否启用", "模型取值映射(JSON)"]),
+    ("指标定义", ["指标编号", "指标名称", "指标分组", "单位", "取值类型", "搜索类型", "工程下限", "工程上限", "效能方向", "指标说明", "调整提示", "允许值", "是否必填", "允许自动调整", "显示小数位", "显示顺序", "是否启用", "模型取值映射(JSON)", "前端显示映射(JSON)", "特殊业务状态值(JSON数组)", "历史观测下限", "历史观测上限"]),
+    ("ValueMappings", ["parameter_id", "business_value", "display_value", "model_value", "allowed", "special"]),
+    ("指标分组", ["分组名称", "显示顺序", "说明", "是否启用", "默认折叠"]),
     ("标签字典", ["标签编号", "标签名称", "标签分组", "匹配权重", "生成判定方式", "标签说明", "是否启用"]),
     ("标签规则", ["规则编号", "标签编号", "指标编号", "比较关系", "条件值1", "条件值2", "规则组", "是否启用"]),
     ("耦合关系", ["关系编号", "关系名称", "关系类型", "指标A", "指标B", "可行域比较", "系数", "偏置", "作用强度", "提示级别", "关系说明", "设置依据", "显示顺序", "是否启用"]),
-    ("约束规则", ["规则编号", "规则名称", "左侧指标", "比较关系", "右侧指标", "系数", "偏置", "提示级别", "违反提示", "设置依据", "显示顺序", "是否启用"]),
+    ("约束规则", ["规则编号", "规则名称", "左侧指标", "比较关系", "右侧指标", "系数", "偏置", "提示级别", "违反提示", "设置依据", "显示顺序", "是否启用", "规则类型", "约束组", "模板元数据(JSON)"]),
     ("历史协议", ["协议编号", "协议名称", "方案定位", "协议来源", "来源年份", "供应方类型", "历史价格(万元)", "标签"]),
     ("模型字段绑定", ["模型类型", "字段编号", "字段名称", "字段来源", "数据类型", "单位", "是否必填", "缺失策略", "数据库配置值", "训练均值", "模型版本", "是否启用"]),
 ])
 
+# Sheets that older workbooks may omit; they are derived from existing data.
+OPTIONAL_SHEETS = {"指标分组", "ValueMappings"}
+
 
 def clean(value):
-    return str(value or "").strip()
+    return "" if value is None else str(value).strip()
 
 
 def num(value, allow_none=True):
@@ -38,9 +44,27 @@ def integer(value, default=0):
     return int(float(value))
 
 
+def _json_scalar(value):
+    """Decode JSON scalars so numeric-looking strings remain distinguishable."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    try:
+        parsed = json.loads(text)
+        return parsed if not isinstance(parsed, (list, dict)) else value
+    except Exception:
+        return value
+
+
+def _dump_scalar(value):
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
 def normalize_operator(value):
     text = clean(value).lower()
-    mapping = {">=":"gte", "≥":"gte", "不低于":"gte", "gte":"gte", ">":"gt", "大于":"gt", "gt":"gt", "<=":"lte", "≤":"lte", "不高于":"lte", "lte":"lte", "<":"lt", "小于":"lt", "lt":"lt", "=":"eq", "==":"eq", "eq":"eq", "包含":"text_contains", "等于":"text_equals", "为":"boolean_is", "有无为":"boolean_is", "范围位于":"range_inside", "范围相交":"range_overlap"}
+    mapping = {">=":"gte", "≥":"gte", "不低于":"gte", "gte":"gte", ">":"gt", "大于":"gt", "gt":"gt", "<=":"lte", "≤":"lte", "不高于":"lte", "lte":"lte", "<":"lt", "小于":"lt", "lt":"lt", "=":"eq", "==":"eq", "eq":"eq", "包含":"text_contains", "等于":"text_equals", "为":"boolean_is", "有无为":"boolean_is", "状态为":"special_is", "special_is":"special_is", "范围位于":"range_inside", "范围相交":"range_overlap"}
     return mapping.get(text, text)
 
 
@@ -93,7 +117,7 @@ def display_bool(value):
 
 
 def display_operator(value):
-    return {"gte":"≥", "gt":">", "lte":"≤", "lt":"<", "eq":"=", "boolean_is":"为", "text_equals":"等于", "text_contains":"包含", "range_inside":"范围位于", "range_overlap":"范围相交"}.get(clean(value), clean(value))
+    return {"gte":"≥", "gt":">", "lte":"≤", "lt":"<", "eq":"=", "boolean_is":"为", "special_is":"状态为", "text_equals":"等于", "text_contains":"包含", "range_inside":"范围位于", "range_overlap":"范围相交"}.get(clean(value), clean(value))
 
 
 def display_value_type(value):
@@ -191,6 +215,261 @@ def rows_to_dicts(rows):
     return result
 
 
+def apply_value_mappings(parameters, mapping_rows, errors=None):
+    """Apply the authoritative three-layer mapping sheet to parameter rows.
+
+    Shared by full DataMaster imports and partial Product Release maintenance
+    workbooks so the two ingestion paths cannot drift semantically.
+    """
+    errors = errors if errors is not None else []
+    param_by_key = dict((clean(item.get("parameter_id")), item)
+                        for item in parameters or [] if clean(item.get("parameter_id")))
+    grouped = {}
+    for row in mapping_rows or []:
+        parameter_id = clean(row.get("parameter_id"))
+        if parameter_id:
+            grouped.setdefault(parameter_id, []).append(row)
+    for parameter_id, rows in grouped.items():
+        parameter = param_by_key.get(parameter_id)
+        if parameter is None:
+            errors.append("ValueMappings引用了不存在的指标：%s" % parameter_id)
+            continue
+        allowed, special, display_mapping, model_mapping = [], [], {}, {}
+        for row in rows:
+            business_value = _json_scalar(row.get("business_value"))
+            key = str(business_value)
+            if parse_bool(row.get("allowed", 0)):
+                allowed.append(business_value)
+            if parse_bool(row.get("special", 0)):
+                special.append(key)
+            if row.get("display_value") not in (None, ""):
+                display_mapping[key] = str(row.get("display_value"))
+            if row.get("model_value") not in (None, ""):
+                model_mapping[key] = _json_scalar(row.get("model_value"))
+        parameter["allowed_values_json"] = json.dumps(allowed, ensure_ascii=False) if allowed else None
+        parameter["special_value_keys_json"] = json.dumps(special, ensure_ascii=False) if special else None
+        parameter["display_value_mapping_json"] = json.dumps(display_mapping, ensure_ascii=False) if display_mapping else None
+        parameter["model_value_mapping_json"] = json.dumps(model_mapping, ensure_ascii=False) if model_mapping else None
+    return parameters
+
+
+SUPPORTED_VALUE_TYPES = ("number", "boolean", "ip_grade", "enum", "text")
+SUPPORTED_SEARCH_TYPES = ("auto", "continuous", "integer", "ordered_discrete", "unordered_enum", "boolean")
+SUPPORTED_OPERATORS = ("gte", "gt", "lte", "lt", "eq", "boolean_is", "special_is", "text_equals", "text_contains", "range_inside", "range_overlap")
+SUPPORTED_COUPLING_TYPES = ("positive", "negative", "feasible_domain")
+SUPPORTED_SEVERITIES = ("info", "warning", "error")
+OUTPUT_FIELDS = ("__predicted_price_wan", "__capability_score", "__feasibility_probability")
+
+_SECTION_REQUIRED = {
+    "products": ("product_code", "product_name"),
+    "parameters": ("parameter_id", "label"),
+    "parameter_groups": ("group_name",),
+    "tags": ("tag_id", "tag_name"),
+    "tag_rules": ("rule_id", "tag_id", "parameter_id"),
+    "couplings": ("coupling_id", "coupling_name", "parameter_a", "parameter_b"),
+    "constraints": ("rule_id", "rule_name", "left_parameter"),
+    "agreements": ("agreement_id", "agreement_name"),
+}
+_SECTION_PK = {
+    "products": "product_code",
+    "parameters": "parameter_id",
+    "parameter_groups": "group_name",
+    "tags": "tag_id",
+    "tag_rules": "rule_id",
+    "couplings": "coupling_id",
+    "constraints": "rule_id",
+    "agreements": "agreement_id",
+}
+_SECTION_TITLE = {
+    "products": "成品信息", "parameters": "指标定义", "parameter_groups": "指标分组",
+    "tags": "标签字典", "tag_rules": "标签规则", "couplings": "耦合关系",
+    "constraints": "约束规则", "agreements": "历史协议",
+}
+
+
+def _duplicate_keys(items, key):
+    seen = set()
+    duplicates = set()
+    for item in items:
+        value = clean(item.get(key))
+        if value in seen:
+            duplicates.add(value)
+        seen.add(value)
+    return sorted(v for v in duplicates if v)
+
+
+def validate_business_data(data):
+    """Structural validator shared by DataMaster preview and product releases.
+
+    Returns ``(errors, warnings)`` for a parsed business-data dict whose keys are
+    ``products`` / ``parameters`` / ``tags`` / ``tag_rules`` / ``couplings`` /
+    ``constraints`` / ``agreements``.  It checks required fields, duplicate
+    primary keys, supported enum values, numeric bounds and cross-section
+    references, so a "preview passed" verdict means the data can actually be
+    written to SQLite.
+    """
+    errors = []
+    warnings = []
+
+    products = data.get("products") or []
+    if len(products) != 1:
+        errors.append("成品信息必须且只能有一条。")
+    product_code = ""
+    for index, item in enumerate(products, 1):
+        for field in _SECTION_REQUIRED["products"]:
+            if not clean(item.get(field)):
+                errors.append("成品信息第%d条缺少%s。" % (index, field))
+        if index == 1:
+            product_code = clean(item.get("product_code"))
+
+    for section in ("parameters", "parameter_groups", "tags", "tag_rules", "couplings", "constraints", "agreements"):
+        items = data.get(section) or []
+        title = _SECTION_TITLE[section]
+        pk = _SECTION_PK[section]
+        required = _SECTION_REQUIRED[section]
+        for index, item in enumerate(items, 1):
+            for field in required:
+                if not clean(item.get(field)):
+                    errors.append("%s第%d条缺少%s。" % (title, index, field))
+        duplicates = _duplicate_keys(items, pk)
+        if duplicates:
+            errors.append("%s存在重复编号：%s" % (title, "、".join(duplicates)))
+
+    parameters = data.get("parameters") or []
+    param_ids = set(clean(item.get("parameter_id")) for item in parameters if clean(item.get("parameter_id")))
+    if not param_ids:
+        errors.append("至少需要一条指标定义。")
+    for item in parameters:
+        pid = clean(item.get("parameter_id"))
+        if item.get("value_type") not in SUPPORTED_VALUE_TYPES:
+            errors.append("指标%s的取值类型无效：%s。" % (pid, item.get("value_type")))
+        if item.get("search_type") not in SUPPORTED_SEARCH_TYPES:
+            errors.append("指标%s的搜索类型无效：%s。" % (pid, item.get("search_type")))
+        if item.get("min_value") is not None and item.get("max_value") is not None:
+            try:
+                if float(item["min_value"]) > float(item["max_value"]):
+                    errors.append("指标%s的工程下限不能高于工程上限。" % pid)
+            except (TypeError, ValueError):
+                errors.append("指标%s的工程上下限必须是数字。" % pid)
+        if item.get("value_type") == "enum":
+            allowed = _json_allowed(item.get("allowed_values_json"))
+            raw_mapping = item.get("model_value_mapping_json")
+            mapping = {}
+            if raw_mapping:
+                try:
+                    parsed_mapping = json.loads(raw_mapping) if isinstance(raw_mapping, str) else raw_mapping
+                    if isinstance(parsed_mapping, dict):
+                        mapping = {str(k): v for k, v in parsed_mapping.items()}
+                except Exception:
+                    pass
+            if allowed and mapping:
+                missing = [str(v) for v in allowed if str(v).strip() and str(v).strip() not in mapping]
+                if missing:
+                    warnings.append(
+                        "指标「%s」有 %d 个业务可选值，但当前模型值映射只覆盖 %d 个。缺少：%s。请为该业务值填写模型实际使用的编码。"
+                        % (item.get("label") or pid, len(allowed), len(mapping), "、".join(missing))
+                    )
+        # Allowed values must be a JSON array and mappings must be JSON objects.
+        raw_allowed = item.get("allowed_values_json")
+        if raw_allowed not in (None, ""):
+            try:
+                parsed_allowed = json.loads(raw_allowed) if isinstance(raw_allowed, str) else raw_allowed
+                if not isinstance(parsed_allowed, list):
+                    errors.append("指标%s的允许值必须是JSON数组。" % pid)
+            except Exception:
+                errors.append("指标%s的允许值必须是JSON数组。" % pid)
+        raw_mapping = item.get("model_value_mapping_json")
+        if raw_mapping not in (None, ""):
+            try:
+                parsed_mapping = json.loads(raw_mapping) if isinstance(raw_mapping, str) else raw_mapping
+                if not isinstance(parsed_mapping, dict):
+                    errors.append("指标%s的模型值映射必须是JSON对象。" % pid)
+            except Exception:
+                errors.append("指标%s的模型值映射必须是JSON对象。" % pid)
+        raw_display_mapping = item.get("display_value_mapping_json")
+        if raw_display_mapping not in (None, ""):
+            try:
+                normalize_display_mapping(
+                    raw_display_mapping,
+                    _json_allowed(item.get("allowed_values_json")) +
+                    _json_allowed(item.get("special_value_keys_json")),
+                )
+            except ValueError as exc:
+                errors.append("指标%s：%s" % (pid, exc))
+        raw_special = item.get("special_value_keys_json")
+        if raw_special not in (None, ""):
+            try:
+                parsed_special = json.loads(raw_special) if isinstance(raw_special, str) else raw_special
+                if not isinstance(parsed_special, list):
+                    errors.append("指标%s的特殊业务状态值必须是JSON数组。" % pid)
+                elif item.get("value_type") in ("number", "ip_grade", "boolean"):
+                    invalid = [value for value in parsed_special if num(value) is None]
+                    if invalid:
+                        errors.append("指标%s的特殊业务状态值无法转换为数值：%s。" % (pid, invalid[0]))
+            except Exception:
+                errors.append("指标%s的特殊业务状态值必须是JSON数组。" % pid)
+
+    # Parameter-group existence is a business reference check.
+    group_names = set(clean(g.get("group_name")) for g in (data.get("parameter_groups") or []) if clean(g.get("group_name")))
+    if group_names:
+        for item in parameters:
+            g = clean(item.get("parameter_group")) or "其他"
+            if g not in group_names:
+                errors.append("指标%s引用了不存在的指标分组%s。" % (clean(item.get("parameter_id")), g))
+
+    tag_ids = set(clean(item.get("tag_id")) for item in (data.get("tags") or []) if clean(item.get("tag_id")))
+    for item in data.get("tag_rules") or []:
+        rule_id = clean(item.get("rule_id"))
+        if item.get("tag_id") not in tag_ids:
+            errors.append("标签规则%s引用不存在的标签%s。" % (rule_id, item.get("tag_id")))
+        if item.get("parameter_id") not in param_ids and item.get("parameter_id") not in OUTPUT_FIELDS:
+            errors.append("标签规则%s引用不存在的指标%s。" % (rule_id, item.get("parameter_id")))
+        if item.get("operator") not in SUPPORTED_OPERATORS:
+            errors.append("标签规则%s的比较关系无效：%s。" % (rule_id, item.get("operator")))
+
+    for item in data.get("couplings") or []:
+        coupling_id = clean(item.get("coupling_id"))
+        if item.get("coupling_type") not in SUPPORTED_COUPLING_TYPES:
+            errors.append("耦合关系%s的关系类型无效：%s。" % (coupling_id, item.get("coupling_type")))
+        if item.get("parameter_a") not in param_ids or item.get("parameter_b") not in param_ids:
+            errors.append("耦合关系%s引用不存在的指标%s/%s。" % (coupling_id, item.get("parameter_a"), item.get("parameter_b")))
+        if item.get("severity") not in SUPPORTED_SEVERITIES:
+            errors.append("耦合关系%s的提示级别无效：%s。" % (coupling_id, item.get("severity")))
+
+    for item in data.get("constraints") or []:
+        rule_id = clean(item.get("rule_id"))
+        if item.get("operator") not in ("gte", "gt", "lte", "lt", "eq"):
+            errors.append("约束规则%s的比较关系无效：%s。" % (rule_id, item.get("operator")))
+        if item.get("left_parameter") not in param_ids:
+            errors.append("约束规则%s引用不存在的指标%s。" % (rule_id, item.get("left_parameter")))
+        if item.get("right_parameter") and item.get("right_parameter") not in param_ids:
+            errors.append("约束规则%s引用不存在的指标%s。" % (rule_id, item.get("right_parameter")))
+        if item.get("severity") not in SUPPORTED_SEVERITIES:
+            errors.append("约束规则%s的提示级别无效：%s。" % (rule_id, item.get("severity")))
+        if item.get("rule_kind") in ("conditional_lower", "conditional_upper") and item.get("template_metadata_json"):
+            try:
+                meta = json.loads(item["template_metadata_json"]) if isinstance(item["template_metadata_json"], str) else item["template_metadata_json"]
+                if isinstance(meta, dict):
+                    controller = meta.get("controller")
+                    target = meta.get("target")
+                    if controller and controller not in param_ids:
+                        errors.append("条件关系%s引用不存在的控制指标%s。" % (rule_id, controller))
+                    if target and target not in param_ids:
+                        errors.append("条件关系%s引用不存在的从属指标%s。" % (rule_id, target))
+            except Exception:
+                errors.append("约束规则%s的模板元数据不是有效JSON。" % rule_id)
+
+    for item in data.get("agreements") or []:
+        agreement_id = clean(item.get("agreement_id"))
+        if product_code and clean(item.get("product_code")) not in ("", product_code):
+            errors.append("协议%s的成品代号与草稿不一致。" % agreement_id)
+        unknown_tags = sorted(set(item.get("tags") or []) - tag_ids)
+        if unknown_tags:
+            errors.append("协议%s引用不存在的标签：%s" % (agreement_id, "、".join(unknown_tags)))
+
+    return errors, warnings
+
+
 class DataMasterService(object):
     def __init__(self, store, runtime):
         self.store = store
@@ -204,12 +483,13 @@ class DataMasterService(object):
             ["指标定义", "取值类型", "描述协议中这个字段保存的值是什么类型。", "数值、布尔、IP等级、枚举、文本", "自诊断→布尔", "把布尔取值“有/无”填进取值类型"],
             ["指标定义", "搜索类型", "描述智能生成时如何改变该属性。", "自动识别、连续数值、整数数值、有序离散、无序枚举、布尔开关", "防护等级→整数数值；材料→无序枚举", "把质量设置成枚举，或把材料设置成连续数值"],
             ["指标定义", "允许值", "仅离散/枚举字段填写，用顿号分隔合法取值；连续和布尔通常留空。", "值1、值2、值3", "材料：铝合金、钛合金、不锈钢", "布尔字段填写“布尔”；正确取值应在历史协议中填有/无"],
-            ["指标定义", "工程下限/上限", "连续、整数和IP等级的工程取值范围。", "数字；下限≤上限", "IP等级：54～68", "把历史最小值误当成绝对工程下限"],
+            ["指标定义", "工程下限/上限", "业务工程参考范围；用于默认搜索区间和风险提示，不会阻止、截断或改写用户显式输入。", "数字；下限≤上限", "IP等级：54～68", "把参考范围误当成绝对硬约束；真正硬规则应配置约束规则"],
+            ["指标定义", "前端显示映射(JSON)", "仅把canonical业务值显示为操作员文本，不参与存储、筛选、生成或模型编码。", "JSON对象", "{\"0\":\"无\",\"1\":\"有\"}", "复用模型取值映射做界面显示"],
             ["指标定义", "效能方向", "仅表达效能偏好，不代表硬约束。", "越大越好、越小越好、中性", "响应时间→越小越好", "用方向代替约束规则"],
             ["指标定义", "是否必填", "模型或协议计算缺少该值时是否允许继续。", "是、否", "额定载荷→是", "把模型必填字段设为否"],
             ["指标定义", "允许自动调整", "智能生成器是否可以改变这个值。", "是、否", "材料牌号由专家指定→否", "把不可修改的法规字段设为是"],
             ["历史协议", "布尔属性取值", "请填中文业务值。系统导入后自动转换为1/0。", "有、无", "自诊断=有", "填写“布尔”或“boolean”"],
-            ["历史协议", "IP等级取值", "可以填写IP前缀或数字，必须位于工程范围。", "IP54 或 54", "IP64", "只允许填写历史出现过的等级"],
+            ["历史协议", "IP等级取值", "可以填写IP前缀或数字；超出DataMaster参考范围仍可保存并在计算时提示。", "IP54 或 54", "IP64", "只允许填写历史出现过的等级"],
             ["标签字典", "生成判定方式", "规则判定表示由标签规则计算；继承表示从参考方案继承；人工维护表示需要专家确认。", "规则判定、从种子继承、人工维护", "高推力→规则判定", "没有规则却选择规则判定"],
             ["标签规则", "同组/多组逻辑", "同一规则组内为AND，不同规则组之间为OR。", "规则组可填default、A、B等", "A组：推力≥12000且质量≤10", "把每条规则都填成不同组，导致全部变成OR"],
             ["标签规则", "条件值", "数值填数字；布尔填有/无；范围条件分别填值1和值2。", "取决于指标类型", "自诊断 为 有", "布尔填1/0，造成维护人员难以理解"],
@@ -224,12 +504,14 @@ class DataMasterService(object):
     def _dictionary_sheet(self, snap):
         parameters = [str(item.get("parameter_id")) for item in snap.get("parameters", []) if item.get("parameter_id")]
         tags = [str(item.get("tag_id")) for item in snap.get("tags", []) if item.get("tag_id")]
+        active_groups = [str(g.get("group_name")) for g in snap.get("parameter_groups", []) if g.get("group_name") and int(g.get("enabled", 1) or 0) != 0]
         dictionaries = OrderedDict([
             ("是否", ["是", "否"]),
             ("布尔取值", ["有", "无"]),
             ("取值类型", ["数值", "布尔", "IP等级", "枚举", "文本"]),
             ("搜索类型", ["自动识别", "连续数值", "整数数值", "有序离散", "无序枚举", "布尔开关"]),
             ("效能方向", ["越大越好", "越小越好", "中性"]),
+            ("指标分组", active_groups),
             ("标签判定方式", ["规则判定", "从种子继承", "人工维护"]),
             ("比较关系", ["≥", ">", "≤", "<", "=", "为", "等于", "包含", "范围位于", "范围相交"]),
             ("耦合类型", ["正向", "负向", "可行域"]),
@@ -251,7 +533,8 @@ class DataMasterService(object):
         names = OrderedDict()
         name_map = {
             "是否":"DM_YES_NO", "布尔取值":"DM_BOOLEAN_VALUES", "取值类型":"DM_VALUE_TYPES",
-            "搜索类型":"DM_SEARCH_TYPES", "效能方向":"DM_PREFERENCES", "标签判定方式":"DM_TAG_DERIVATIONS",
+            "搜索类型":"DM_SEARCH_TYPES", "效能方向":"DM_PREFERENCES", "指标分组":"DM_PARAMETER_GROUPS",
+            "标签判定方式":"DM_TAG_DERIVATIONS",
             "比较关系":"DM_OPERATORS", "耦合类型":"DM_COUPLING_TYPES", "提示级别":"DM_SEVERITIES",
             "协议来源":"DM_PROTOCOL_SOURCES", "模型类型":"DM_MODEL_KINDS", "字段来源":"DM_SOURCE_TYPES",
             "模型数据类型":"DM_MODEL_DATA_TYPES", "缺失策略":"DM_MISSING_POLICIES",
@@ -273,11 +556,16 @@ class DataMasterService(object):
         result = {
             "成品信息": [v("D2:D100", "DM_YES_NO", "是否启用", "当前版本必须保留一个启用成品。")],
             "指标定义": [
-                v("D2:D1000", "DM_VALUE_TYPES", "取值类型", "选择字段存储的值类型。布尔字段这里只选“布尔”，具体值在历史协议中填有/无。"),
-                v("E2:E1000", "DM_SEARCH_TYPES", "搜索类型", "选择智能生成如何改变该属性。"),
-                v("H2:H1000", "DM_PREFERENCES", "效能方向", "这是偏好方向，不是工程硬约束。"),
-                v("L2:M1000", "DM_YES_NO", "是/否字段", "请直接选择是或否。"),
-                v("P2:P1000", "DM_YES_NO", "是否启用", "停用后该业务属性不再参与数据中心运行；与当前模型是否使用无关。"),
+                v("C2:C1000", "DM_PARAMETER_GROUPS", "指标分组", "从已启用的指标分组中选择。"),
+                v("E2:E1000", "DM_VALUE_TYPES", "取值类型", "选择字段存储的值类型。布尔字段这里只选“布尔”，具体值在历史协议中填有/无。"),
+                v("F2:F1000", "DM_SEARCH_TYPES", "搜索类型", "选择智能生成如何改变该属性。"),
+                v("I2:I1000", "DM_PREFERENCES", "效能方向", "这是偏好方向，不是工程硬约束。"),
+                v("M2:M1000", "DM_YES_NO", "是否必填", "请直接选择是或否。"),
+                v("N2:N1000", "DM_YES_NO", "允许自动调整", "请直接选择是或否。"),
+                v("Q2:Q1000", "DM_YES_NO", "是否启用", "停用后该业务属性不再参与数据中心运行；与当前模型是否使用无关。"),
+                {"sqref":"S2:S1000", "type":"custom", "formula1":"TRUE",
+                 "prompt_title":"前端显示映射(JSON)",
+                 "prompt":"格式：JSON对象；示例：{\"0\":\"无\",\"1\":\"有\"}。左边是数据库/业务原值，右边只修改界面显示，不改变历史数据、生成值或模型输入。"},
             ],
             "标签字典": [v("E2:E1000", "DM_TAG_DERIVATIONS", "标签判定方式", "规则判定、从种子继承或人工维护。"), v("G2:G1000", "DM_YES_NO", "是否启用", "停用后不参与推荐，但记录仍保留。")],
             "标签规则": [v("B2:B3000", "DM_TAG_IDS", "标签编号", "从标签字典选择。"), v("C2:C3000", "DM_RULE_FIELDS", "指标编号", "从指标定义或三个模型输出字段中选择。"), v("D2:D3000", "DM_OPERATORS", "比较关系", "布尔字段通常选择“为”，条件值填写有/无。"), v("H2:H3000", "DM_YES_NO", "是否启用", "上级标签停用时规则暂不执行，但仍可保存编辑。")],
@@ -330,8 +618,38 @@ class DataMasterService(object):
         rows.append(("成品信息", [SHEETS["成品信息"], [product.get("product_code"), product.get("product_name"), product.get("product_description"), display_bool(product.get("enabled", 1))]]))
         params = []
         for p in snap["parameters"]:
-            params.append([p.get("parameter_id"), p.get("label"), p.get("unit"), display_value_type(p.get("value_type")), display_search_type(p.get("search_type", "auto")), p.get("min_value"), p.get("max_value"), display_preference(p.get("preference")), p.get("description"), p.get("adjustment_hint"), "、".join(str(x) for x in _json_allowed(p.get("allowed_values_json"))), display_bool(p.get("required", 1)), display_bool(p.get("auto_adjustable", 1)), p.get("decimal_places", 3), p.get("display_order"), display_bool(p.get("enabled", 1)), p.get("model_value_mapping_json") or ""])
+            params.append([p.get("parameter_id"), p.get("label"), p.get("parameter_group", "其他"), p.get("unit"), display_value_type(p.get("value_type")), display_search_type(p.get("search_type", "auto")), p.get("min_value"), p.get("max_value"), display_preference(p.get("preference")), p.get("description"), p.get("adjustment_hint"), "、".join(str(x) for x in _json_allowed(p.get("allowed_values_json"))), display_bool(p.get("required", 1)), display_bool(p.get("auto_adjustable", 1)), p.get("decimal_places", 3), p.get("display_order"), display_bool(p.get("enabled", 1)), p.get("model_value_mapping_json") or "", p.get("display_value_mapping_json") or "", p.get("special_value_keys_json") or "", p.get("observed_min"), p.get("observed_max")])
         rows.append(("指标定义", [SHEETS["指标定义"]] + params))
+        mapping_rows = []
+        for p in snap["parameters"]:
+            allowed = _json_allowed(p.get("allowed_values_json"))
+            special = _json_allowed(p.get("special_value_keys_json"))
+            try:
+                display_mapping = json.loads(p.get("display_value_mapping_json") or "{}")
+            except Exception:
+                display_mapping = {}
+            try:
+                model_mapping = json.loads(p.get("model_value_mapping_json") or "{}")
+            except Exception:
+                model_mapping = {}
+            ordered = []
+            for value in allowed + special + list(display_mapping.keys()) + list(model_mapping.keys()):
+                marker = str(value)
+                if marker not in [str(x) for x in ordered]:
+                    ordered.append(value)
+            for value in ordered:
+                key = str(value)
+                mapping_rows.append([
+                    p.get("parameter_id"), _dump_scalar(value), display_mapping.get(key, ""),
+                    _dump_scalar(model_mapping[key]) if key in model_mapping else "",
+                    1 if any(str(x) == key for x in allowed) else 0,
+                    1 if any(str(x) == key for x in special) else 0,
+                ])
+        rows.append(("ValueMappings", [SHEETS["ValueMappings"]] + ([] if empty else mapping_rows)))
+        groups = []
+        for g in snap.get("parameter_groups", []):
+            groups.append([g.get("group_name"), g.get("display_order"), g.get("description"), display_bool(g.get("enabled", 1)), display_bool(g.get("default_collapsed", 0))])
+        rows.append(("指标分组", [SHEETS["指标分组"]] + ([] if empty else groups)))
         tags = []
         for t in snap["tags"]:
             tags.append([t.get("tag_id"), t.get("tag_name"), t.get("tag_group"), t.get("weight"), display_derivation(t.get("derivation_mode", "rule")), t.get("description"), display_bool(t.get("enabled", 1))])
@@ -346,7 +664,7 @@ class DataMasterService(object):
         rows.append(("耦合关系", [SHEETS["耦合关系"]] + ([] if empty else couplings)))
         constraints = []
         for r in snap["constraints"]:
-            constraints.append([r.get("rule_id"), r.get("rule_name"), r.get("left_parameter"), display_operator(r.get("operator")), r.get("right_parameter"), r.get("multiplier"), r.get("offset"), display_severity(r.get("severity")), r.get("message"), r.get("rationale"), r.get("display_order"), display_bool(r.get("enabled", 1))])
+            constraints.append([r.get("rule_id"), r.get("rule_name"), r.get("left_parameter"), display_operator(r.get("operator")), r.get("right_parameter"), r.get("multiplier"), r.get("offset"), display_severity(r.get("severity")), r.get("message"), r.get("rationale"), r.get("display_order"), display_bool(r.get("enabled", 1)), r.get("rule_kind", "affine"), r.get("constraint_group"), r.get("template_metadata_json")])
         rows.append(("约束规则", [SHEETS["约束规则"]] + ([] if empty else constraints)))
         protocol_headers = list(SHEETS["历史协议"]) + [p.get("label") + (("(%s)" % p.get("unit")) if p.get("unit") else "") for p in snap["parameters"]]
         protocols = []
@@ -377,7 +695,7 @@ class DataMasterService(object):
     def export_snapshot(self, snapshot):
         """Export a release draft without requiring it to be active or model-valid."""
         snap = dict(snapshot or {})
-        for key in ("products", "parameters", "tags", "tag_rules", "couplings", "constraints", "agreements", "model_inputs"):
+        for key in ("products", "parameters", "parameter_groups", "tags", "tag_rules", "couplings", "constraints", "agreements", "model_inputs"):
             snap.setdefault(key, [])
         _rows, names = self._dictionary_sheet(snap)
         return write_workbook_bytes(
@@ -394,10 +712,10 @@ class DataMasterService(object):
         if not clean(filename).lower().endswith(".xlsx"):
             raise ValueError("DataMaster仅支持.xlsx工作簿。")
         workbook = read_workbook_bytes(data)
-        missing_sheets = [name for name in SHEETS if name not in workbook]
+        missing_sheets = [name for name in SHEETS if name not in workbook and name not in OPTIONAL_SHEETS]
         if missing_sheets:
             raise ValueError("DataMaster缺少工作表：%s" % "、".join(missing_sheets))
-        parsed = dict((name, rows_to_dicts(workbook[name])) for name in SHEETS)
+        parsed = {name: rows_to_dicts(workbook[name]) if name in workbook else [] for name in SHEETS}
         report = {
             "filename": filename, "valid": True, "errors": [], "warnings": [], "counts": {}, "data": {},
             "scope": "business_data_only", "model_contract_checked": False,
@@ -436,11 +754,32 @@ class DataMasterService(object):
                     if not isinstance(parsed_mapping, dict):
                         raise ValueError("指标%s的模型取值映射必须是JSON对象。" % clean(r.get("指标编号")))
                     mapping = json.dumps(parsed_mapping, ensure_ascii=False)
+                special_text = clean(r.get("特殊业务状态值(JSON数组)"))
+                special_keys = None
+                parsed_special = []
+                if special_text:
+                    parsed_special = json.loads(special_text)
+                    if not isinstance(parsed_special, list):
+                        raise ValueError("指标%s的特殊业务状态值必须是JSON数组。" % clean(r.get("指标编号")))
+                    special_keys = json.dumps([str(value) for value in parsed_special], ensure_ascii=False)
+                display_mapping_text = clean(r.get("前端显示映射(JSON)"))
+                display_mapping = None
+                if display_mapping_text:
+                    try:
+                        display_mapping = dump_display_mapping(
+                            display_mapping_text, _json_allowed(allowed) + parsed_special
+                        )
+                    except ValueError as exc:
+                        raise ValueError("指标%s：%s" % (clean(r.get("指标编号")), exc))
                 parameters.append({
-                    "parameter_id": clean(r.get("指标编号")), "label": clean(r.get("指标名称")), "unit": clean(r.get("单位")),
+                    "parameter_id": clean(r.get("指标编号")), "label": clean(r.get("指标名称")),
+                    "parameter_group": clean(r.get("指标分组")) or "其他", "unit": clean(r.get("单位")),
                     "value_type": value_type, "search_type": search_type, "min_value": num(r.get("工程下限")), "max_value": num(r.get("工程上限")),
+                    "observed_min": num(r.get("历史观测下限")), "observed_max": num(r.get("历史观测上限")),
                     "preference": normalize_preference(r.get("效能方向")), "description": clean(r.get("指标说明")), "adjustment_hint": clean(r.get("调整提示")),
                     "allowed_values_json": allowed or None, "model_value_mapping_json": mapping,
+                    "display_value_mapping_json": display_mapping,
+                    "special_value_keys_json": special_keys,
                     "required": parse_bool(r.get("是否必填", 1)), "auto_adjustable": parse_bool(r.get("允许自动调整", 1)),
                     "decimal_places": integer(r.get("显示小数位"), 3), "display_order": integer(r.get("显示顺序"), len(parameters)+1), "enabled": parse_bool(r.get("是否启用", 1)), "model_bound": 1,
                 })
@@ -455,12 +794,52 @@ class DataMasterService(object):
                     report["errors"].append("指标%s只有布尔取值类型才能使用布尔开关搜索。" % p.get("parameter_id"))
                 if p.get("search_type") in ("continuous", "integer", "ordered_discrete") and p.get("value_type") not in ("number", "ip_grade"):
                     report["errors"].append("指标%s的搜索类型与取值类型不匹配。" % p.get("parameter_id"))
-            param_by_key = dict((x["parameter_id"], x) for x in parameters)
             for parameter in parameters:
                 # Model-bound status is synchronized later from whichever HTTP
                 # services are active; it is not a DataMaster validation input.
                 parameter["model_bound"] = 0
             report["data"]["parameters"] = parameters
+
+            # A readable ValueMappings sheet is authoritative when present.
+            # Legacy JSON columns remain fully supported when it is absent.
+            if "ValueMappings" in workbook:
+                apply_value_mappings(parameters, parsed["ValueMappings"], report["errors"])
+
+            group_items = []
+            if "指标分组" in workbook:
+                seen_group_names = set()
+                for r in parsed["指标分组"]:
+                    name = clean(r.get("分组名称")) or "其他"
+                    if name in seen_group_names:
+                        continue
+                    seen_group_names.add(name)
+                    group_items.append({
+                        "group_name": name,
+                        "display_order": integer(r.get("显示顺序"), len(group_items) + 1),
+                        "description": clean(r.get("说明")),
+                        "enabled": parse_bool(r.get("是否启用", 1)),
+                        "default_collapsed": parse_bool(r.get("默认折叠", 0)),
+                    })
+            derived_group_names = []
+            for p in parameters:
+                g = p.get("parameter_group") or "其他"
+                if g not in derived_group_names:
+                    derived_group_names.append(g)
+            if "其他" not in derived_group_names:
+                derived_group_names.append("其他")
+            if "指标分组" not in workbook:
+                # Legacy workbook without a group master sheet: derive from
+                # parameter definitions to stay backward compatible.
+                group_items = [{"group_name": g, "display_order": i + 1, "description": "", "enabled": 1, "default_collapsed": 0} for i, g in enumerate(derived_group_names)]
+            if "指标分组" in workbook:
+                # If a group master sheet is present (even empty), do NOT silently
+                # create unknown groups; report unknown references directly.
+                existing_group_names = set(x["group_name"] for x in group_items)
+                for p in parameters:
+                    g = p.get("parameter_group") or "其他"
+                    if g not in existing_group_names:
+                        report["errors"].append("指标%s引用了不存在的指标分组%s。" % (p.get("parameter_id"), g))
+            report["data"]["parameter_groups"] = group_items
 
             tags = []
             for r in parsed["标签字典"]:
@@ -485,7 +864,7 @@ class DataMasterService(object):
             report["data"]["couplings"] = couplings
             constraints=[]
             for r in parsed["约束规则"]:
-                item={"rule_id":clean(r.get("规则编号")), "rule_name":clean(r.get("规则名称")), "left_parameter":clean(r.get("左侧指标")), "operator":normalize_operator(r.get("比较关系")), "right_parameter":clean(r.get("右侧指标")) or None, "multiplier":num(r.get("系数")) if clean(r.get("系数")) else 1.0, "offset":num(r.get("偏置")) if clean(r.get("偏置")) else 0.0, "severity":normalize_severity(r.get("提示级别")) or "warning", "message":clean(r.get("违反提示")), "rationale":clean(r.get("设置依据")), "display_order":integer(r.get("显示顺序"),len(constraints)+1), "enabled":parse_bool(r.get("是否启用",1))}
+                item={"rule_id":clean(r.get("规则编号")), "rule_name":clean(r.get("规则名称")), "left_parameter":clean(r.get("左侧指标")), "operator":normalize_operator(r.get("比较关系")), "right_parameter":clean(r.get("右侧指标")) or None, "multiplier":num(r.get("系数")) if clean(r.get("系数")) else 1.0, "offset":num(r.get("偏置")) if clean(r.get("偏置")) else 0.0, "severity":normalize_severity(r.get("提示级别")) or "warning", "message":clean(r.get("违反提示")), "rationale":clean(r.get("设置依据")), "display_order":integer(r.get("显示顺序"),len(constraints)+1), "enabled":parse_bool(r.get("是否启用",1)), "rule_kind":clean(r.get("规则类型")) or "affine", "constraint_group":clean(r.get("约束组")) or None, "template_metadata_json":clean(r.get("模板元数据(JSON)")) or None}
                 if item["left_parameter"] not in param_by_key or (item["right_parameter"] and item["right_parameter"] not in param_by_key):
                     report["errors"].append("约束规则%s引用未知指标%s/%s" % (item["rule_id"], item["left_parameter"], item["right_parameter"] or "常数"))
                 constraints.append(item)
@@ -518,6 +897,14 @@ class DataMasterService(object):
             report["data"]["model_inputs"] = bindings
         except Exception as exc:
             report["errors"].append(str(exc))
+        # Shared structural validation: duplicates / required fields / enum
+        # values / references.  This makes DataMaster preview agree with
+        # product-release validation and with what SQLite can actually accept.
+        shared_errors, shared_warnings = validate_business_data(report.get("data", {}))
+        for error in shared_errors:
+            if error not in report["errors"]:
+                report["errors"].append(error)
+        report["warnings"].extend(shared_warnings)
         for key, values in report.get("data", {}).items(): report["counts"][key]=len(values)
         report["warnings"].insert(0, "DataMaster只检查业务数据结构和本地引用；当前价格/效能HTTP服务不参与本次检查。")
         report["valid"] = not report["errors"]

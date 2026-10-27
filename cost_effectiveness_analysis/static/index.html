@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>效费比分析工作台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">CE</span><div><h1>效费比分析工作台</h1><p>Cost-Effectiveness Analysis Workbench</p></div></div>
+    <div class="service-status"><span id="priceStatus" class="pill waiting">价格服务 ● 检查中</span><span id="effectStatus" class="pill waiting">效能服务 ● 检查中</span></div>
+  </header>
+  <main>
+    <section class="intro">
+      <div><span class="eyebrow">只读分析工具</span><h2>效费比分析</h2><p>从已有方案中选择需要比较的对象，系统将按照当前价格和效能模型统一计算，并分析方案之间的价格—效能权衡关系。</p></div>
+      <a id="recommendationLink" class="ghost-link" href="http://127.0.0.1:17891/portal" target="_blank" rel="noopener noreferrer">返回参数辅助设计系统 ↗</a>
+    </section>
+
+    <section class="card selector-card">
+      <div class="section-head"><div><h3>选择参与效费比分析的方案</h3><p>请选择 2–30 个已持久化方案；加载列表不会触发模型计算。</p></div><div class="selection-action"><b>已选 <span id="selectedCount">0</span> 个</b><button id="analyzeBtn" class="primary" disabled>开始分析</button></div></div>
+      <div class="toolbar"><label class="search"><span>⌕</span><input id="schemeSearch" placeholder="搜索方案名称或编号"></label><label class="source-filter"><span>方案来源</span><select id="sourceFilter"><option value="">全部来源</option><option value="historical">历史方案</option><option value="expert_saved">专家方案</option><option value="persisted">其他正式方案</option></select></label><button id="refreshBtn" class="secondary">刷新方案</button></div>
+      <div class="bulk-toolbar"><span id="filterSummary" class="muted">正在统计方案来源…</span><div><button id="selectAllBtn" class="text-button">全选当前结果</button><button id="invertBtn" class="text-button">反选当前结果</button><button id="clearSelectionBtn" class="text-button danger-text">清空已选</button></div></div>
+      <div id="schemeMessage" class="message">正在读取方案数据库…</div>
+      <div id="schemeList" class="scheme-grid"></div>
+    </section>
+
+    <section id="analysisArea" class="analysis hidden">
+      <div id="kpis" class="kpi-grid"></div>
+      <section class="card chart-card"><div class="section-head"><div><h3>价格—效能分布与 Pareto 前沿</h3><p>Pareto 前沿表示不存在其他方案能够同时以更低价格获得更高效能。</p></div><div class="legend"><span><i class="dot pareto"></i>Pareto 方案</span><span><i class="dot normal"></i>其他方案</span></div></div><div id="paretoChart" class="chart"></div></section>
+      <div class="two-column">
+        <section class="card"><div class="section-head"><div><h3>效费比排名</h3><p>效能分 / 万元</p></div></div><div id="rankingChart" class="ranking"></div></section>
+        <section class="card"><div class="section-head"><div><h3>分析说明</h3><p>基于本次统一模型计算生成</p></div></div><p id="analysisSummary" class="summary-text"></p><div id="selectedDetail" class="selected-detail"><span class="muted">点击图表或表格中的方案查看详情。</span></div><details><summary>技术信息</summary><div id="technicalInfo" class="tech"></div></details></section>
+      </div>
+      <section class="card table-card"><div class="section-head"><div><h3>分析明细表</h3><p>选择任一方案作为基准，查看其余方案的价格、效能与效费比差异。</p></div><label class="switch"><input id="paretoOnly" type="checkbox">只看 Pareto</label></div><div class="table-wrap"><table><thead><tr><th>方案</th><th>来源</th><th><button data-sort="predicted_price_wan">预测价格 ↕</button></th><th><button data-sort="capability_score">效能 ↕</button></th><th><button data-sort="cost_effectiveness">效费比 ↕</button></th><th>Pareto</th><th>基准差异</th><th>操作</th></tr></thead><tbody id="detailRows"></tbody></table></div></section>
+    </section>
+  </main>
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

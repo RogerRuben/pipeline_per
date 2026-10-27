@@ -9,8 +9,9 @@ from __future__ import print_function
 import json
 import re
 
-from .wide_import import split_tags
+from .wide_import import read_table_bytes, split_tags
 from .product_table import product_table_rows
+from .model_field_types import canonical_field_id
 
 
 def _clean(value):
@@ -92,16 +93,7 @@ def _label_and_unit(header):
 
 def _parameter_id(header, index, used):
     label, _unit = _label_and_unit(header)
-    candidate = re.sub(r"[^a-zA-Z0-9]+", "_", label).strip("_").lower()
-    if not candidate or candidate[0].isdigit():
-        candidate = "attr_%03d" % index
-    base = candidate
-    suffix = 2
-    while candidate in used:
-        candidate = "%s_%d" % (base, suffix)
-        suffix += 1
-    used.add(candidate)
-    return candidate
+    return canonical_field_id(label, index, used)
 
 
 def _decimal_places(values):
@@ -113,6 +105,21 @@ def _decimal_places(values):
         elif "." in text:
             places = max(places, len(text.rstrip("0").split(".", 1)[1]))
     return min(max(places, 0), 6)
+
+
+def _generation_range(values):
+    """Widen observed min/max into a default generation (engineering) bound.
+
+    Auto-inference only knows the observed range.  Treating that as the hard
+    engineering bound would block the extrapolation the recommendation engine
+    is designed for, so the generation bound is widened by default and the
+    operator is expected to confirm the real engineering limits.
+    """
+    lo = min(values)
+    hi = max(values)
+    span = hi - lo
+    pad = 0.25 * span if span > 1e-12 else max(abs(lo) * 0.25, 1.0)
+    return lo - pad, hi + pad
 
 
 def _infer_parameter(header, parameter_id, values, missing_tokens, order):
@@ -131,13 +138,16 @@ def _infer_parameter(header, parameter_id, values, missing_tokens, order):
     search_type = "auto"
     allowed = []
     minimum = maximum = None
+    observed_min = observed_max = None
     decimals = 3
 
     if observed and all(re.match(r"^ip\s*\d+(?:\.\d+)?$", value, re.I) for value in observed):
         numbers = [float(re.sub(r"^ip\s*", "", value, flags=re.I)) for value in observed]
         value_type, search_type = "ip_grade", "integer"
-        minimum, maximum, decimals = min(numbers), max(numbers), 0
-        note = "识别为IP防护等级；上下限暂取历史样本范围，请确认工程边界。"
+        observed_min, observed_max = min(numbers), max(numbers)
+        minimum, maximum = _generation_range(numbers)
+        decimals = 0
+        note = "识别为IP防护等级；经验范围取历史样本，工程/生成边界已外扩，请确认工程边界。"
     elif observed and set(normalized).issubset(TRUE_WORDS | FALSE_WORDS) and not set(normalized).issubset(set(("0", "1"))):
         value_type, search_type, decimals = "boolean", "boolean", 0
         note = "历史值包含有/无或是/否语义，已识别为布尔属性。"
@@ -157,9 +167,10 @@ def _infer_parameter(header, parameter_id, values, missing_tokens, order):
             ints = all(float(value).is_integer() for value in numbers)
             value_type = "number"
             search_type = "integer" if ints else "continuous"
-            minimum, maximum = min(numbers), max(numbers)
+            observed_min, observed_max = min(numbers), max(numbers)
+            minimum, maximum = _generation_range(numbers)
             decimals = 0 if ints else _decimal_places(observed)
-            note = "识别为%s；上下限暂取历史样本范围，请确认工程边界。" % ("整数" if ints else "连续数值")
+            note = "识别为%s；经验范围取历史样本，工程/生成边界已外扩，请确认工程边界。" % ("整数" if ints else "连续数值")
         elif observed and not TEXT_HEADER.search(label) and len(unique) <= 20:
             value_type, search_type = "enum", "unordered_enum"
             allowed = unique
@@ -182,11 +193,15 @@ def _infer_parameter(header, parameter_id, values, missing_tokens, order):
         "search_type": search_type,
         "min_value": minimum,
         "max_value": maximum,
+        "observed_min": observed_min,
+        "observed_max": observed_max,
         "preference": "neutral",
         "description": note,
         "adjustment_hint": "请结合工程含义确认自动推断结果。" if confidence != "high" else "",
         "allowed_values_json": json.dumps(allowed, ensure_ascii=False) if allowed else None,
         "model_value_mapping_json": None,
+        "display_value_mapping_json": None,
+        "special_value_keys_json": None,
         "required": required,
         "auto_adjustable": 0 if value_type == "text" else 1,
         "decimal_places": decimals,
@@ -382,9 +397,7 @@ class HistoricalProductOnboarding(object):
             "agreements": agreements,
             "onboarding": {
                 "source_filename": filename, "missing_tokens": tokens, "inference_rows": inference_rows,
-                "warnings": warnings, "header_rows": table["header_rows"],
-                "field_ids": field_ids,
-                "input_diagnostics": table.get("diagnostics"),
+                "warnings": warnings, "header_rows": table["header_rows"], "field_ids": field_ids, "input_diagnostics": table.get("diagnostics"),
             },
         }
         return {
@@ -394,6 +407,6 @@ class HistoricalProductOnboarding(object):
             "optional_attribute_count": sum(1 for item in parameters if not item.get("required")),
             "needs_confirmation_count": len(ambiguous), "price_column_detected": "price" in meta,
             "generated_id_count": len(agreements) if "id" not in meta else 0,
-            "missing_tokens": tokens, "warnings": warnings, "inferred_parameters": inference_rows,
+            "missing_tokens": tokens, "warnings": warnings, "header_rows": table["header_rows"], "field_ids": field_ids, "input_diagnostics": table.get("diagnostics"), "inferred_parameters": inference_rows,
             "data": data,
         }

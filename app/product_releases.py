@@ -16,7 +16,10 @@ import re
 from datetime import datetime
 
 from .data_master import (
+    SHEETS as DATAMASTER_SHEETS,
+    OPTIONAL_SHEETS as DATAMASTER_OPTIONAL_SHEETS,
     _json_allowed,
+    apply_value_mappings,
     clean,
     integer,
     normalize_coupling_type,
@@ -27,19 +30,24 @@ from .data_master import (
     normalize_severity,
     normalize_value_type,
     num,
+    rows_to_dicts,
+    validate_business_data,
 )
+from .display_mapping import dump_display_mapping
 from .model_field_types import model_types_compatible
 from .store import safe_id
 from .historical_onboarding import HistoricalProductOnboarding
 from .wide_import import WideTableParser, parse_bool, read_table_bytes
 from .xlsx_utils import read_workbook_bytes
+from .semantic_snapshot import SEMANTIC_SCHEMA_VERSION, semantic_signature
 
 
-SECTIONS = ("products", "parameters", "tags", "tag_rules", "couplings", "constraints", "agreements")
+SECTIONS = ("products", "parameters", "parameter_groups", "tags", "tag_rules", "couplings", "constraints", "agreements")
 
 SECTION_TITLES = {
     "products": "成品信息",
     "parameters": "指标定义",
+    "parameter_groups": "指标分组",
     "tags": "标签字典",
     "tag_rules": "标签规则",
     "couplings": "耦合关系",
@@ -57,6 +65,7 @@ HEADER_ALIASES = {
     "parameters": {
         "parameter_id": ("parameter_id", "指标编号", "字段编号"),
         "label": ("label", "指标名称", "字段名称"),
+        "parameter_group": ("parameter_group", "指标分组"),
         "unit": ("unit", "单位"),
         "value_type": ("value_type", "取值类型", "数据类型"),
         "search_type": ("search_type", "搜索类型"),
@@ -67,12 +76,21 @@ HEADER_ALIASES = {
         "adjustment_hint": ("adjustment_hint", "调整提示"),
         "allowed_values": ("allowed_values", "allowed_values_json", "允许值"),
         "model_value_mapping_json": ("model_value_mapping_json", "模型取值映射", "模型取值映射(JSON)"),
+        "display_value_mapping_json": ("display_value_mapping_json", "前端显示映射", "前端显示映射(JSON)"),
+        "special_value_keys_json": ("special_value_keys_json", "特殊业务状态值", "特殊业务状态值(JSON数组)"),
         "required": ("required", "是否必填"),
         "auto_adjustable": ("auto_adjustable", "允许自动调整"),
         "decimal_places": ("decimal_places", "显示小数位"),
         "display_order": ("display_order", "显示顺序"),
         "enabled": ("enabled", "是否启用"),
         "model_bound": ("model_bound", "模型字段", "是否模型字段"),
+    },
+    "parameter_groups": {
+        "group_name": ("group_name", "分组名称"),
+        "display_order": ("display_order", "显示顺序"),
+        "description": ("description", "说明"),
+        "enabled": ("enabled", "是否启用"),
+        "default_collapsed": ("default_collapsed", "默认折叠"),
     },
     "tags": {
         "tag_id": ("tag_id", "标签编号"),
@@ -122,12 +140,16 @@ HEADER_ALIASES = {
         "rationale": ("rationale", "设置依据"),
         "display_order": ("display_order", "显示顺序"),
         "enabled": ("enabled", "是否启用"),
+        "rule_kind": ("rule_kind", "规则类型"),
+        "constraint_group": ("constraint_group", "约束组"),
+        "template_metadata_json": ("template_metadata_json", "模板元数据(JSON)"),
     },
 }
 
 REQUIRED_COLUMNS = {
     "products": ("product_code", "product_name"),
     "parameters": ("parameter_id", "label", "value_type"),
+    "parameter_groups": ("group_name",),
     "tags": ("tag_id", "tag_name"),
     "tag_rules": ("rule_id", "tag_id", "parameter_id", "operator"),
     "couplings": ("coupling_id", "coupling_name", "coupling_type", "parameter_a", "parameter_b"),
@@ -137,6 +159,7 @@ REQUIRED_COLUMNS = {
 PRIMARY_KEYS = {
     "products": "product_code",
     "parameters": "parameter_id",
+    "parameter_groups": "group_name",
     "tags": "tag_id",
     "tag_rules": "rule_id",
     "couplings": "coupling_id",
@@ -150,15 +173,21 @@ CSV_COLUMNS = {
         ("product_description", "成品说明"), ("enabled", "是否启用"),
     ),
     "parameters": (
-        ("parameter_id", "指标编号"), ("label", "指标名称"), ("unit", "单位"),
+        ("parameter_id", "指标编号"), ("label", "指标名称"), ("parameter_group", "指标分组"), ("unit", "单位"),
         ("value_type", "取值类型"), ("search_type", "搜索类型"),
         ("min_value", "工程下限"), ("max_value", "工程上限"),
         ("preference", "效能方向"), ("description", "指标说明"),
         ("adjustment_hint", "调整提示"), ("allowed_values_json", "允许值"),
         ("model_value_mapping_json", "模型取值映射(JSON)"),
+        ("display_value_mapping_json", "前端显示映射(JSON)"),
+        ("special_value_keys_json", "特殊业务状态值(JSON数组)"),
         ("required", "是否必填"), ("auto_adjustable", "允许自动调整"),
         ("decimal_places", "显示小数位"), ("display_order", "显示顺序"),
         ("enabled", "是否启用"), ("model_bound", "是否模型字段"),
+    ),
+    "parameter_groups": (
+        ("group_name", "分组名称"), ("display_order", "显示顺序"),
+        ("description", "说明"), ("enabled", "是否启用"), ("default_collapsed", "默认折叠"),
     ),
     "tags": (
         ("tag_id", "标签编号"), ("tag_name", "标签名称"), ("tag_group", "标签分组"),
@@ -182,10 +211,12 @@ CSV_COLUMNS = {
         ("operator", "比较关系"), ("right_parameter", "右侧指标"), ("multiplier", "系数"),
         ("offset", "偏置"), ("severity", "提示级别"), ("message", "违反提示"),
         ("rationale", "设置依据"), ("display_order", "显示顺序"), ("enabled", "是否启用"),
+        ("rule_kind", "规则类型"), ("constraint_group", "约束组"), ("template_metadata_json", "模板元数据(JSON)"),
     ),
 }
 
-PACKAGE_FORMAT = "industrial-product-release-1.0"
+PACKAGE_FORMAT = "industrial-product-release-1.1"
+LEGACY_PACKAGE_FORMAT = "industrial-product-release-1.0"
 
 
 def _header_key(value):
@@ -197,9 +228,11 @@ def _bool(value, default=1):
 
 
 class ProductReleaseService(object):
-    def __init__(self, store, runtime):
+    def __init__(self, store, runtime, data_master=None, runtime_contract_provider=None):
         self.store = store
         self.runtime = runtime
+        self.data_master = data_master
+        self.runtime_contract_provider = runtime_contract_provider
         self.historical_onboarding = HistoricalProductOnboarding()
 
     def analyze_history(self, filename, raw, product_code, product_name, missing_tokens=None):
@@ -240,12 +273,37 @@ class ProductReleaseService(object):
         if not clean(filename).lower().endswith(".xlsx"):
             raise ValueError("维护工作簿仅支持.xlsx文件。")
         workbook = read_workbook_bytes(raw)
+        required_datamaster_sheets = [name for name in DATAMASTER_SHEETS
+                                      if name not in DATAMASTER_OPTIONAL_SHEETS]
+        is_full_datamaster = all(name in workbook for name in required_datamaster_sheets)
+        if self.data_master is not None and is_full_datamaster:
+            report = self.data_master.parse(filename, raw)
+            if not report.get("valid"):
+                raise ValueError("DataMaster校验未通过：%s" % "；".join(report.get("errors") or []))
+            release = self.get(release_id)
+            parsed_data = report.get("data") or {}
+            data = dict(release.get("data") or {})
+            for section in SECTIONS:
+                if section in parsed_data:
+                    data[section] = parsed_data[section]
+            products = data.get("products") or []
+            product_code = clean(products[0].get("product_code")) if len(products) == 1 else release.get("product_code")
+            product_name = clean(products[0].get("product_name")) if len(products) == 1 else release.get("product_name")
+            self.store.update_product_release(
+                release_id, data, product_code=product_code, product_name=product_name,
+                status="draft", validation=report,
+            )
+            return {
+                "release": self.get(release_id), "datamaster_report": report,
+                "modules": [{"section": section, "status": "imported",
+                             "valid_count": len(data.get(section) or [])} for section in SECTIONS],
+            }
         sheet_sections = (
-            ("成品信息", "products"), ("指标定义", "parameters"), ("标签字典", "tags"),
-            ("标签规则", "tag_rules"), ("耦合关系", "couplings"),
+            ("成品信息", "products"), ("指标定义", "parameters"), ("指标分组", "parameter_groups"),
+            ("标签字典", "tags"), ("标签规则", "tag_rules"), ("耦合关系", "couplings"),
             ("约束规则", "constraints"), ("历史协议", "agreements"),
         )
-        if not any(sheet in workbook for sheet, _section in sheet_sections):
+        if not any(sheet in workbook for sheet, _section in sheet_sections) and "ValueMappings" not in workbook:
             raise ValueError("工作簿中没有可识别的DataMaster数据工作表。")
         reports = []
         for sheet, section in sheet_sections:
@@ -273,6 +331,20 @@ class ProductReleaseService(object):
                 "valid_count": report.get("valid_count", 0), "invalid_count": report.get("invalid_count", 0),
                 "warnings": report.get("global_warnings") or [],
             })
+        if "ValueMappings" in workbook:
+            release = self.get(release_id)
+            parameters = [dict(item) for item in release["data"].get("parameters") or []]
+            mapping_errors = []
+            apply_value_mappings(
+                parameters, rows_to_dicts(workbook["ValueMappings"]), mapping_errors,
+            )
+            if mapping_errors:
+                raise ValueError("；".join(mapping_errors))
+            self.set_section(release_id, "parameters", parameters)
+            reports.append({
+                "sheet": "ValueMappings", "section": "parameters",
+                "status": "merged", "valid_count": len(parameters), "invalid_count": 0,
+            })
         return {"release": self.get(release_id), "modules": reports}
 
     def _parameter_skeleton(self):
@@ -294,6 +366,8 @@ class ProductReleaseService(object):
                 "adjustment_hint": spec.get("adjustment_hint") or "",
                 "allowed_values_json": json.dumps(allowed, ensure_ascii=False) if allowed else None,
                 "model_value_mapping_json": None,
+                "display_value_mapping_json": None,
+                "special_value_keys_json": None,
                 "search_type": spec.get("search_type") or "auto",
                 "required": 1 if spec.get("required", True) else 0,
                 "auto_adjustable": 1 if spec.get("auto_adjustable", True) else 0,
@@ -337,6 +411,7 @@ class ProductReleaseService(object):
         data = {
             "products": [dict(product)],
             "parameters": [dict(item) for item in snapshot.get("parameters", [])],
+            "parameter_groups": [dict(item) for item in snapshot.get("parameter_groups", [])],
             "tags": [dict(item) for item in snapshot.get("tags", [])],
             "tag_rules": [dict(item) for item in snapshot.get("tag_rules", [])],
             "couplings": [dict(item) for item in snapshot.get("couplings", [])],
@@ -353,10 +428,15 @@ class ProductReleaseService(object):
 
     def export_package(self, release_id):
         release = self.get(release_id)
+        semantic = semantic_signature(release["data"])
         core = {
             "format": PACKAGE_FORMAT,
             "product_code": release["product_code"],
             "product_name": release["product_name"],
+            "semantic_schema_version": SEMANTIC_SCHEMA_VERSION,
+            "semantic_signature": semantic,
+            "runtime_contract": self.runtime_contract_provider() if self.runtime_contract_provider else {},
+            "semantic_contract": {"model_bound": "derived_from_model_input_bindings"},
             "data": release["data"],
         }
         package = dict(core)
@@ -373,23 +453,41 @@ class ProductReleaseService(object):
             package = json.loads(raw.decode("utf-8-sig"))
         except Exception as exc:
             raise ValueError("离线发布包不是有效UTF-8 JSON：%s" % exc)
-        if package.get("format") != PACKAGE_FORMAT:
+        package_format = package.get("format")
+        if package_format not in (PACKAGE_FORMAT, LEGACY_PACKAGE_FORMAT):
             raise ValueError("不支持的离线发布包格式：%s" % package.get("format"))
-        data = package.get("data")
-        if not isinstance(data, dict):
+        transport_data = package.get("data")
+        if not isinstance(transport_data, dict):
             raise ValueError("离线发布包缺少data对象。")
-        missing = [section for section in SECTIONS if not isinstance(data.get(section), list)]
+        missing = [section for section in SECTIONS if section != "parameter_groups" and not isinstance(transport_data.get(section), list)]
         if missing:
             raise ValueError("离线发布包缺少数据模块：%s" % "、".join(missing))
+        # Integrity hash must be verified against the exact transport payload.
+        # Older packages legitimately omit the optional parameter_groups section;
+        # we only add it after the hash has been confirmed.
         core = {
-            "format": PACKAGE_FORMAT,
+            "format": package_format,
             "product_code": clean(package.get("product_code")),
             "product_name": clean(package.get("product_name")),
-            "data": data,
+            "data": transport_data,
         }
+        if package_format == PACKAGE_FORMAT:
+            core.update({
+                "semantic_schema_version": package.get("semantic_schema_version"),
+                "semantic_signature": package.get("semantic_signature"),
+                "runtime_contract": package.get("runtime_contract") or {},
+                "semantic_contract": package.get("semantic_contract") or {},
+            })
         expected = hashlib.sha256(self._canonical_json(core).encode("utf-8")).hexdigest()
         if clean(package.get("payload_sha256")) != expected:
             raise ValueError("离线发布包完整性校验失败，文件可能不完整或已被修改。")
+        if package_format == PACKAGE_FORMAT:
+            if str(package.get("semantic_schema_version") or "") != str(SEMANTIC_SCHEMA_VERSION):
+                raise ValueError("离线发布包业务语义版本不受支持。")
+            if clean(package.get("semantic_signature")) != semantic_signature(transport_data):
+                raise ValueError("离线发布包业务语义签名校验失败。")
+        data = dict(transport_data)
+        data.setdefault("parameter_groups", [])
         products = data.get("products") or []
         if len(products) != 1:
             raise ValueError("离线发布包中的成品信息必须且只能有一条。")
@@ -455,6 +553,7 @@ class ProductReleaseService(object):
             "parameters": {"value_type":"number", "search_type":"auto", "required":0,
                            "auto_adjustable":1, "decimal_places":3, "display_order":1,
                            "enabled":1, "model_bound":0},
+            "parameter_groups": {"display_order":9999, "enabled":1, "default_collapsed":0},
             "tags": {"weight":1.0, "derivation_mode":"rule", "enabled":1},
             "tag_rules": {"operator":"gte", "rule_group":"default", "enabled":1},
             "couplings": {"coupling_type":"positive", "domain_operator":"gte", "multiplier":1.0,
@@ -568,24 +667,45 @@ class ProductReleaseService(object):
         if section == "parameters":
             allowed = _json_allowed(row.get("allowed_values"))
             mapping = clean(row.get("model_value_mapping_json"))
+            display_mapping = clean(row.get("display_value_mapping_json"))
+            special_keys = clean(row.get("special_value_keys_json"))
+            parsed_special = []
             if mapping:
                 parsed_mapping = json.loads(mapping)
                 if not isinstance(parsed_mapping, dict):
                     raise ValueError("模型取值映射必须是JSON对象")
                 mapping = json.dumps(parsed_mapping, ensure_ascii=False)
+            if special_keys:
+                parsed_special = json.loads(special_keys)
+                if not isinstance(parsed_special, list):
+                    raise ValueError("特殊业务状态值必须是JSON数组")
+                special_keys = json.dumps([str(value) for value in parsed_special], ensure_ascii=False)
+            if display_mapping:
+                display_mapping = dump_display_mapping(display_mapping, allowed + parsed_special)
             return {
                 "parameter_id": clean(row.get("parameter_id")), "label": clean(row.get("label")),
+                "parameter_group": clean(row.get("parameter_group")) or "其他",
                 "unit": clean(row.get("unit")), "value_type": normalize_value_type(row.get("value_type")),
                 "min_value": num(row.get("min_value")), "max_value": num(row.get("max_value")),
                 "preference": normalize_preference(row.get("preference")),
                 "description": clean(row.get("description")), "adjustment_hint": clean(row.get("adjustment_hint")),
                 "allowed_values_json": json.dumps(allowed, ensure_ascii=False) if allowed else None,
                 "model_value_mapping_json": mapping or None,
+                "display_value_mapping_json": display_mapping or None,
+                "special_value_keys_json": special_keys or None,
                 "search_type": normalize_search_type(row.get("search_type")),
                 "required": _bool(row.get("required")), "auto_adjustable": _bool(row.get("auto_adjustable")),
                 "decimal_places": integer(row.get("decimal_places"), 3),
                 "display_order": integer(row.get("display_order"), row_number - 1),
                 "enabled": _bool(row.get("enabled")), "model_bound": _bool(row.get("model_bound")),
+            }
+        if section == "parameter_groups":
+            return {
+                "group_name": clean(row.get("group_name")),
+                "display_order": integer(row.get("display_order"), 9999),
+                "description": clean(row.get("description")),
+                "enabled": _bool(row.get("enabled")),
+                "default_collapsed": _bool(row.get("default_collapsed")),
             }
         if section == "tags":
             return {
@@ -613,6 +733,13 @@ class ProductReleaseService(object):
                 "display_order": integer(row.get("display_order"), row_number - 1), "enabled": _bool(row.get("enabled")),
             }
         if section == "constraints":
+            metadata_text = clean(row.get("template_metadata_json"))
+            metadata = None
+            if metadata_text:
+                parsed_metadata = json.loads(metadata_text)
+                if not isinstance(parsed_metadata, dict):
+                    raise ValueError("模板元数据必须是JSON对象")
+                metadata = json.dumps(parsed_metadata, ensure_ascii=False)
             return {
                 "rule_id": clean(row.get("rule_id")), "rule_name": clean(row.get("rule_name")),
                 "left_parameter": clean(row.get("left_parameter")), "operator": normalize_operator(row.get("operator")),
@@ -622,6 +749,9 @@ class ProductReleaseService(object):
                 "severity": normalize_severity(row.get("severity")), "message": clean(row.get("message")),
                 "rationale": clean(row.get("rationale")),
                 "display_order": integer(row.get("display_order"), row_number - 1), "enabled": _bool(row.get("enabled")),
+                "rule_kind": clean(row.get("rule_kind")) or "affine",
+                "constraint_group": clean(row.get("constraint_group")) or None,
+                "template_metadata_json": metadata or None,
             }
         raise ValueError("不支持的数据模块：%s" % section)
 
@@ -643,67 +773,26 @@ class ProductReleaseService(object):
         running price/effectiveness services still describe the old product.
         Comparing those identities here would make the staging workspace
         unusable. Runtime readiness is diagnosed separately by Application.
+
+        Structural checks are delegated to :func:`validate_business_data` so
+        DataMaster preview and this release validation agree on what can be
+        written to SQLite.
         """
         release = self.get(release_id)
         data = release["data"]
-        errors = []
-        warnings = []
+        errors, warnings = validate_business_data(data)
         counts = dict((section, len(data.get(section, []))) for section in SECTIONS)
-        products = data.get("products", [])
-        if len(products) != 1:
-            errors.append("成品信息必须且只能有一条。")
-        product_code = clean(products[0].get("product_code")) if products else clean(release.get("product_code"))
-        for section, key in PRIMARY_KEYS.items():
-            required_fields = REQUIRED_COLUMNS.get(section, ("agreement_id", "agreement_name"))
-            for index, item in enumerate(data.get(section, []), 1):
-                absent_fields = [field for field in required_fields if clean(item.get(field)) == ""]
-                if absent_fields:
-                    errors.append("%s第%d条缺少必填字段：%s" % (
-                        SECTION_TITLES[section], index, "、".join(absent_fields)
-                    ))
-            duplicate = self._duplicates(data.get(section, []), key)
-            if duplicate:
-                errors.append("%s存在重复编号：%s" % (SECTION_TITLES[section], "、".join(duplicate)))
 
+        # Release-specific: a missing *business-required* parameter on an
+        # agreement is a warning, because the target model service decides
+        # whether calculation is possible for that row.
         parameters = dict((clean(item.get("parameter_id")), item) for item in data.get("parameters", []) if clean(item.get("parameter_id")))
-        tags = set(clean(item.get("tag_id")) for item in data.get("tags", []) if clean(item.get("tag_id")))
-        if not parameters:
-            errors.append("至少需要一条指标定义。")
-        supported_types = set(("number", "boolean", "ip_grade", "enum", "text"))
-        supported_search = set(("auto", "continuous", "integer", "ordered_discrete", "unordered_enum", "boolean"))
-        for key, item in parameters.items():
-            if item.get("value_type") not in supported_types:
-                errors.append("指标%s的取值类型无效：%s。" % (key, item.get("value_type")))
-            if item.get("search_type") not in supported_search:
-                errors.append("指标%s的搜索类型无效：%s。" % (key, item.get("search_type")))
-            if item.get("min_value") is not None and item.get("max_value") is not None:
-                try:
-                    if float(item["min_value"]) > float(item["max_value"]):
-                        errors.append("指标%s的工程下限不能高于工程上限。" % key)
-                except (TypeError, ValueError):
-                    errors.append("指标%s的工程上下限必须是数字。" % key)
-        output_fields = set(("__predicted_price_wan", "__capability_score", "__feasibility_probability"))
-        for item in data.get("tag_rules", []):
-            if item.get("tag_id") not in tags:
-                errors.append("标签规则%s引用不存在的标签%s。" % (item.get("rule_id"), item.get("tag_id")))
-            if item.get("parameter_id") not in parameters and item.get("parameter_id") not in output_fields:
-                errors.append("标签规则%s引用不存在的指标%s。" % (item.get("rule_id"), item.get("parameter_id")))
-        for item in data.get("couplings", []):
-            if item.get("parameter_a") not in parameters or item.get("parameter_b") not in parameters:
-                errors.append("耦合关系%s引用不存在的指标%s/%s。" % (item.get("coupling_id"), item.get("parameter_a"), item.get("parameter_b")))
-        for item in data.get("constraints", []):
-            if item.get("left_parameter") not in parameters or (item.get("right_parameter") and item.get("right_parameter") not in parameters):
-                errors.append("约束规则%s引用不存在的指标%s/%s。" % (item.get("rule_id"), item.get("left_parameter"), item.get("right_parameter") or "常数"))
         required = set(key for key, parameter in parameters.items() if parameter.get("required"))
         for item in data.get("agreements", []):
-            if clean(item.get("product_code")) not in ("", product_code):
-                errors.append("协议%s的成品代号与草稿不一致。" % item.get("agreement_id"))
             absent = sorted(key for key in required if (item.get("params") or {}).get(key) in (None, ""))
             if absent:
                 warnings.append("协议%s暂缺业务必填属性：%s；可继续维护，是否能计算由目标HTTP模型服务决定。" % (item.get("agreement_id"), "、".join(absent)))
-            unknown_tags = sorted(set(item.get("tags") or []) - tags)
-            if unknown_tags:
-                errors.append("协议%s引用不存在的标签：%s" % (item.get("agreement_id"), "、".join(unknown_tags)))
+
         warnings.insert(0, "本检查只验证业务数据结构和本地引用，不读取、不比较当前价格或效能HTTP服务Schema。")
         report = {
             "valid": not errors, "errors": errors, "warnings": warnings, "counts": counts,

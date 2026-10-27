@@ -239,10 +239,14 @@ class WideTableParser(object):
                 errors.append("成品代号%s与当前模型成品%s不一致" % (item.get("product_code"), self.product_code))
             if item.get("agreement_id") in seen: errors.append("协议编号在文件内重复")
             seen.add(item.get("agreement_id"))
-            missing_params = [p["parameter_id"] for p in self.parameters if p.get("model_bound", 1) and item["params"].get(p["parameter_id"]) in (None, "")]
+            # "required" (must have a value) and "model_bound" (used by a model)
+            # are different concepts: a model-bound field may legitimately be
+            # optional and fall back to a model missing-value policy.  Only
+            # business-required fields gate wide-table import.
+            missing_params = [p["parameter_id"] for p in self.parameters if p.get("required") and item["params"].get(p["parameter_id"]) in (None, "")]
             if missing_params:
                 labels = [self.parameter_by_id[k]["label"] for k in missing_params]
-                errors.append("缺少效能/成品必填属性：%s" % "、".join(labels))
+                errors.append("缺少业务必填属性：%s" % "、".join(labels))
             parsed.append({"row_number": row_number, "item": item, "errors": errors, "warnings": warnings, "valid": not errors})
         return {
             "filename": filename,
