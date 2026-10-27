@@ -182,13 +182,15 @@ class PriceService(ServiceApplication):
                 "interval_note": "开发集残差的探索区间，未校准覆盖率",
                 "interpretation": "模型融合贡献与工程属性贡献分别展示；残差为统计修正。"}
         output['price_risk']=result.get('price_risk')
-        for key in ('quality_status','training_metrics','development_metrics','holdout_metrics','reference_metrics','reference_training_metrics'):
+        for key in ('quality_status','training_metrics','development_metrics','holdout_metrics','reference_metrics','reference_training_metrics',
+                    'reference_cv_metrics','evaluation_scope','reference_evaluation_scope','protocol','weight_policy','weights_fitted_on_validation'):
             if key in metadata:output[key]=metadata[key]
         if metadata.get("price_attribute_scores") is not None:
             output["price_attribute_scores"] = metadata["price_attribute_scores"]
             output["expert_scores_enabled"] = metadata.get("expert_scores_enabled",True)
             output["calibration"] = metadata.get("calibration", 1.)
             output["interpretation"] = "原始1—5分为价格属性重要性；融合份额由训练验证学习，效能偏好独立。"
+            if metadata.get('protocol')=='fixed_cv':output['interpretation']='原始1—5分为价格属性重要性；V5.1新增阶段冻结融合份额，每次只替换模型族参数，效能偏好独立。'
             if not output["expert_scores_enabled"]: output["interpretation"]="本版本采用纯数据驱动；原专家评分仅保留作对照，不参与价格训练。"
             output["interval_note"] = metadata.get("interval_note","折外残差的探索区间，未校准覆盖率")
             details = []

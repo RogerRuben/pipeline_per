@@ -2,6 +2,7 @@
 """Bilingual product-table adaptation for the supplied Optuna V2 engine."""
 import hashlib
 import json
+import numpy as np
 from pathlib import Path
 from app.product_table import product_table_rows
 from app.historical_onboarding import HistoricalProductOnboarding
@@ -45,6 +46,10 @@ def prepare(source,root,settings):
         dev,outer=holdout_indices(len(y),ids,groups,hold_config(overrides={'input':cfg['input'],'v4':{'evaluation':cfg['v5']['evaluation']}}))
         if len(outer) and cfg['v5']['evaluation']['require_declared_types'] and set(frame.columns)-set(cfg['expert']['field_types']):raise ValueError('V5固定留出须声明全部属性类型。')
         training_split(len(dev),cfg)
+        if cfg['v5']['protocol']=='fixed_cv':
+            from services.price_service.optuna_v5.fixed_cv import make_folds
+            _,fixed_plan=make_folds(frame.iloc[dev].reset_index(drop=True),np.asarray(dev,int),cfg['v5']['cv'])
+            split_report=dict(split_report,fixed_cv_plan=fixed_plan)
     if engine=='optuna_v3':
         warm=cfg['v3']['warm_start']
         if warm['auto_history'] and not warm['history_file'] and not warm['config_file']:
@@ -66,6 +71,7 @@ def prepare(source,root,settings):
                 'services/price_service/optuna_v2/typed_features.py','services/price_service/optuna_v2/search_history.py')
     if engine=='optuna_v3':code_files+=('automl_pipeline/product_price_optuna_v3.py','services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py')
     if engine=='optuna_v5':code_files+=('automl_pipeline/product_price_optuna_v5.py','automl_pipeline/product_optuna_v5_adapter.py',
+        'services/price_service/optuna_v5/fixed_cv.py','services/price_service/optuna_v5/trace.py','services/price_service/optuna_v4/backend.py',
         'services/price_service/optuna_v5/engine.py','services/price_service/optuna_v5/fusion.py','services/price_service/optuna_v5/persistence.py','services/price_service/optuna_v5/review.py',
         'services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py','services/price_service/optuna_v2/training_observation.py')
     if engine=='optuna_v4':
@@ -94,6 +100,9 @@ def prepare(source,root,settings):
     if engine=='optuna_v5':
         notes[0]='V5：先保留V3基线%d轮，再用已有预测求融合权重；新增成员fit预算%d。'%(cfg['search']['n_trials'],cfg['v5']['enhancement']['max_new_fits'])
         notes[2]='默认运行实际获分快照；跨划分复核单独报告；全量重拟合另存。START不训练，RESUME/RETRAIN可读取同数据检查点继续。'
+        if cfg['v5']['protocol']=='fixed_cv':
+            notes[0]='V5.1：V3保留对照后，固定覆盖全部样本的CV计划；每个候选替换一个模型族，融合权重固定。'
+            notes[2]='主成绩是参与参数选择的固定CV开发成绩，原单划分仅作对照；默认全量开发记录重拟合。START不训练。'
     if engine=='optuna_v4':
         notes[0]='V4：%s；%d个固定划分复核，训练门槛%s/%s。'%(cfg['v4']['search']['mode'],split_report['evaluated_splits'],cfg['v4']['train_gate']['mode'],cfg['v4']['train_gate']['scope'])
         notes[2]='训练、跨划分开发、可选固定外层留出分别报告。全部开发记录重拟合后再次检查训练指标；开发成绩参与选择。'

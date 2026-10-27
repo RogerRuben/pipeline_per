@@ -7,14 +7,18 @@ import numpy as np
 from .product_price_optuna_v3 import DEFAULT as V3_DEFAULT,load_config as v3_config
 
 DEFAULT=copy.deepcopy(V3_DEFAULT);DEFAULT['schema_version']='price-optuna-v5-pipeline-1.0'
-DEFAULT['deployment']['model_scope']='selected_split'
+DEFAULT['deployment']['model_scope']='full_data'
 DEFAULT['v3']['warm_start']['auto_history']=False
 DEFAULT['v5']={
  'mode':'goal_first',
+ 'protocol':'fixed_cv','weight_policy':'baseline_fixed',
+ 'cv':{'n_splits':4,'repeats':1,'seed':20261027,'min_mape_improvement_pp':.001,
+       'r2_tolerance':1e-8,'max_fold_regression_pp':2.,'max_tail_regression_pp':2.},
+ 'logging':{'heartbeat_seconds':10.},
  'baseline':{'reference_dir':None,'auto_reference':True,'finish':'fixed_budget'},
  'train_gate':{'mode':'hard','mape_percent_max':10.,'r2_min':.9,'soft_penalty':1.},
  'budget':{'max_member_fits':None},
- 'enhancement':{'max_new_fits':0,'families':['ridge','lasso','svr','expert_tree','extratrees','gbdt'],'pool_size':12,
+ 'enhancement':{'max_new_fits':60,'families':['ridge','lasso','svr','expert_tree','extratrees','gbdt'],'pool_size':12,
                 'patience':30,'split_anchors':1,'model_seed_low':0,'model_seed_high':10000,'continue_after_targets':False},
  'fusion':{'enabled':True,'non_degradation':True,'maxiter':200},
  'audit':{'enabled':True,'max_splits':4,'max_members':16,'validation_rows':None,'seed':20261023,'balanced_weight':.25},
@@ -31,12 +35,22 @@ def load_config(path=None,overrides=None):
             if key not in dst:raise ValueError('未知V5配置：'+prefix+key)
             if isinstance(dst[key],dict) and key not in ('scores','field_types'):merge(dst[key],value,prefix+key+'.')
             else:dst[key]=copy.deepcopy(value)
-    if path:merge(cfg,json.loads(Path(path).read_text(encoding='utf-8-sig')))
+    if path:
+        raw=json.loads(Path(path).read_text(encoding='utf-8-sig'))
+        # Saved V5.0 artefacts keep their old identity. APPLY_V5_1 explicitly
+        # migrates the editable training configuration to the new protocol.
+        if 'v5' in raw and 'protocol' not in raw['v5']:
+            raw=copy.deepcopy(raw);raw['v5']['protocol']='legacy_split'
+            raw['v5'].setdefault('enhancement',{}).setdefault('max_new_fits',0)
+        merge(cfg,raw)
     if overrides:merge(cfg,overrides)
+    explicit_scope=(overrides or {}).get('deployment',{}).get('model_scope')
+    if cfg['v5']['protocol']=='legacy_split' and not explicit_scope and not path:cfg['deployment']['model_scope']='selected_split'
     if cfg['schema_version']!=DEFAULT['schema_version']:raise ValueError('V5配置版本无效。')
     base={k:copy.deepcopy(v) for k,v in cfg.items() if k!='v5'};base['schema_version']=V3_DEFAULT['schema_version'];base=v3_config(overrides=base)
     cfg.update({k:v for k,v in base.items() if k!='schema_version'});v=cfg['v5'];g=v['train_gate'];e=v['evaluation']
     for value,allowed,label in [(v['mode'],('goal_first','balanced','robust'),'模式'),(g['mode'],('off','soft','hard'),'训练门槛'),
+        (v['protocol'],('fixed_cv','legacy_split'),'搜索协议'),(v['weight_policy'],('baseline_fixed','uniform_fixed'),'固定权重方案'),
         (v['baseline']['finish'],('fixed_budget','targets_met'),'基线结束策略'),(e['mode'],('development','locked_holdout'),'评估方式'),
         (v['publish']['policy'],('allow_draft','require_targets'),'发布策略')]:
         if value not in allowed:raise ValueError('V5'+label+'无效：'+str(value))
@@ -44,6 +58,15 @@ def load_config(path=None,overrides=None):
         (v['enhancement'],'split_anchors',1),(v['fusion'],'maxiter',1),(v['audit'],'max_splits',1),(v['audit'],'max_members',1),
         (v['persistence'],'checkpoint_interval',1)]:
         if not isinstance(obj[key],int) or isinstance(obj[key],bool) or obj[key]<minimum:raise ValueError('V5整数设置无效：'+key)
+    for key,minimum in [('n_splits',2),('repeats',1)]:
+        value=v['cv'][key]
+        if not isinstance(value,int) or isinstance(value,bool) or not minimum<=value<=100:raise ValueError('V5固定CV整数设置无效：'+key)
+    if not isinstance(v['cv']['seed'],int) or isinstance(v['cv']['seed'],bool) or not 0<=v['cv']['seed']<2**32-v['cv']['repeats']:raise ValueError('V5固定CV种子无效。')
+    for obj,key in [(v['cv'],k) for k in ('min_mape_improvement_pp','r2_tolerance','max_fold_regression_pp','max_tail_regression_pp')]+[(v['logging'],'heartbeat_seconds')]:
+        value=obj[key]
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not np.isfinite(value) or value<0:raise ValueError('V5固定CV/日志数值设置无效：'+key)
+    if v['logging']['heartbeat_seconds']<=0:raise ValueError('日志心跳间隔须大于0。')
+    if v['protocol']=='fixed_cv' and v['enhancement']['split_anchors']!=1:raise ValueError('固定CV禁止搜索容易的划分；split_anchors须为1。')
     limit=v['budget']['max_member_fits']
     if limit is not None and (not isinstance(limit,int) or isinstance(limit,bool) or limit<1):raise ValueError('max_member_fits须为正整数或null。')
     if limit is not None and limit<6*cfg['search']['n_trials']+12:raise ValueError('总fit预算需至少为6*n_trials+12，保证原V3基线不会因预算上限被截断。请降低基线轮数或提高总fit预算。')

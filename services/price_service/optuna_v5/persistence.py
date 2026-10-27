@@ -14,9 +14,20 @@ import scipy
 import struct
 
 
+def replace_atomic(source,destination):
+    # Antivirus/indexers may briefly open a freshly written file on Windows.
+    # Preserve the committed destination; never delete it to force replacement.
+    for attempt in range(7):
+        try:
+            os.replace(str(source),str(destination));return
+        except PermissionError:
+            if attempt==6:raise
+            time.sleep(min(.05*2**attempt,.5))
+
+
 def atomic_json(path,value):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True);tmp=path.with_name(path.name+'.tmp')
-    tmp.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False)+'\n',encoding='utf-8');os.replace(str(tmp),str(path))
+    tmp.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False)+'\n',encoding='utf-8');replace_atomic(tmp,path)
 
 
 def environment():return {'python':list(sys.version_info[:3]),'bits':struct.calcsize('P')*8,'numpy':np.__version__,'scipy':scipy.__version__,'sklearn':sklearn.__version__,'optuna':optuna.__version__}
@@ -28,7 +39,7 @@ def save_state(path,value,identity):
     # if the process dies between writing data and atomically updating its link.
     payload=pickle.dumps(value,protocol=4);digest=hashlib.sha256(payload).hexdigest();blob=path.with_name(path.name+'.'+digest[:16]+'.pkl')
     if not blob.exists():
-        tmp=blob.with_name(blob.name+'.tmp');tmp.write_bytes(payload);os.replace(str(tmp),str(blob))
+        tmp=blob.with_name(blob.name+'.tmp');tmp.write_bytes(payload);replace_atomic(tmp,blob)
     meta=path.with_suffix('.json');old=None
     if meta.is_file():old=json.loads(meta.read_text(encoding='utf-8')).get('blob')
     atomic_json(meta,{'format':'price-v5-checkpoint-1.0','identity':identity,'environment':environment(),'sha256':digest,'blob':blob.name})
@@ -55,6 +66,7 @@ class BaselineObserver(object):
         self.directory.mkdir(parents=True,exist_ok=True);self.restored=False;self.best_key=None;self.best_record=None;self.last_saved=0;self.started=time.monotonic();self.elapsed_before=0.
         self.train_gate=train_gate;self.qualified_seen=False;self.feasible_key=None;self.restored_fits=0
         self.enabled=enabled;self.feasible_snapshot=None
+        self.trace=None
     def restore(self,driver):
         value=load_state(self.directory/'baseline',self.identity) if self.resume and self.enabled else None
         if value is None:return None
@@ -89,6 +101,8 @@ class BaselineObserver(object):
                         self.feasible_snapshot=captured['bundle']
                         if self.enabled:save_state(self.directory/'feasible_champion',{'bundle':captured['bundle'],'record':record},self.identity)
         count=sum(driver.counts.values())
+        if self.trace is not None:
+            self.trace.emit('v3_trial_complete',trial=record,monitor_best=self.best_record,model_fits=dict(driver.backend.stats))
         if changed or count-self.last_saved>=self.interval:self.flush(driver,study,phase)
     def flush(self,driver,study,phase):
         if not self.enabled:return

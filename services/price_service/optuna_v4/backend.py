@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from ..optuna_v2 import price_automl_core as core
 from ..optuna_v2.typed_features import TypedBackend
 from .metrics import summarize
+from contextlib import nullcontext
 
 
 def effective_model(name,cfg,expert_map,y):
@@ -27,6 +28,7 @@ class Backend(TypedBackend):
         self.limit=cache_entries;self.cache=OrderedDict();self.prepared=OrderedDict()
         self.identity=hashlib.sha256(frame.values.tobytes()+self.y.tobytes()+self.rows.tobytes()+json.dumps([list(frame.columns),expert_map],sort_keys=True).encode('utf-8')).hexdigest()
         self.stats={'model_fits':0,'prediction_cache_hits':0,'prediction_cache_misses':0,'peak_cache_entries':0,'fold_evaluations':0}
+        self.trace=None
     def prepare(self,fold):
         key=(tuple(fold['train']),tuple(fold['validation']))
         if key in self.prepared:result=self.prepared.pop(key);self.prepared[key]=result;return result
@@ -51,9 +53,11 @@ class Backend(TypedBackend):
                 key=hashlib.sha256((key_base+name+json.dumps(model.get_params(deep=False),sort_keys=True)).encode('utf-8')).hexdigest()
                 if key in self.cache:
                     self.stats['prediction_cache_hits']+=1;prediction=self.cache.pop(key);self.cache[key]=prediction
+                    if self.trace is not None:self.trace.emit('cv_prediction_cache_hit',family=name,fold=int(fold['id']))
                 else:
                     self.stats['prediction_cache_misses']+=1;self.stats['model_fits']+=1
-                    model.fit(core._weighted_array(train,name,experts),np.log(self.y[fold['train']]))
+                    context=self.trace.span('cv_member_fit',family=name,fold=int(fold['id']),parameters=model.get_params(deep=False),train_rows=self.rows[fold['train']].tolist(),validation_rows=self.rows[fold['validation']].tolist()) if self.trace is not None else nullcontext()
+                    with context:model.fit(core._weighted_array(train,name,experts),np.log(self.y[fold['train']]))
                     a=np.asarray(model.predict(core._weighted_array(train,name,experts)),float)
                     b=np.asarray(model.predict(core._weighted_array(validation,name,experts)),float)
                     prediction=np.exp(np.clip(np.concatenate([a,b]),-700,700))
@@ -64,6 +68,9 @@ class Backend(TypedBackend):
                         self.stats['peak_cache_entries']=max(self.stats['peak_cache_entries'],len(self.cache))
                 train_components[:,j]=prediction[:len(train)];validation_components[:,j]=prediction[len(train):]
             result=dict(fold,train_prediction=train_components.dot(weights),validation_prediction=validation_components.dot(weights))
+            if self.trace is not None:
+                from .metrics import metrics
+                self.trace.emit('cv_fold_scores',fold=int(fold['id']),parameters=cfg,train=metrics(self.y[fold['train']],result['train_prediction']),validation=metrics(self.y[fold['validation']],result['validation_prediction']))
             evaluations.append(result)
         return {'parameters':dict(cfg),'folds':evaluations,'summary':summarize(evaluations,self.y,settings)}
     def fit(self,frame,y,cfg,expert_map,active_weights=None):

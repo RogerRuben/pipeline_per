@@ -1,6 +1,6 @@
 # AutoML → 快速建立成品流水线
 
-本目录是V2/V3/V4/V5快速建模的实际源码。推荐系统位于[`../app/`](../app/README.md)，价格和效能HTTP服务位于`../services/`。
+本目录是V2/V3/V4/V5快速建模的实际源码。当前V5入口默认使用2026-10-27的V5.1固定CV与冻结权重协议，旧单划分协议保留作对照。推荐系统位于[`../app/`](../app/README.md)，价格和效能HTTP服务位于`../services/`。
 
 ## 主要文件
 
@@ -10,7 +10,7 @@
 | `product_pipeline.py` | 从成品表构建价格模型、效能快照及推荐业务草稿，管理构建状态与独立三服务试用 |
 | `product_price_optuna_v2.py` / `product_price_optuna_v3.py` / `product_price_optuna_v4.py` | 各版本配置和训练适配入口 |
 | `product_optuna_v4_adapter.py` | V4划分、搜索、实际重拟合检查、原生导出及报告 |
-| `product_price_optuna_v5.py` / `product_optuna_v5_adapter.py` | V5基线保留、预测库融合、条件搜索、恢复与双范围导出 |
+| `product_price_optuna_v5.py` / `product_optuna_v5_adapter.py` | V5.1配置与导出；`optuna_v5/fixed_cv.py`负责固定折、冻结权重与单族参数替换，`trace.py`负责完整事件与心跳 |
 | `product_optuna_v2_input.py` | 离线包共用的双行表头、字段类型、专家评分及输入检查 |
 | `product_effectiveness_bootstrap.py` | 可选效能偏好与已声明耦合关系的试用快照 |
 | `product_modes.py` / `product_optuna_versions.py` | 保存模型模式登记、V2/V3比较及选择 |
@@ -34,11 +34,11 @@ python -m automl_pipeline serve --output outputs/example/build --activate-draft 
 
 `build`输出价格原生pkl和报告、效能JSON快照、业务发布JSON、推荐系统数据副本及总manifest。`serve`只启动保存结果；停止后再执行同一命令不会重训。主程序使用自己的当前运行目录，流水线产物位于新的`outputs/`目录。
 
-输入约定、V5目标优先与原V4搜索方式、训练门槛、专家1—5分、预算和评估口径见[`../docs/OPTUNA_V5_PIPELINE.md`](../docs/OPTUNA_V5_PIPELINE.md)。配置改动只有在下一次构建中生效。
+输入约定、固定CV、训练门槛、专家1—5分、预算和评估口径见[V5.1说明](../docs/OPTUNA_V5_1_PIPELINE.md)。标准新增60次实际fit；一次候选需要完整评估固定折，因此通常对应多次fit。配置改动只有在下一次构建中生效。
 
 ## 离线打包与已保存导出
 
-`tools/product_portable.py`、`product_saved_start.py`、`product_export_saved.py`是离线包的操作层；源码运行使用上面的模块命令。`tools/build_product_v5.py`与`upgrade_product_v5.py`负责当前打包和补丁安装，V4和双版本构建工具仍保留。
+`tools/product_portable.py`、`product_saved_start.py`、`product_export_saved.py`是离线包的操作层；源码运行使用上面的模块命令。`tools/build_product_v51.py`与`upgrade_product_v51.py`负责当前打包和补丁安装，V5.0、V4和双版本构建工具仍保留。
 
 打包及导出必须同时包含`app/`、`automl_pipeline/`、相关`services/`和`tools/`；兼容入口与实际实现应一起交付。`tools/pipeline_source_layout.py`列出流水线必需文件，依赖检查也检查`automl_pipeline`导入。
 

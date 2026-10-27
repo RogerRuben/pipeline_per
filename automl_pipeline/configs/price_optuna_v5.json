@@ -31,7 +31,7 @@
     "min_samples": 4
   },
   "deployment": {
-    "model_scope": "selected_split"
+    "model_scope": "full_data"
   },
   "v3": {
     "nsga_fraction": 0.6,
@@ -54,6 +54,20 @@
   },
   "v5": {
     "mode": "goal_first",
+    "protocol": "fixed_cv",
+    "weight_policy": "baseline_fixed",
+    "cv": {
+      "n_splits": 4,
+      "repeats": 1,
+      "seed": 20261027,
+      "min_mape_improvement_pp": 0.001,
+      "r2_tolerance": 1e-08,
+      "max_fold_regression_pp": 2.0,
+      "max_tail_regression_pp": 2.0
+    },
+    "logging": {
+      "heartbeat_seconds": 10.0
+    },
     "baseline": {
       "reference_dir": null,
       "auto_reference": true,
@@ -69,7 +83,7 @@
       "max_member_fits": null
     },
     "enhancement": {
-      "max_new_fits": 0,
+      "max_new_fits": 60,
       "families": [
         "ridge",
         "lasso",

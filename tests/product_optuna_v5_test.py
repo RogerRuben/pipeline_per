@@ -25,7 +25,7 @@ from services.price_service.native_bundle import predict,predict_batch,load_bund
 from services.price_service.optuna_v4.native_member import predict_saved
 
 
-def options(n=4):return {'search':{'n_trials':n},'expert':{'field_types':{'x3':'enum','x4':'enum'}},'v5':{'persistence':{'enabled':False},'audit':{'enabled':False}}}
+def options(n=4):return {'search':{'n_trials':n},'expert':{'field_types':{'x3':'enum','x4':'enum'}},'v5':{'protocol':'legacy_split','enhancement':{'max_new_fits':0},'persistence':{'enabled':False},'audit':{'enabled':False}}}
 
 
 class V5Tests(unittest.TestCase):
@@ -165,7 +165,7 @@ class V5Tests(unittest.TestCase):
         data=fixture(7,8)[-1];source=self.path/'reference_input.xlsx';source.write_bytes(workbook(data));base=self.path/'old_v3';(base/'price').mkdir(parents=True)
         train_price_optuna_v3(data,base/'price',input_path=source,overrides={'search':{'n_trials':3},'v3':{'warm_start':{'auto_history':False}}},progress=lambda s:None)
         (base/'prototype_manifest.json').write_text(json.dumps({'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest()}),encoding='utf-8')
-        opts={'search':{'n_trials':3},'v5':{'baseline':{'reference_dir':str(base)},'persistence':{'enabled':False},'audit':{'enabled':False}}}
+        opts={'search':{'n_trials':3},'v5':{'protocol':'legacy_split','enhancement':{'max_new_fits':0},'baseline':{'reference_dir':str(base)},'persistence':{'enabled':False},'audit':{'enabled':False}}}
         with mock.patch('services.price_service.optuna_v2.price_automl_core.fit_ensemble',side_effect=AssertionError('should reuse fitted baseline')):
             _,r=train_price_optuna_v5(data,self.path/'referenced',input_path=source,overrides=opts,progress=lambda s:None)
         self.assertEqual(r['baseline_source'],'verified_saved_v3');self.assertEqual(r['model_fits_this_session'],0)

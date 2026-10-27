@@ -62,7 +62,7 @@ class SourceLayoutTests(unittest.TestCase):
             cfg=Path(folder)/'price.json'
             self.assertEqual(main(['config','--profile','quick','--output',str(cfg)]),0)
             value=json.loads(cfg.read_text(encoding='utf-8'));self.assertEqual(value['search']['n_trials'],40)
-            self.assertEqual(value['v5']['mode'],'goal_first');self.assertEqual(value['v5']['enhancement']['max_new_fits'],0)
+            self.assertEqual(value['v5']['mode'],'goal_first');self.assertEqual(value['v5']['protocol'],'fixed_cv');self.assertEqual(value['v5']['enhancement']['max_new_fits'],20)
             self.assertEqual(main(['inspect',str(ROOT/'automl_pipeline/examples/virtual_16x36.xlsx'),'--price-config',str(cfg)]),0)
             original=cfg.read_bytes()
             with self.assertRaises(SystemExit) as raised:main(['config','--output',str(cfg)])

@@ -38,7 +38,7 @@ def upgrade(root,profile='standard'):
     if profile=='quick':cfg['search']['n_trials']=40;cfg['v5']['enhancement']['max_new_fits']=0
     elif profile=='deep':
         cfg['search']['n_trials']=300;cfg['search']['timeout_seconds']=1800;cfg['v5']['enhancement']['max_new_fits']=5000;cfg['v5']['budget']['max_member_fits']=5000
-        cfg['v5']['enhancement']['split_anchors']=3
+        cfg['v5']['enhancement']['split_anchors']=1 if cfg['v5']['protocol']=='fixed_cv' else 3
     elif profile!='standard':raise ValueError('未知V5配置。')
     cfg=load_config(overrides=cfg);configs['optuna_v5']=cfg
     provenance=json.loads((root/'services/price_service/optuna_v2/SOURCE_PROVENANCE.json').read_text(encoding='utf-8'))

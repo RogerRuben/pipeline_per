@@ -39,7 +39,7 @@ def review(result,frame,y,rows,expert,mappings,labels,cfg,progress):
         try:
             for j,entry in enumerate(selected['entries']):
                 parts.append(backend.evaluate(entry['parameters'],folds,v4))
-                progress('V5独立复核%d/%d个成员，%d个固定划分；当前fit=%d。'%(j+1,len(selected['entries']),len(folds),backend.stats['model_fits']))
+                progress('V5开发集复核%d/%d个成员，%d个固定划分；当前fit=%d。'%(j+1,len(selected['entries']),len(folds),backend.stats['model_fits']))
         except (ValueError,FloatingPointError,OverflowError,RuntimeError) as exc:
             state['audit_fits']+=backend.stats['model_fits']
             return selected,{'status':'failed','reason':repr(exc),'used_for_selection':False}

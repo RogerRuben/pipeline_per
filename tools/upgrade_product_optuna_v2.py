@@ -20,6 +20,7 @@ PATCH_FILES=(
  'services/price_service/optuna_v2/training_observation.py',
  'services/price_service/optuna_v5/__init__.py','services/price_service/optuna_v5/engine.py','services/price_service/optuna_v5/fusion.py',
  'services/price_service/optuna_v5/persistence.py','services/price_service/optuna_v5/review.py',
+ 'services/price_service/optuna_v5/fixed_cv.py','services/price_service/optuna_v5/trace.py',
  'services/price_service/optuna_v2/cached_backend.py','services/price_service/optuna_v2/optimizer_v3.py',
  'services/price_service/optuna_v2/V3_DESIGN_PROVENANCE.json','tools/product_price_optuna_v3.py','tools/product_optuna_versions.py',
  'tools/product_price_optuna_v2.py','tools/product_optuna_v2_input.py','tools/upgrade_product_optuna_v2.py',

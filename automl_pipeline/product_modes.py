@@ -31,6 +31,8 @@ def descriptor(engine,cfg):
         value.update(search_mode=cfg['v5']['mode'],train_gate=cfg['v5']['train_gate'],evaluation_mode=cfg['v5']['evaluation']['mode'],
                      ensemble_enabled=cfg['v5']['fusion']['enabled'],audit_enabled=cfg['v5']['audit']['enabled'],
                      baseline_finish=cfg['v5']['baseline']['finish'],targets={k:v for k,v in cfg['targets'].items() if k!='hard_gate'})
+        if cfg['v5'].get('protocol','legacy_split')=='fixed_cv':
+            value.update(protocol='fixed_cv',weight_policy=cfg['v5']['weight_policy'],cv=cfg['v5']['cv'])
     return value
 
 
@@ -92,6 +94,14 @@ def select(root,engine=None,**changes):
         elif name=='trials':cfg['search']['n_trials']=int(value)
         elif engine=='optuna_v5':
             if name=='strategy':cfg['v5']['mode']=value
+            elif name=='protocol':
+                cfg['v5']['protocol']=value
+                if value=='fixed_cv':
+                    cfg['v5']['enhancement']['split_anchors']=1
+                    if not changes.get('scope'):cfg['deployment']['model_scope']='full_data'
+            elif name=='weight_policy':cfg['v5']['weight_policy']=value
+            elif name=='cv_folds':cfg['v5']['cv']['n_splits']=int(value)
+            elif name=='cv_repeats':cfg['v5']['cv']['repeats']=int(value)
             elif name=='gate':cfg['v5']['train_gate']['mode']=value
             elif name=='evaluation':cfg['v5']['evaluation']['mode']=value
             elif name=='ensemble':cfg['v5']['fusion']['enabled']=value=='on'
@@ -119,6 +129,7 @@ def select(root,engine=None,**changes):
     if pointer:write_json(root/'state/latest.json',pointer)
     label=engine.upper().replace('OPTUNA_','')+(' / '+LABELS[cfg['v4']['search']['mode']] if engine=='optuna_v4' else ' / '+{'goal_first':'V3基线达标优先','balanced':'高分与复核权衡','robust':'跨划分融合'}[cfg['v5']['mode']] if engine=='optuna_v5' else '')
     print('已选择%s；专家价格评分%s。'%(label,'开启' if cfg['expert']['enabled'] else '关闭'),flush=True)
+    if engine=='optuna_v5':print('搜索协议：%s；固定CV时新增候选覆盖同一组折，权重不针对开发标签优化。'%cfg['v5']['protocol'],flush=True)
     print('START直接载入：'+pointer['output'] if pointer else '此模式尚无已训练模型，请CHECK_INPUT后RETRAIN；START不会自动训练。',flush=True)
     print('切换与修改预算均不触发训练；训练配置在下次RETRAIN生效。',flush=True)
     return pointer
@@ -128,6 +139,7 @@ def menu(root):
     while True:
         desc=current(root);print('\n当前模式：'+json.dumps(desc,ensure_ascii=False))
         print('1 版本V2/V3/V4/V5　2 搜索模式　3 训练门槛　4 V4门槛范围　5 专家评分　6 部署范围\n7 评估模式　8 融合　9 V3/V5基线轮数或V4总轮数　10 V4预算方式　11 V4划分覆盖　12 发布策略\n13 V5复核开关　14 V5新增fit预算　15 V5总fit上限　16 V5秒数预算　17 V5基线结束方式　18 V5达标后继续　0 退出')
+        if desc['engine']=='optuna_v5':print('19 V5.1固定CV/旧协议　20 固定权重方案　21 固定CV折数　22 重复次数（每候选需完成整组折）')
         option=input('选择编号：').strip()
         if option=='0':return
         choices={
@@ -144,9 +156,14 @@ def menu(root):
             '12':('publish',['allow_draft','require_targets'],['未达标允许试用草稿','达标才更新运行模型']),
             '13':('audit',['on','off'],['启用跨划分复核','关闭复核（达标优先模式）']),
             '17':('baseline_finish',['fixed_budget','targets_met'],['完整V3基线预算','开发目标达到后停止基线']),
-            '18':('continue_after_targets',['off','on'],['达到训练/开发门槛后停止新增fit','达标后继续改善'])}
+            '18':('continue_after_targets',['off','on'],['达到训练/开发门槛后停止新增fit','达标后继续改善']),
+            '19':('protocol',['fixed_cv','legacy_split'],['V5.1固定CV与冻结权重（推荐）','旧V5单划分自适应权重（仅对比）']),
+            '20':('weight_policy',['baseline_fixed','uniform_fixed'],['冻结V3基线权重','预设等权，不按开发标签求权重'])}
         if desc['engine']=='optuna_v5':choices['2']=('strategy',['goal_first','balanced','robust'],['V3基线达标优先','高分与复核权衡','跨划分融合'])
+        if desc.get('protocol')=='fixed_cv':choices['2']=('strategy',['goal_first','balanced','robust'],['固定CV总体指标','固定CV兼顾最差折','固定CV各折达标门槛'])
         try:
+            if option in ('21','22'):
+                select(root,**{('cv_folds' if option=='21' else 'cv_repeats'):int(input('输入固定CV折数/重复次数：'))});continue
             if option=='9':select(root,trials=int(input('配置搜索轮数（融合权重另计）：')));continue
             if option in ('14','15','16'):
                 name={'14':'new_fits','15':'max_fits','16':'seconds'}[option]
@@ -165,8 +182,9 @@ def main():
     for name,values in [('strategy',list(LABELS)+['goal_first','balanced','robust']),('gate',['off','soft','hard']),('gate-scope',['pooled','every_split','fraction']),('experts',['on','off']),
                         ('scope',['full_data','selected_split']),('evaluation',['development','locked_holdout']),('ensemble',['on','off']),
                         ('coverage',['auto','exhaustive','sampled']),('publish',['allow_draft','require_targets']),('budget',['total','per_split']),
-                        ('audit',['on','off']),('baseline-finish',['fixed_budget','targets_met']),('continue-after-targets',['on','off'])]:p.add_argument('--'+name,choices=values)
-    for name in ('trials','new-fits','max-fits','seconds'):p.add_argument('--'+name,type=int)
+                        ('audit',['on','off']),('baseline-finish',['fixed_budget','targets_met']),('continue-after-targets',['on','off']),
+                        ('protocol',['fixed_cv','legacy_split']),('weight-policy',['baseline_fixed','uniform_fixed'])]:p.add_argument('--'+name,choices=values)
+    for name in ('trials','new-fits','max-fits','seconds','cv-folds','cv-repeats'):p.add_argument('--'+name,type=int)
     a=p.parse_args()
     try:
         if a.command=='menu':menu(ROOT)

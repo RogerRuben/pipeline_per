@@ -8,6 +8,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from . import price_automl_core as core
 from .typed_features import TypedBackend
+from contextlib import nullcontext
 
 
 class CachedBackend(TypedBackend):
@@ -17,6 +18,7 @@ class CachedBackend(TypedBackend):
         self.stats={'model_fits':0,'prediction_cache_hits':0,'prediction_cache_misses':0,'cached_entries_peak':0,'split_cache_hits':0,'cache_fallbacks':0}
         self.fast_path_disabled=False;self.last_diagnostic={}
         self.retain_estimators=False
+        self.trace=None
     def evaluate(self,cfg,X,y,rows,expert_map,test_size,price_bins):
         self.last_diagnostic={};self.last_evaluation=None
         if not self.searching or not self.limit or self.fast_path_disabled:
@@ -29,6 +31,9 @@ class CachedBackend(TypedBackend):
             self.stats['cache_fallbacks']+=1;self.fast_path_disabled=True;self.cache.clear();self.splits.clear()
             self.last_diagnostic={'kind':'cache_key_error','error':repr(exc),'recovery':'same_candidate_original_v2_backend'}
             return self._direct_evaluate(cfg,X,y,rows,expert_map,test_size,price_bins)
+    def fit(self,frame,y,cfg,expert_map,active_weights=None):
+        context=self.trace.span('v3_bundle_fit',parameters=cfg,rows=len(y),searching=self.searching) if self.trace is not None else nullcontext()
+        with context:return super().fit(frame,y,cfg,expert_map,active_weights)
     def _direct_evaluate(self,cfg,X,y,rows,expert_map,test_size,price_bins):
         if self.searching:self.stats['model_fits']+=int(np.count_nonzero(core.normalized_weights(cfg)))
         result=super().evaluate(cfg,X,y,rows,expert_map,test_size,price_bins)
@@ -74,9 +79,11 @@ class CachedBackend(TypedBackend):
                     self.stats['prediction_cache_hits']+=1;entry=self.cache.pop(key);self.cache[key]=entry
                     prediction=entry['validation'];train_prediction=entry['train']
                     if self.retain_estimators:models[name]=entry['model']
+                    if self.trace is not None:self.trace.emit('v3_prediction_cache_hit',family=name,split_seed=cfg['split_seed'])
                 else:
                     self.stats['prediction_cache_misses']+=1;self.stats['model_fits']+=1
-                    model.fit(core._weighted_array(train,name,expanded),np.log(ytr))
+                    context=self.trace.span('v3_member_fit',family=name,parameters=model.get_params(deep=False),train_rows=tr_rows.tolist(),validation_rows=te_rows.tolist()) if self.trace is not None else nullcontext()
+                    with context:model.fit(core._weighted_array(train,name,expanded),np.log(ytr))
                     prediction=np.exp(np.clip(np.asarray(model.predict(core._weighted_array(test,name,expanded)),float),-700,700))
                     train_prediction=np.exp(np.clip(np.asarray(model.predict(core._weighted_array(train,name,expanded)),float),-700,700))
                     if self.retain_estimators:models[name]=model
@@ -85,6 +92,9 @@ class CachedBackend(TypedBackend):
                         self.cache[key]={'validation':prediction,'train':train_prediction,'model':model if self.retain_estimators else None}
                         while len(self.cache)>self.limit:self.cache.popitem(last=False)
                         self.stats['cached_entries_peak']=max(self.stats['cached_entries_peak'],len(self.cache))
+                if self.trace is not None:
+                    from .training_observation import score
+                    self.trace.emit('v3_member_scores',family=name,train=score(ytr,train_prediction),validation=score(yte,prediction),split_seed=cfg['split_seed'])
             # Inactive models are neither fitted nor cached as zero predictions.
             components[name]=prediction
             train_components[name]=train_prediction

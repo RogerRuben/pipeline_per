@@ -2,6 +2,7 @@
 """Source checkout entry point, independent of the portable package's state."""
 import argparse
 import json
+import numpy as np
 from pathlib import Path
 
 HERE=Path(__file__).resolve().parent
@@ -50,6 +51,9 @@ def inspect_input(source,engine,cfg):
         training_split(len(dev),cfg)
         result.update(development_records=len(dev),locked_holdout_records=len(outer),v5_mode=cfg['v5']['mode'],
                       budget={'baseline_configuration_trials':cfg['search']['n_trials'],'enhancement_new_fits':cfg['v5']['enhancement']['max_new_fits'],'total_fit_limit':cfg['v5']['budget']['max_member_fits']})
+        if cfg['v5']['protocol']=='fixed_cv':
+            from services.price_service.optuna_v5.fixed_cv import make_folds
+            _,result['fixed_cv_plan']=make_folds(frame.iloc[dev].reset_index(drop=True),np.asarray(dev,int),cfg['v5']['cv'])
     return result
 
 
@@ -82,10 +86,11 @@ def main(argv=None):
             if args.profile=='quick':
                 cfg['search']['n_trials']=40
                 if args.price_engine=='optuna_v4':cfg['v4']['splits']['max_splits']=12
+                if args.price_engine=='optuna_v5' and cfg['v5']['protocol']=='fixed_cv':cfg['v5']['enhancement']['max_new_fits']=20
             elif args.profile=='deep':
                 if args.price_engine=='optuna_v5':
                     cfg['search']['n_trials']=300;cfg['search']['timeout_seconds']=1800;cfg['v5']['enhancement']['max_new_fits']=5000;cfg['v5']['budget']['max_member_fits']=5000
-                    cfg['v5']['enhancement']['split_anchors']=3
+                    cfg['v5']['enhancement']['split_anchors']=1 if cfg['v5']['protocol']=='fixed_cv' else 3
                 else:cfg['search']['n_trials']=5000
             cfg=config_loader(args.price_engine)(overrides=cfg);path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text(json.dumps(cfg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print('配置已保存：'+str(path));return 0

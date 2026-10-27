@@ -37,7 +37,7 @@ def attach(trial,backend):
     trial.set_user_attr('train_rows',m['rows']);trial.set_user_attr('validation_rows',len(evaluated['validation_rows']))
 
 
-def fmt(value,digits=4):return '不可定义/未记录' if value is None else ('%.'+str(digits)+'f')%value
+def fmt(value,digits=12):return '不可定义/未记录' if value is None else ('%.'+str(max(10,digits))+'g')%value
 
 
 class ProgressBest(object):
@@ -50,8 +50,8 @@ class ProgressBest(object):
         if self.key is None or key<self.key:self.key=key;self.best=trial
     def describe(self,trial):
         self.update(trial);t=trial.user_attrs.get('train_metrics',{})
-        current='训练MAPE %s%%，R² %s；开发MAPE %.3f%%，R² %.6f'%(fmt(t.get('mape_percent'),3),fmt(t.get('r2'),6),trial.values[1]*100.,trial.values[0])
+        current='训练MAPE %s%%，R² %s；开发MAPE %.10g%%，R² %.12g'%(fmt(t.get('mape_percent')),fmt(t.get('r2')),trial.values[1]*100.,trial.values[0])
         if self.best:
             b=self.best;bt=b.user_attrs.get('train_metrics',{})
-            current+='；目标优胜#%d 训练%s%%/%s，开发%.3f%%/%.6f'%(b.number,fmt(bt.get('mape_percent'),3),fmt(bt.get('r2'),6),b.values[1]*100.,b.values[0])
+            current+='；目标优胜#%d 训练%s%%/%s，开发%.10g%%/%.12g'%(b.number,fmt(bt.get('mape_percent')),fmt(bt.get('r2')),b.values[1]*100.,b.values[0])
         return current+'；累计%.1f秒。'%(time.monotonic()-self.started)

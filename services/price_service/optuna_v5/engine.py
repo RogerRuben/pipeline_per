@@ -17,6 +17,7 @@ from ..optuna_v4.optimizer import ModelSeedTPE
 from ..optuna_v4.metrics import metrics
 from .fusion import summary,rank,dominates,solve
 from .persistence import BaselineObserver,atomic_json,save_state,load_state
+from .trace import fit_scope,score_text
 
 
 def identity(frame,y,rows,expert,mappings,cfg):
@@ -115,7 +116,7 @@ def verified_reference(directory,frame,y,rows,cfg,source_sha,progress):
         progress('V5旧参考未通过核验，改为完整运行V3基线：'+str(exc));return None
 
 
-def run(frame,y,rows,expert,mappings,category_labels,cfg,output,checkpoint_dir,progress,source_sha=None):
+def run(frame,y,rows,expert,mappings,category_labels,cfg,output,checkpoint_dir,progress,source_sha=None,trace=None):
     output=Path(output);v=cfg['v5'];started=time.monotonic();protocol=identity(frame,y,rows,expert,mappings,cfg)
     spec={'protocol':protocol,'search':cfg['search'],'v3':cfg['v3'],'targets':cfg['targets'],'finish':v['baseline']['finish'],'gate':v['train_gate'],
           'v3_code':hashlib.sha256(Path(core.__file__).with_name('optimizer_v3.py').read_bytes()).hexdigest()}
@@ -135,8 +136,9 @@ def run(frame,y,rows,expert,mappings,category_labels,cfg,output,checkpoint_dir,p
         if baseline is None:baseline=verified_reference(v['baseline']['reference_dir'],frame,y,rows,cfg,source_sha,progress)
         if baseline is None:
             from automl_pipeline.product_price_optuna_v3 import search_settings
-            backend=CachedBackend(tuple(mappings),category_labels,cfg['v3']['cache_entries']);backend.retain_estimators=True
+            backend=CachedBackend(tuple(mappings),category_labels,cfg['v3']['cache_entries']);backend.retain_estimators=True;backend.trace=trace
             observer=BaselineObserver(baseline_directory,baseline_id,v['persistence']['checkpoint_interval'],v['persistence']['resume'],v['baseline']['finish'],progress,v['train_gate'],v['persistence']['enabled'])
+            observer.trace=trace
             progress('V5保留基线：完整V3研究%d轮；增强与复核另计预算。'%cfg['search']['n_trials'])
             result=v3_training(v3_settings=search_settings(cfg),history_identity='v5-baseline-'+protocol,model_backend=backend,observer=observer,
                 data_path='v5_prepared_data',output_dir=str(output/'baseline'),n_trials=cfg['search']['n_trials'],target='price_wan',
@@ -210,7 +212,8 @@ def run(frame,y,rows,expert,mappings,category_labels,cfg,output,checkpoint_dir,p
         state['seen'].add(key);duplicate=0;state['new_fits']+=1;record={'number':trial.number,'family':family,'split_seed':bank['seed'],'parameters':params,'valid':False}
         entry_added=False;old_entries=list(bank['entries']);old_weights=bank['weights'].copy();old_summary=copy.deepcopy(bank['summary']);told=False
         try:
-            fitted=fit_member(fitter,frame.iloc[bank['train']],y[bank['train']],params,expert)
+            with fit_scope(trace,'legacy_candidate_fit',family=family,parameters=params,train_rows=rows[bank['train']].tolist(),validation_rows=rows[bank['validation']].tolist()):
+                fitted=fit_member(fitter,frame.iloc[bank['train']],y[bank['train']],params,expert)
             a,_=TypedBackend.predict(fitted,frame.iloc[bank['train']]);b,_=TypedBackend.predict(fitted,frame.iloc[bank['validation']])
             entry={'name':'fit_%d_%s'%(state['new_fits'],family),'family':family,'parameters':params,'bundle':fitted,'train':a,'validation':b,'pinned':False}
             metrics(y[bank['train']],a);metrics(y[bank['validation']],b)
@@ -237,7 +240,8 @@ def run(frame,y,rows,expert,mappings,category_labels,cfg,output,checkpoint_dir,p
             individual=summary(y[bank['train']],y[bank['validation']],a,b,cfg)
             loss+=.05*np.log1p(individual['validation']['mape_percent'])
             study.tell(trial,float(loss));told=True;record.update(valid=True,summary=score,solver=info)
-            progress('V5新增fit %d/%d，%s；本轮开发MAPE %.3f%%、R² %s；已保存优胜开发 %.3f%%。'%(state['new_fits'],v['enhancement']['max_new_fits'],family,score['validation']['mape_percent'],str(r),state['banks'][state['best']]['summary']['validation']['mape_percent']))
+            progress('V5旧协议fit %d/%d，新增%s；单模型训练%s、开发%s；重新求权重后整个集成训练%s、开发%s；优胜开发%s。'%(state['new_fits'],v['enhancement']['max_new_fits'],family,score_text(individual['train']),score_text(individual['validation']),score_text(score['train']),score_text(score['validation']),score_text(state['banks'][state['best']]['summary']['validation'])))
+            if trace:trace.emit('legacy_candidate_result',family=family,parameters=params,single_model=individual,ensemble=score,weights_before=initial,weights_after=weights,weights_fitted_on_validation=True,split_seed=bank['seed'])
         except (ValueError,FloatingPointError,OverflowError,RuntimeError) as exc:
             if told:raise
             if entry_added:
