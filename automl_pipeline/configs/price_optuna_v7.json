@@ -1,0 +1,119 @@
+{
+  "schema_version": "price-optuna-v7-pipeline-1.0",
+  "search": {
+    "n_trials": 300,
+    "optimizer_seed": 42,
+    "seed_low": 1,
+    "seed_high": 10000,
+    "timeout_seconds": 900
+  },
+  "validation": {
+    "test_size": 0.2,
+    "price_bins": 3,
+    "auto_adjust_test_size": true
+  },
+  "targets": {
+    "r2_min": 0.9,
+    "mape_percent_max": 10.0,
+    "hard_gate": false
+  },
+  "expert": {
+    "enabled": true,
+    "default_score": 1.0,
+    "use_supplied_defaults": true,
+    "scores": {},
+    "records": [],
+    "field_types": {}
+  },
+  "input": {
+    "missing_tokens": [],
+    "remove_outliers": false,
+    "min_samples": 4
+  },
+  "deployment": {
+    "model_scope": "full_data"
+  },
+  "v3": {
+    "nsga_fraction": 0.6,
+    "num_anchors": 3,
+    "local_fraction": 0.25,
+    "global_fraction": 0.2,
+    "weight_only_fraction": 0.25,
+    "anchor_refresh_interval": 20,
+    "startup_trials": 10,
+    "ei_candidates": 24,
+    "cache_entries": 256,
+    "warm_start": {
+      "auto_history": false,
+      "history_file": null,
+      "config_file": null,
+      "reuse_metrics": true,
+      "max_history_trials": 1000,
+      "max_warm_proposals": 5
+    }
+  },
+  "v7": {
+    "mode": "balanced",
+    "review": {
+      "enabled": true,
+      "candidate_pool": 10,
+      "max_candidates": 5,
+      "folds": 4,
+      "seed": 20261030,
+      "tiny_threshold": 8,
+      "anchor_mape_tolerance_pp": 1.0,
+      "anchor_r2_tolerance": 0.02,
+      "cv_r2_tolerance": 0.02,
+      "tail_weight": 0.05,
+      "anchor_weight": 0.4
+    },
+    "budget": {
+      "extra_fit_ratio": 0.2,
+      "minimum_extra_fits": 96,
+      "max_extra_fits": 500,
+      "extra_seconds": 180
+    },
+    "model_seeds": {
+      "enabled": true,
+      "count": 3,
+      "low": 0,
+      "high": 10000,
+      "max_candidates": 2
+    },
+    "fusion": {
+      "enabled": true,
+      "drop_weak_members": true,
+      "max_configurations": 3,
+      "max_prior_movement": 0.35,
+      "ridge_penalty": 1.0,
+      "max_combinations": 12
+    },
+    "expert_strengths": [
+      1.0,
+      0.5,
+      0.0
+    ],
+    "consistency": {
+      "mode": "off",
+      "max_error_percent": 10.0,
+      "min_coverage": 1.0,
+      "permutations": 8,
+      "seed": 20261030,
+      "tie_tolerance": 1e-06,
+      "soft_penalty_pp": 1.0,
+      "mapping": "expert_grade_counts_rank_bins"
+    },
+    "persistence": {
+      "enabled": true,
+      "resume": true,
+      "directory": null,
+      "keep_fit_cache": false
+    },
+    "logging": {
+      "heartbeat_seconds": 10.0
+    },
+    "publish": {
+      "policy": "allow_draft"
+    }
+  }
+}

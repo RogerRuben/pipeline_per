@@ -1,6 +1,6 @@
 # 源码目录与产物边界
 
-2026-10-27更新至真实推荐系统V21.6与AutoML V6。V6独立搜索、训练内融合和封存验收，不继承V3冠军；V2/V3/V4/V5/V5.1保留切换。原有价格模型类路径保持兼容，专家效能组件可单独导入。来源见RECOMMENDATION_SOURCE_PROVENANCE_V21_6.json。
+2026-10-30更新至推荐系统V21.6与AutoML V7/V3+。V7保留V3主线与原模型对照，增加小规模开发复核及可选五档一致性；V6独立搜索、训练内融合和封存验收，不继承V3冠军；V2/V3/V4/V5/V5.1保留切换。原有价格模型类路径保持兼容，专家效能组件可单独导入。来源见RECOMMENDATION_SOURCE_PROVENANCE_V21_6.json。
 
 ## 两部分源码
 
@@ -8,7 +8,7 @@
 app/                       推荐系统后端、前台及业务数据管理
 run_app.py                 推荐系统启动
 automl_pipeline/           当前快速建模和成品构建实现
-  configs/                 V2—V6默认训练配置
+  configs/                 V2—V7默认训练配置
   process_group.py         Windows启动父进程拥有的服务Job，含强制退出回收
   product_effectiveness_import.py  专家效能组件校验、探测及单独安装
 cost_effectiveness_analysis/  独立只读效费分析服务及前台
@@ -17,6 +17,7 @@ services/
     optuna_v2/             提供版本核心、V2搜索、V3搜索及编码
     optuna_v4/             V4搜索、划分、指标、缓存、融合及推理成员
     optuna_v5/             V3对照、固定CV单族替换、冻结权重、旧融合协议、完整日志及检查点
+    optuna_v7/             V3+候选复核、种子平均、收缩融合及实际模型五档检查
     optuna_v6/             独立内外层训练、受限融合、逐fit预算及封存验收
   effectiveness_service/   效能推理与已有专家工程产物适配
 tools/                     环境、交付、验证、历史实验和兼容入口
@@ -40,7 +41,7 @@ flowchart LR
 
 ## 旧入口兼容
 
-当前实现集中在`automl_pipeline/`：`product_pipeline`、`product_effectiveness_bootstrap`、V2—V6配置入口、输入与训练导出适配、模式与版本管理。独立训练算法位于服务模块，推荐系统`app/`不导入训练流水线。
+当前实现集中在`automl_pipeline/`：`product_pipeline`、`product_effectiveness_bootstrap`、V2—V7配置入口、输入与训练导出适配、模式与版本管理。独立训练算法位于服务模块，推荐系统`app/`不导入训练流水线。
 
 `tools/`下的同名文件保留转发，旧BAT无需更改。导入新旧路径得到同一模块对象，因此针对旧模块的测试替换仍作用于实际实现。价格原生推理类仍位于原`services.price_service.*`路径；没有通过移动模型类破坏旧pickle。
 

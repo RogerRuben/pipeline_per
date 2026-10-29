@@ -13,12 +13,13 @@ LABELS={'random':'随机划分搜索','global':'全划分统一搜索','per_spli
 
 
 def loader(engine):
-    if engine=='optuna_v6':from .product_price_optuna_v6 import load_config
+    if engine=='optuna_v7':from .product_price_optuna_v7 import load_config
+    elif engine=='optuna_v6':from .product_price_optuna_v6 import load_config
     elif engine=='optuna_v5':from .product_price_optuna_v5 import load_config
     elif engine=='optuna_v4':from .product_price_optuna_v4 import load_config
     elif engine=='optuna_v3':from .product_price_optuna_v3 import load_config
     elif engine=='optuna_v2':from .product_price_optuna_v2 import load_config
-    else:raise ValueError('只支持V2、V3、V4、V5、V6。')
+    else:raise ValueError('只支持V2—V7。')
     return load_config
 
 
@@ -28,6 +29,10 @@ def descriptor(engine,cfg):
         value.update(search_mode=cfg['v4']['search']['mode'],train_gate=cfg['v4']['train_gate'],
                      evaluation_mode=cfg['v4']['evaluation']['mode'],ensemble_enabled=cfg['v4']['ensemble']['enabled'],
                      targets={k:v for k,v in cfg['targets'].items() if k!='hard_gate'},coverage=cfg['v4']['splits']['coverage'])
+    elif engine=='optuna_v7':
+        v=cfg['v7'];value.update(protocol='v3plus_common_development',search_mode=v['mode'],review=v['review'],
+            fusion=v['fusion'],model_seeds=v['model_seeds'],expert_strengths=v['expert_strengths'],expert_consistency=v['consistency'],
+            targets={k:x for k,x in cfg['targets'].items() if k!='hard_gate'})
     elif engine=='optuna_v6':
         v=cfg['v6'];value.update(protocol='sealed_nested',search_mode=v['mode'],train_gate=v['train_gate'],evaluation=v['evaluation'],
             ensemble=v['ensemble'],families=v['families'],features=v['features'],targets={k:v for k,v in cfg['targets'].items() if k!='hard_gate'})
@@ -96,6 +101,19 @@ def select(root,engine=None,**changes):
         if name=='experts':cfg['expert']['enabled']=value=='on'
         elif name=='scope':cfg['deployment']['model_scope']=value
         elif name=='trials':cfg['search']['n_trials']=int(value)
+        elif engine=='optuna_v7':
+            if name=='strategy':cfg['v7']['mode']=value
+            elif name=='consistency':cfg['v7']['consistency']['mode']=value
+            elif name=='consistency_error':cfg['v7']['consistency']['max_error_percent']=float(value)
+            elif name=='model_seeds':cfg['v7']['model_seeds']['count']=int(value)
+            elif name=='cv_folds':cfg['v7']['review']['folds']=int(value)
+            elif name in ('max_fits','new_fits'):cfg['v7']['budget']['max_extra_fits']=int(value)
+            elif name=='seconds':cfg['search']['timeout_seconds']=float(value) if float(value)>0 else None
+            elif name=='publish':cfg['v7']['publish']['policy']=value
+            elif name=='ensemble':cfg['v7']['fusion']['enabled']=value=='on'
+            elif name=='audit':cfg['v7']['review']['enabled']=value=='on'
+            elif name=='evaluation' and value=='development':pass
+            else:raise ValueError(name+'不适用于V7；使用strategy、consistency、model-seeds、cv-folds及完整V7配置。')
         elif engine=='optuna_v6':
             if name=='strategy':cfg['v6']['mode']=value
             elif name=='gate':cfg['v6']['train_gate']['mode']=value
@@ -149,6 +167,7 @@ def select(root,engine=None,**changes):
     label=engine.upper().replace('OPTUNA_','')+(' / '+LABELS[cfg['v4']['search']['mode']] if engine=='optuna_v4' else ' / '+{'goal_first':'V3基线达标优先','balanced':'高分与复核权衡','robust':'跨划分融合'}[cfg['v5']['mode']] if engine=='optuna_v5' else '')
     print('已选择%s；专家价格评分%s。'%(label,'开启' if cfg['expert']['enabled'] else '关闭'),flush=True)
     if engine=='optuna_v6':print('V6独立目标导向 / %s；内层练习、封存验收分离，不继承V3模型或份额。'%cfg['v6']['mode'],flush=True)
+    if engine=='optuna_v7':print('V7/V3+：%s；专家五档一致性%s，错档上限%.6g%%；原V3对照保留。'%(cfg['v7']['mode'],cfg['v7']['consistency']['mode'],cfg['v7']['consistency']['max_error_percent']),flush=True)
     if engine=='optuna_v5':print('搜索协议：%s；固定CV时新增候选覆盖同一组折，权重不针对开发标签优化。'%cfg['v5']['protocol'],flush=True)
     print('START直接载入：'+pointer['output'] if pointer else '此模式尚无已训练模型，请CHECK_INPUT后RETRAIN；START不会自动训练。',flush=True)
     print('切换与修改预算均不触发训练；训练配置在下次RETRAIN生效。',flush=True)
@@ -158,12 +177,13 @@ def select(root,engine=None,**changes):
 def menu(root):
     while True:
         desc=current(root);print('\n当前模式：'+json.dumps(desc,ensure_ascii=False))
-        print('1 版本V2/V3/V4/V5　2 搜索模式　3 训练门槛　4 V4门槛范围　5 专家评分　6 部署范围\n7 评估模式　8 融合　9 V3/V5基线轮数或V4总轮数　10 V4预算方式　11 V4划分覆盖　12 发布策略\n13 V5复核开关　14 V5新增fit预算　15 V5总fit上限　16 V5秒数预算　17 V5基线结束方式　18 V5达标后继续　0 退出')
+        print('1 版本V2—V7　2 搜索模式　3 训练门槛　4 V4门槛范围　5 专家评分　6 部署范围\n7 评估模式　8 融合　9 搜索/基线轮数　10 V4预算方式　11 V4划分覆盖　12 发布策略\n13 复核开关　14 新增fit预算　15 fit上限　16 基线秒数预算　17 V5基线结束方式　18 V5达标后继续　0 退出')
+        if desc['engine']=='optuna_v7':print('V7：21 共同开发折数　25 专家一致性off/report/soft/strict　26 错档率上限%　27 训练种子个数；原始V3用版本选择进入。')
         if desc['engine']=='optuna_v5':print('19 V5.1固定CV/旧协议　20 固定权重方案　21 固定CV折数　22 重复次数（每候选需完成整组折）')
         option=input('选择编号：').strip()
         if option=='0':return
         choices={
-            '1':('engine',['optuna_v6','optuna_v5','optuna_v4','optuna_v3','optuna_v2'],['V6','V5','V4','V3','V2']),
+            '1':('engine',['optuna_v7','optuna_v6','optuna_v5','optuna_v4','optuna_v3','optuna_v2'],['V7/V3+','V6','V5.1/旧V5','V4','原V3','V2']),
             '2':('strategy',['hybrid','random','global','per_split'],['混合复核','随机划分','全划分统一搜索','逐划分搜索']),
             '3':('gate',['hard','soft','off'],['硬门槛','软惩罚','关闭']),
             '4':('gate_scope',['pooled','every_split','fraction'],['汇总训练预测','每个划分均达标','达标划分占比']),
@@ -180,6 +200,10 @@ def menu(root):
             '19':('protocol',['fixed_cv','legacy_split'],['V5.1固定CV与冻结权重（推荐）','旧V5单划分自适应权重（仅对比）']),
             '20':('weight_policy',['baseline_fixed','uniform_fixed'],['冻结V3基线权重','预设等权，不按开发标签求权重'])}
         if desc['engine']=='optuna_v5':choices['2']=('strategy',['goal_first','balanced','robust'],['V3基线达标优先','高分与复核权衡','跨划分融合'])
+        if desc['engine']=='optuna_v7':
+            choices['2']=('strategy',['balanced','goal_first','baseline_only'],['兼顾V3开发和少量共同复核','V3开发目标优先','仅原V3基线'])
+            choices['7']=('evaluation',['development'],['开发复核；固定独立留出可选V6原模式'])
+            choices['25']=('consistency',['off','report','soft','strict'],['关闭（默认）','只报告，不影响选模','软约束，价格接近时优先一致','严格≤所设错档率，无法分档不算通过'])
         if desc.get('protocol')=='fixed_cv':choices['2']=('strategy',['goal_first','balanced','robust'],['固定CV总体指标','固定CV兼顾最差折','固定CV各折达标门槛'])
         if desc['engine']=='optuna_v6':
             print('V6：15 总fit预算　16 秒数　18 达标后继续　20 训练内融合份额　21 内层折数　22 内层重复　23 外层折数　24 外层重复')
@@ -187,6 +211,8 @@ def menu(root):
             choices['7']=('evaluation',['nested_cv','locked_holdout'],['完整轮换封存验收','固定外层留出'])
             choices['20']=('weight_policy',['auto','equal'],['训练内OOF收缩学习，小样本预设等权','始终预设等权'])
         try:
+            if option=='26':select(root,consistency_error=float(input('错档率上限，10表示10%：')));continue
+            if option=='27':select(root,model_seeds=int(input('训练种子个数（1—10）：')));continue
             if option in ('21','22','23','24'):
                 select(root,**{dict(zip(('21','22','23','24'),('cv_folds','cv_repeats','outer_folds','outer_repeats')))[option]:int(input('输入折数/重复次数：'))});continue
             if option=='9':select(root,trials=int(input('配置搜索轮数（融合权重另计）：')));continue
@@ -203,8 +229,9 @@ def menu(root):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('command',choices=['menu','select','status']);p.add_argument('--engine',choices=['optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'])
-    for name,values in [('strategy',list(LABELS)+['goal_first','balanced','robust']),('gate',['off','soft','hard']),('gate-scope',['pooled','every_split','fraction']),('experts',['on','off']),
+    p=argparse.ArgumentParser();p.add_argument('command',choices=['menu','select','status']);p.add_argument('--engine',choices=['optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'])
+    p.add_argument('--consistency',choices=['off','report','soft','strict']);p.add_argument('--consistency-error',type=float);p.add_argument('--model-seeds',type=int)
+    for name,values in [('strategy',list(LABELS)+['goal_first','balanced','robust','baseline_only']),('gate',['off','soft','hard']),('gate-scope',['pooled','every_split','fraction']),('experts',['on','off']),
                         ('scope',['full_data','selected_split']),('evaluation',['development','nested_cv','locked_holdout']),('ensemble',['on','off']),
                         ('coverage',['auto','exhaustive','sampled']),('publish',['allow_draft','require_targets']),('budget',['total','per_split']),
                         ('audit',['on','off']),('baseline-finish',['fixed_budget','targets_met']),('continue-after-targets',['on','off']),

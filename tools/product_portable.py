@@ -115,7 +115,7 @@ def prepare(source,price_engine=None):
     if settings.get("price_engine") == "r4":
         from tools.product_r4_input import prepare as prepare_r4
         return prepare_r4(source, ROOT, settings)
-    if settings.get("price_engine") in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5","optuna_v6"):
+    if settings.get("price_engine") in ("optuna_v2","optuna_v3","optuna_v4","optuna_v5","optuna_v6","optuna_v7"):
         from tools.product_optuna_v2_input import prepare as prepare_optuna_v2
         return prepare_optuna_v2(source, ROOT, settings)
     config_path = ROOT / "config" / "price_automl_v2.json"
@@ -227,7 +227,7 @@ def latest_output(fingerprint=None):
             entry=selected_pointer(ROOT)
             if entry is None or (fingerprint is not None and entry.get('fingerprint')!=fingerprint):return None
             return (ROOT/entry['output']).resolve()
-        if settings.get('engine_selection_required') and settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'):
+        if settings.get('engine_selection_required') and settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'):
             expected_engine=settings['price_engine']
             path=ROOT/'state'/('latest_'+settings['price_engine']+'.json')
     if not path.is_file():
@@ -301,7 +301,7 @@ def rebuild(source, prepared):
                                                "output": output.relative_to(ROOT).as_posix(), "fingerprint": details["fingerprint"],
                                                "input_sha256": details["input_sha256"],"price_engine":settings.get('price_engine')}
     write_json(ROOT/'state/latest.json',pointer)
-    if settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'):write_json(ROOT/'state'/('latest_'+settings['price_engine']+'.json'),pointer)
+    if settings.get('price_engine') in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'):write_json(ROOT/'state'/('latest_'+settings['price_engine']+'.json'),pointer)
     if settings.get('mode_registry_enabled'):
         from tools.product_modes import register
         register(ROOT,pointer,price)

@@ -20,6 +20,8 @@ def prepare(source,root,settings):
         from .product_price_optuna_v4 import load_config as loader
     elif engine=='optuna_v5':
         from .product_price_optuna_v5 import load_config as loader
+    elif engine=='optuna_v7':
+        from .product_price_optuna_v7 import load_config as loader
     elif engine=='optuna_v6':
         from .product_price_optuna_v6 import load_config as loader
     cfg=loader(root/('config/price_'+engine+'.json'))
@@ -33,6 +35,12 @@ def prepare(source,root,settings):
     restore_configurations(analyzed['data'],table,cfg['expert']['field_types'],cfg['input']['missing_tokens'])
     frame,y,specs,mappings,groups,ids=dataset(analyzed['data'],cfg)
     _,split_report=training_split(len(y),cfg)
+    if engine=='optuna_v7':
+        from services.price_service.optuna_v7.review import make_folds
+        _,review_plan=make_folds(frame,np.arange(len(y)),cfg)
+        split_report=dict(split_report,common_development_plan=review_plan)
+        p=cfg['v7']['persistence'];p['directory']=str((root/(p['directory'] or 'state/v7')).resolve()) if not p['directory'] or not Path(p['directory']).is_absolute() else p['directory']
+        if cfg['v7']['consistency']['mode']!='off' and any(float(x)!=int(float(x)) for x in cfg['expert']['scores'].values()):raise ValueError('五档指标要求1—5整数评分。')
     if engine=='optuna_v6':
         from services.price_service.optuna_v6.protocol import make_plan
         from .product_price_optuna_v2 import training_source_rows
@@ -61,7 +69,7 @@ def prepare(source,root,settings):
             from services.price_service.optuna_v5.fixed_cv import make_folds
             _,fixed_plan=make_folds(frame.iloc[dev].reset_index(drop=True),np.asarray(dev,int),cfg['v5']['cv'])
             split_report=dict(split_report,fixed_cv_plan=fixed_plan)
-    if engine=='optuna_v3':
+    if engine in ('optuna_v3','optuna_v7'):
         warm=cfg['v3']['warm_start']
         if warm['auto_history'] and not warm['history_file'] and not warm['config_file']:
             from .product_optuna_versions import saved_pointer
@@ -81,6 +89,9 @@ def prepare(source,root,settings):
                 'services/price_service/optuna_v2/price_automl_core.py','services/price_service/optuna_v2/optimizer.py','services/price_service/optuna_v2/native_member.py',
                 'services/price_service/optuna_v2/typed_features.py','services/price_service/optuna_v2/search_history.py')
     if engine=='optuna_v3':code_files+=('automl_pipeline/product_price_optuna_v3.py','services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py')
+    if engine=='optuna_v7':code_files+=('automl_pipeline/product_price_optuna_v7.py','automl_pipeline/product_optuna_v7_adapter.py',
+        'services/price_service/optuna_v7/backend.py','services/price_service/optuna_v7/engine.py','services/price_service/optuna_v7/review.py','services/price_service/optuna_v7/importance.py',
+        'services/price_service/optuna_v2/optimizer_v3.py','services/price_service/optuna_v2/cached_backend.py')
     if engine=='optuna_v6':code_files+=('automl_pipeline/product_price_optuna_v6.py','automl_pipeline/product_optuna_v6_adapter.py',
         'services/price_service/optuna_v6/backend.py','services/price_service/optuna_v6/blend.py','services/price_service/optuna_v6/protocol.py',
         'services/price_service/optuna_v6/search.py','services/price_service/optuna_v6/engine.py','services/price_service/optuna_v5/trace.py','services/price_service/optuna_v5/persistence.py')
@@ -103,7 +114,7 @@ def prepare(source,root,settings):
         budget_plan(cfg,len(parts));split_report=dict(plan,development_rows=len(dev),locked_holdout_rows=len(outer))
     identity={'input_sha256':hashlib.sha256(raw).hexdigest(),'price_config':cfg,'effect_config':effect,
               'code':{name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in code_files}}
-    if engine=='optuna_v3':identity['history_files']={key:hashlib.sha256(Path(value).read_bytes()).hexdigest() for key,value in cfg['v3']['warm_start'].items() if key in ('history_file','config_file') and value}
+    if engine in ('optuna_v3','optuna_v7'):identity['history_files']={key:hashlib.sha256(Path(value).read_bytes()).hexdigest() for key,value in cfg['v3']['warm_start'].items() if key in ('history_file','config_file') and value}
     notes=['保留提供版本的NSGA-II双目标、六模型、MinMax、对数价格和联合划分种子搜索。',
            '价格1—5分专家评分与效能偏好分别读取；未提供评分按该版本默认1分。',
            '开发指标来自被搜索的验证划分；默认服务模型按所选参数在全量记录重拟合。',
@@ -111,6 +122,9 @@ def prepare(source,root,settings):
     notes.append('属性只有数值与配置类型；配置独热编码，数值在训练集上MinMax缩放。')
     if split_report.get('adjusted'):notes.append('小样本验证自动调整：%d条训练、%d条验证；配置最低%d条。'%(split_report['training_rows'],split_report['validation_rows'],split_report['min_samples']))
     if engine=='optuna_v3':notes[0]='V3：NSGA-II广域搜索后，以Pareto多锚点MOTPE精修；总预算在两阶段共享。'
+    if engine=='optuna_v7':
+        notes[0]='V7/V3+：完整保留原V3对照，少量候选共同开发复核、训练种子平均和受约束融合。'
+        notes[2]='复核与原划分均参与选模，不能称独立测试；专家五档错分率可选，默认关闭。START不训练。'
     if engine=='optuna_v6':
         notes[0]='V6独立搜索，不先运行V3；每轮在允许训练资料内部选参和学习收缩融合，封存价格只评分。'
         notes[2]='4—7条逐条封存，单条不算R²，汇总计算；所有验收轮完成后才导出，固定留出则导出同一模型。START不训练。'

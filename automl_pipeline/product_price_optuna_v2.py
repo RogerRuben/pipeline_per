@@ -127,7 +127,7 @@ def training_source_rows(data,ids,source):
     return np.asarray([row_by_id[i] for i in ids],int)
 
 
-def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrides=None,input_path=None,engine='optuna_v2'):
+def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrides=None,input_path=None,engine='optuna_v2',trace=None,search_observer=None):
     loader=load_config
     if engine=='optuna_v3':
         from .product_price_optuna_v3 import load_config as loader
@@ -173,6 +173,8 @@ def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrid
         from .product_price_optuna_v3 import search_settings
         backend=CachedBackend(category_fields,category_labels,cfg['v3']['cache_entries'])
         extra={'model_backend':backend,'history_identity':search_identity,'v3_settings':search_settings(cfg)}
+        if search_observer is not None:extra['observer']=search_observer
+    if trace is not None:backend.trace=trace
     with threadpool_limits(limits=1):
         result=runner(data_path=str(input_path or 'pipeline_prepared_data'),output_dir=str(output),n_trials=s['n_trials'],target='price_wan',
             test_size=v['test_size'],price_bins=v['price_bins'],r2_target=q['r2_min'],mape_target=q['mape_percent_max']/100.,

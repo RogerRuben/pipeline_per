@@ -25,6 +25,8 @@ PATCH_FILES=(
  'services/price_service/optuna_v6/__init__.py','services/price_service/optuna_v6/backend.py','services/price_service/optuna_v6/blend.py',
  'services/price_service/optuna_v6/protocol.py','services/price_service/optuna_v6/search.py','services/price_service/optuna_v6/engine.py',
  'tools/product_price_optuna_v6.py','tools/product_optuna_v6_adapter.py',
+ 'tools/product_price_optuna_v7.py','tools/product_optuna_v7_adapter.py','services/price_service/optuna_v7/__init__.py',
+ 'services/price_service/optuna_v7/backend.py','services/price_service/optuna_v7/engine.py','services/price_service/optuna_v7/review.py','services/price_service/optuna_v7/importance.py',
  'tools/product_effectiveness_import.py','app/server.py','app/static/portal.html','tools/recommendation_source_layout.py',
  'services/price_service/optuna_v2/cached_backend.py','services/price_service/optuna_v2/optimizer_v3.py',
  'services/price_service/optuna_v2/V3_DESIGN_PROVENANCE.json','tools/product_price_optuna_v3.py','tools/product_optuna_versions.py',

@@ -6,11 +6,12 @@ import numpy as np
 from pathlib import Path
 
 HERE=Path(__file__).resolve().parent
-ENGINES=('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6')
+ENGINES=('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7')
 
 
 def config_loader(engine):
-    if engine=='optuna_v6':from .product_price_optuna_v6 import load_config
+    if engine=='optuna_v7':from .product_price_optuna_v7 import load_config
+    elif engine=='optuna_v6':from .product_price_optuna_v6 import load_config
     elif engine=='optuna_v5':from .product_price_optuna_v5 import load_config
     elif engine=='optuna_v4':from .product_price_optuna_v4 import load_config
     elif engine=='optuna_v3':from .product_price_optuna_v3 import load_config
@@ -35,7 +36,11 @@ def inspect_input(source,engine,cfg):
     frame,y,specs,mappings,groups,ids=dataset(data,cfg);_,split=training_split(len(y),cfg)
     result={'status':'PASS','engine':engine,'records':len(y),'attributes':len(specs),'validation_split':split,
             'attribute_types':{p['parameter_id']:('配置类型' if p['parameter_id'] in mappings else '数值') for p in specs},'diagnostics':table['diagnostics']}
-    if engine=='optuna_v6':
+    if engine=='optuna_v7':
+        from services.price_service.optuna_v7.review import make_folds
+        _,plan=make_folds(frame,np.arange(len(frame)),cfg)
+        result.update(common_development_plan=plan,budget=cfg['v7']['budget'],expert_consistency=cfg['v7']['consistency'])
+    elif engine=='optuna_v6':
         from services.price_service.optuna_v6.protocol import make_plan
         plan=make_plan(frame,np.arange(len(frame)),ids,cfg)
         result.update(evaluation_plan=plan['public'],budget=cfg['v6']['budget'],v6_mode=cfg['v6']['mode'])
@@ -63,16 +68,16 @@ def inspect_input(source,engine,cfg):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description='成品表 → AutoML价格模型 → 效能试用快照 → 推荐草稿；源码入口默认V5。')
+    p=argparse.ArgumentParser(description='成品表 → AutoML价格模型 → 效能试用快照 → 推荐草稿；默认V7/V3+，旧版本可切换。')
     sub=p.add_subparsers(dest='command',required=True)
     for command in ('inspect','build'):
         parser=sub.add_parser(command,help='检查成品输入' if command=='inspect' else '在独立目录构建三环节产物')
-        parser.add_argument('input');parser.add_argument('--price-engine',choices=ENGINES,default='optuna_v6');parser.add_argument('--price-config')
+        parser.add_argument('input');parser.add_argument('--price-engine',choices=ENGINES,default='optuna_v7');parser.add_argument('--price-config')
         if command=='build':
             parser.add_argument('--output',required=True);parser.add_argument('--product-code',default='SOURCE_PRODUCT');parser.add_argument('--product-name',default='成品价格效能与推荐试用')
             parser.add_argument('--effect-config');parser.add_argument('--virtual-data',action='store_true')
     config=sub.add_parser('config',help='生成V2/V3/V4配置；不会训练')
-    config.add_argument('--price-engine',choices=ENGINES,default='optuna_v6');config.add_argument('--profile',choices=['standard','quick','deep'],default='standard');config.add_argument('--output',required=True)
+    config.add_argument('--price-engine',choices=ENGINES,default='optuna_v7');config.add_argument('--profile',choices=['standard','quick','deep'],default='standard');config.add_argument('--output',required=True)
     serve=sub.add_parser('serve',help='启动指定构建结果，不训练')
     serve.add_argument('--output',required=True);serve.add_argument('--activate-draft',action='store_true');serve.add_argument('--no-browser',action='store_true')
     serve.add_argument('--price-port',type=int,default=18701);serve.add_argument('--effect-port',type=int,default=18702);serve.add_argument('--app-port',type=int,default=18791)
@@ -91,11 +96,13 @@ def main(argv=None):
             if path.exists():raise ValueError('配置文件已存在，请选择新路径以保留现有设置。')
             if args.profile=='quick':
                 cfg['search']['n_trials']=40
+                if args.price_engine=='optuna_v7':cfg['search']['timeout_seconds']=300;cfg['v7']['budget'].update(max_extra_fits=128,extra_seconds=90)
                 if args.price_engine=='optuna_v6':cfg['search']['n_trials']=12;cfg['search']['timeout_seconds']=300;cfg['v6']['budget']['max_member_fits']=700
                 if args.price_engine=='optuna_v4':cfg['v4']['splits']['max_splits']=12
                 if args.price_engine=='optuna_v5' and cfg['v5']['protocol']=='fixed_cv':cfg['v5']['enhancement']['max_new_fits']=20
             elif args.profile=='deep':
-                if args.price_engine=='optuna_v6':cfg['search']['n_trials']=120;cfg['search']['timeout_seconds']=1800;cfg['v6']['budget']['max_member_fits']=6000
+                if args.price_engine=='optuna_v7':cfg['search'].update(n_trials=5000,timeout_seconds=1800);cfg['v7']['budget'].update(max_extra_fits=1000,extra_seconds=300)
+                elif args.price_engine=='optuna_v6':cfg['search']['n_trials']=120;cfg['search']['timeout_seconds']=1800;cfg['v6']['budget']['max_member_fits']=6000
                 elif args.price_engine=='optuna_v5':
                     cfg['search']['n_trials']=300;cfg['search']['timeout_seconds']=1800;cfg['v5']['enhancement']['max_new_fits']=5000;cfg['v5']['budget']['max_member_fits']=5000
                     cfg['v5']['enhancement']['split_anchors']=1 if cfg['v5']['protocol']=='fixed_cv' else 3

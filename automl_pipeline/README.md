@@ -1,12 +1,12 @@
 # AutoML → 快速建立成品流水线
 
-本目录是V2—V6快速建模的实际源码。默认V6独立搜索和封存验收，V2/V3/V4/V5/V5.1均保留作可切换对照。推荐系统位于[`../app/`](../app/README.md)，价格和效能HTTP服务位于`../services/`，效费分析台位于`../cost_effectiveness_analysis/`。完整操作、指标边界和预算见[V6说明](../docs/OPTUNA_V6_PIPELINE.md)。
+本目录是V2—V7快速建模源码，默认V7/V3+：保留原V3六模型联合搜索，以少量候选复核、训练种子平均和收缩融合改善稳定性，专家五档错分率可选。推荐系统为V21.6；完整操作、指标边界和预算见[V7说明](../docs/OPTUNA_V7_PIPELINE.md)。
 
 ## 主要文件
 
 | 文件 | 职责 |
 | --- | --- |
-| `__main__.py` | 源码命令：生成配置、检查输入、构建、运行保存结果；默认V6 |
+| `__main__.py` | 源码命令：生成配置、检查输入、构建、运行保存结果；默认V7/V3+ |
 | `product_price_optuna_v6.py` / `product_optuna_v6_adapter.py` | V6配置、独立搜索适配、原生导出与封存验收报告；算法位于`services/price_service/optuna_v6/` |
 | `process_group.py` / `product_effectiveness_import.py` | Windows服务进程组及独立专家效能组件导入 |
 | `product_pipeline.py` | 从成品表构建价格模型、效能快照及推荐业务草稿，管理构建状态与独立三服务试用 |
@@ -27,22 +27,22 @@
 ```bat
 python -m pip install -r automl_pipeline/requirements.txt
 python -m automl_pipeline config --profile quick --output outputs/example/price.json
-python -m automl_pipeline inspect automl_pipeline/examples/virtual_16x36.xlsx --price-config outputs/example/price.json
-python -m automl_pipeline build automl_pipeline/examples/virtual_16x36.xlsx --price-config outputs/example/price.json --output outputs/example/build --virtual-data
+python -m automl_pipeline inspect automl_pipeline/examples/virtual_v7_16x36.xlsx --price-config outputs/example/price.json
+python -m automl_pipeline build automl_pipeline/examples/virtual_v7_16x36.xlsx --price-config outputs/example/price.json --output outputs/example/build --virtual-data
 python -m automl_pipeline serve --output outputs/example/build --activate-draft --no-browser
 ```
 
-`config`的standard使用该版本默认预算，quick为40轮且V4最多12个划分，V5 deep为300轮基线及最多5000次总成员fit/30分钟预算，旧版本deep仍为5000配置试验。配置文件已存在时不会覆盖。V2/V3选择需要同时向相关命令传入`--price-engine optuna_v2`或`optuna_v3`，使配置schema与引擎匹配。
+`config`生成所选版本配置。V7标准为300个V3配置/900秒，quick为40/300秒，deep为5000/1800秒；新增复核另受实际fit及时间上限限制。旧版本使用自己的配置和预算。配置文件已存在时不覆盖，切换引擎须同时指定匹配的`--price-engine`。
 
 `build`输出价格原生pkl和报告、效能JSON快照、业务发布JSON、推荐系统数据副本及总manifest。`serve`只启动保存结果；停止后再执行同一命令不会重训。主程序使用自己的当前运行目录，流水线产物位于新的`outputs/`目录。
 
-输入约定、固定CV、训练门槛、专家1—5分、预算和评估口径见[V5.1说明](../docs/OPTUNA_V5_1_PIPELINE.md)。标准新增60次实际fit；一次候选需要完整评估固定折，因此通常对应多次fit。配置改动只有在下一次构建中生效。
+输入、原V3对照、共同开发评分、可选专家五档及预算见[V7说明](../docs/OPTUNA_V7_PIPELINE.md)。默认专家一致性关闭；report不改变选模，soft温和偏好，strict要求价格目标与五档错分率同时满足。
 
 ## 离线打包与已保存导出
 
-`tools/product_portable.py`、`product_saved_start.py`、`product_export_saved.py`是离线包的操作层；源码运行使用上面的模块命令。`tools/build_product_v6.py`与`upgrade_product_v6.py`负责当前打包和补丁安装，旧构建工具仍保留。V6完整包共用一个固定环境并包含15个已保存模式。
+`tools/product_portable.py`、`product_saved_start.py`、`product_export_saved.py`是离线包的操作层；源码运行使用上面的模块命令。`tools/build_product_v7.py`与`upgrade_product_v7.py`负责当前打包和补丁安装，旧构建工具仍保留。V7完整包共用一个固定环境并包含18个已保存模式。
 
-打包及导出必须同时包含`app/`、`automl_pipeline/`、相关`services/`和`tools/`；兼容入口与实际实现应一起交付。`tools/pipeline_source_layout.py`列出流水线必需文件，依赖检查也检查`automl_pipeline`导入。
+打包及导出必须同时包含`app/`、`automl_pipeline/`、相关`services/`、`cost_effectiveness_analysis/`和`tools/`；兼容入口与实际实现应一起交付。`tools/pipeline_source_layout.py`列出流水线必需文件，依赖检查也检查`automl_pipeline`导入。
 
 Git不包含离线环境和现场训练模型；基线虚拟演示模型属于回归资产。沿用2026-10-16全离线打包工具时，需另行准备已有基础环境ZIP、本地固定运行环境以及V2/V3/V4/V5的完整虚拟演示结果；脚本中的资产路径是该交付基准的本地约定。仅克隆源码即可执行配置、输入检查与构建，不要求先下载旧交付包。
 

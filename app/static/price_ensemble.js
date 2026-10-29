@@ -12,9 +12,11 @@
     if (!explanation || !(explanation.model_contributions || []).length) { panel.classList.add("hidden"); return; }
     var html = "<h3>价格融合解释</h3><p>" + escape(explanation.sample_warning) + "</p>";
     if (explanation.quality_status) {
-      html += '<p><strong>' + (explanation.quality_status === 'qualified_sealed_assessment' ? '训练与封存验收目标达标' : explanation.quality_status === 'qualified_development' ? '开发目标达标' : '未达标试用草稿') + '</strong></p>';
+      html += '<p><strong>' + (explanation.quality_status === 'qualified_sealed_assessment' ? '训练与封存验收目标达标' : explanation.quality_status === 'qualified_development' || explanation.quality_status === 'v3plus_development_targets_met' ? '开发目标达标（不代表独立测试）' : '未达标试用草稿') + '</strong></p>';
       var fixedCV = explanation.evaluation_scope === 'fixed_cross_validation_development';
+      if (explanation.protocol === 'v3plus_common_development') html += '<p>V3+目标判定使用实际训练和原划分开发；共同CV用于对照并单独列示，未提供独立测试。</p>';
       var scores = [['部署模型训练集', explanation.training_metrics], [fixedCV ? '固定CV开发集（参与选参）' : '开发集（参与选择）', explanation.development_metrics], ['固定外层留出集', explanation.holdout_metrics]];
+      if (explanation.protocol === 'v3plus_common_development') scores = [['部署模型训练集', explanation.training_metrics], ['原V3划分开发（参与选择）', explanation.anchor_development_metrics], ['共同开发CV（参与选择，单独复核）', explanation.common_development_metrics], ['独立测试集', explanation.test_metrics]];
       if (explanation.protocol === 'sealed_nested') scores = [['部署模型训练集', explanation.training_metrics], ['内部练习（参与选参和融合）', explanation.development_metrics], [explanation.evaluation_scope === 'nested_procedure_test' ? '完整训练办法的轮换封存验收' : '同一保存模型的固定留出验收', explanation.test_metrics || explanation.holdout_metrics]];
       if (explanation.reference_metrics) scores.splice(1, 0, [fixedCV ? 'V3原单划分开发（仅对照）' : '保留的V3基线开发集', explanation.reference_metrics]);
       if (explanation.reference_cv_metrics) scores.splice(1, 0, ['V3参数在同一固定CV上的基线', explanation.reference_cv_metrics]);
@@ -27,6 +29,13 @@
     if (explanation.price_risk) {
       var risk = explanation.price_risk;
       html += "<p>历史可信域：" + (risk.is_extrapolation ? "存在外推" : "范围内") + "；模型分歧 " + price(risk.model_disagreement_wan) + " 万元；保守排序价格 " + price(risk.recommendation_price_wan) + " 万元。此风险量不是已校准置信区间。</p>";
+    }
+    if (explanation.expert_grade_consistency) {
+      var grades = explanation.expert_grade_consistency;
+      html += '<h4>专家五档一致性</h4><p>模式：' + escape(grades.mode) + '；已评分 ' + escape(grades.rated_attributes) + '/' + escape(grades.total_attributes) + '；错档率 ' + (grades.error_percent == null ? '不可评估' : Number(grades.error_percent).toFixed(3) + '%') + '；无法确定档位 ' + escape(grades.ambiguous_attributes) + '；' + (grades.passed ? '满足当前一致性门槛' : '未满足当前一致性门槛') + '。</p>';
+      html += '<details><summary>查看各属性的重要性与分档</summary><p>' + escape(grades.note) + '</p>';
+      html += table(['属性','实际模型重要性占比','专家档位','模型档位','状态'], (grades.attributes || []).map(function (r) { var label = (explanation.price_attribute_scores || []).filter(function (s) {return s.field_id === r.field_id;})[0]; return [label ? label.label : r.field_id, Number(r.importance_percent).toFixed(4) + '%', r.expert_grade, r.model_grade == null ? '无法确定' : r.model_grade, r.ambiguous ? '持平跨档/不可识别' : r.wrong_grade ? '错档' : '一致']; }));
+      html += '</details>';
     }
     html += table(["模型", "融合权重", "价格贡献（万元）"], explanation.model_contributions.map(function (x) { return [x.label, percent(x.weight), price(x.weighted_contribution_wan)]; }));
     if ((explanation.price_attribute_scores || []).length) {
@@ -50,6 +59,7 @@
         return [member.label, percent(member.weight), percent(totalWeight), price(totalWeight * member.predicted_price_wan)];
       }));
       (detail.members || []).forEach(function (member, index) {
+        if ((member.model_seeds || []).length) html += '<p>' + escape(member.label || member.kind) + '训练种子：' + escape(member.model_seeds.join(', ')) + (member.seed_average_space === 'original_price' ? '；在原价格空间平均' : '；单次确定性或固定种子拟合') + '。</p>';
         if ((member.tree_path || []).length) html += table(["分裂属性", "条件", "阈值或类别", "价格评分"], member.tree_path.map(function (step) { return [step.label, step.encoding === "one_hot" ? (step.branch === "大于" ? "属于" : "不属于") : step.branch, step.category || price(step.threshold), step.expert_score]; }));
         if ((member.attribute_terms || []).length) {
           var terms = member.attribute_terms.slice().sort(function (a, b) { return Math.abs(b.term) - Math.abs(a.term); }).slice(0, 12);

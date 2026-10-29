@@ -183,7 +183,7 @@ class PriceService(ServiceApplication):
                 "interpretation": "模型融合贡献与工程属性贡献分别展示；残差为统计修正。"}
         output['price_risk']=result.get('price_risk')
         for key in ('quality_status','training_metrics','development_metrics','holdout_metrics','reference_metrics','reference_training_metrics',
-                    'reference_cv_metrics','evaluation_scope','reference_evaluation_scope','protocol','weight_policy','weights_fitted_on_validation','test_metrics'):
+                    'reference_cv_metrics','evaluation_scope','reference_evaluation_scope','protocol','weight_policy','weights_fitted_on_validation','test_metrics','feature_importance','expert_grade_consistency','anchor_development_metrics','common_development_metrics'):
             if key in metadata:output[key]=metadata[key]
         if metadata.get("price_attribute_scores") is not None:
             output["price_attribute_scores"] = metadata["price_attribute_scores"]

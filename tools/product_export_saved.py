@@ -22,7 +22,7 @@ def export_saved(target=None,version=None):
         path=(source/manifest[key]).resolve()
         if not product_portable.inside(path,source) or product_portable.digest(path)!=manifest["artifact_sha256"][key]: raise ValueError("保存模型校验失败："+key)
     timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
-    prefix={'optuna_v2':'ProductOptunaV2_Saved_','optuna_v3':'ProductOptunaV3_Saved_','optuna_v4':'ProductOptunaV4_Saved_','optuna_v5':'ProductOptunaV5_Saved_','optuna_v6':'ProductOptunaV6_Saved_'}.get(manifest.get('price_engine'),'ProductR4_Saved_')
+    prefix={'optuna_v2':'ProductOptunaV2_Saved_','optuna_v3':'ProductOptunaV3_Saved_','optuna_v4':'ProductOptunaV4_Saved_','optuna_v5':'ProductOptunaV5_Saved_','optuna_v6':'ProductOptunaV6_Saved_','optuna_v7':'ProductOptunaV7_Saved_'}.get(manifest.get('price_engine'),'ProductR4_Saved_')
     target=Path(target).resolve() if target else ROOT/"exports"/(prefix+timestamp+".zip")
     if target.exists(): raise ValueError("导出文件已存在，请换一个名称。")
     if product_portable.inside(target,source): raise ValueError("导出ZIP不能放进被导出的版本目录。")

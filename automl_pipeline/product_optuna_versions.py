@@ -35,7 +35,7 @@ def select(root,engine):
     from tools.product_portable import write_json
     root=Path(root).resolve();path=root/'config/portable.json'
     settings=json.loads(path.read_text(encoding='utf-8-sig'))
-    if engine in ('optuna_v4','optuna_v5','optuna_v6') or settings.get('mode_registry_enabled'):
+    if engine in ('optuna_v4','optuna_v5','optuna_v6','optuna_v7') or settings.get('mode_registry_enabled'):
         from .product_modes import select as select_mode
         return select_mode(root,engine)
     if engine not in ('optuna_v2','optuna_v3'):raise ValueError('请选择optuna_v2或optuna_v3。')
@@ -108,7 +108,7 @@ def compare(root,trials=None):
 
 def main():
     parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest='command',required=True)
-    select_parser=sub.add_parser('select');select_parser.add_argument('--engine',required=True,choices=['optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6'])
+    select_parser=sub.add_parser('select');select_parser.add_argument('--engine',required=True,choices=['optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'])
     comparison=sub.add_parser('compare');comparison.add_argument('--trials',type=int)
     args=parser.parse_args()
     try:
