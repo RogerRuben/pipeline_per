@@ -39,6 +39,18 @@ class ReviewTests(unittest.TestCase):
             values=sample_values(field,base,21)
             self.assertTrue(all(lo<=v<=hi for v in values))
 
+    def test_business_integer_search_contract_is_preserved(self):
+        with closing(sqlite3.connect(str(self.db))) as conn,conn:
+            conn.execute('ALTER TABLE parameter_definitions ADD COLUMN search_type TEXT')
+            conn.execute("UPDATE parameter_definitions SET search_type='integer' WHERE parameter_id='size'")
+        self.assertEqual(next(f for f in self.get_schema()['fields'] if f['field_id']=='size')['type'],'integer')
+        req=self.request();req['parameters']['size']=5.5
+        self.assertEqual(self.call('/predict',req)[0],400)
+        req=self.request();req['field_id']='size'
+        status,result=self.call('/sensitivity/single',req)
+        self.assertEqual(status,200,result)
+        self.assertTrue(all(float(p['value']).is_integer() for p in result['series'][0]['points']))
+
     def wide_model(self,count):
         fields=['f%d'%i for i in range(count)]
         bundle={'format_version':'price-native-bundle-1.0','product_code':'WIDE-FIXTURE',
