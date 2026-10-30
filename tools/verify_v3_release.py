@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import time
+from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -67,7 +68,7 @@ def serving(app):
         server.shutdown();server.server_close();worker.join(timeout=5)
 
 
-def verify(build,output,classification='unconfirmed',repeats=3):
+def verify(build,output,classification='unconfirmed',repeats=3,replacement_build=None):
     manifest,paths,source,environment=preflight(build,classification)
     output=Path(output).resolve()
     if output==ROOT or ROOT not in output.parents or output.parts[len(ROOT.parts)]!='outputs':
@@ -158,10 +159,45 @@ def verify(build,output,classification='unconfirmed',repeats=3):
         report['checks'].update(price_consistency_max_delta_wan=delta,records_compared=len(selected),read_only=app.store.export_json()==data_before)
         report['metadata']=call('GET','/model-summary')['data']
         report['checks']['model_identity']=schema['price_model_sha256']==sha(paths['price_model'])
-        old=price.model_instance_id
-        price.model_instance_id='simulated-restart'
-        report['checks']['stale_model_rejected']=core.handle('POST','/predict',request)[0]==409
-        price.model_instance_id=old
+        original_url=app.model_gateway.price_url
+        def exercise_replacement(service,label):
+            with serving(service) as changed_url:
+                try:
+                    app.model_gateway.price_url=changed_url
+                    report['checks'][label+'_rejects_old_identity']=core.handle('POST','/predict',request)[0]==409
+                    current=call('GET','/schema');fresh={k:current[k] for k in IDENTITY}
+                    changed=call('POST','/predict',dict(fresh,parameters=request['parameters']))
+                    report['checks'][label+'_fresh_prediction']=isinstance(changed['predicted_price_wan'],(int,float))
+                finally:app.model_gateway.price_url=original_url
+            report['checks'][label+'_recovery']=core.handle('POST','/predict',request)[0]==200
+        exercise_replacement(PriceService(paths['price_model'],None,evaluation_metadata=metadata),'actual_service_restart')
+        if replacement_build:
+            other,other_paths,other_source,_=preflight(replacement_build,classification)
+            if sha(other_source)!=sha(source) or other['product_code']!=manifest['product_code']:
+                raise ValueError('替换模型须来自同一产品与同一输入表，避免用不兼容Schema代替模型替换测试')
+            other_metadata=bind(other_paths['price_model'],other_paths['price_model'].parent/'training_report.json',output/'replacement_evaluation.local.json',classification)
+            report['replacement_model_sha256']=sha(other_paths['price_model'])
+            exercise_replacement(PriceService(other_paths['price_model'],None,evaluation_metadata=other_metadata),'actual_model_replacement')
+            # Inject a real service switch only after the first completed core
+            # batch; subsequent samples must not yield a mixed V3 curve.
+            with serving(PriceService(other_paths['price_model'],None,evaluation_metadata=other_metadata)) as changed_url:
+                original_handle=DeepPriceAnalysis.handle
+                completed=[]
+                def switch_after_batch(instance,method,path,*args,**kwargs):
+                    status,value=original_handle(instance,method,path,*args,**kwargs)
+                    if path=='/predict/batch' and status==200 and not completed:
+                        completed.append(True);app.model_gateway.price_url=changed_url
+                    return status,value
+                try:
+                    with patch.object(DeepPriceAnalysis,'handle',switch_after_batch):
+                        status,value=AnalysisFeatures(core).handle('POST','/sensitivity/top10',dict(request,field_ids=None))
+                    report['checks']['v3_cross_batch_replacement_rejected']=status==409 and 'series' not in value and bool(completed)
+                finally:app.model_gateway.price_url=original_url
+        try:
+            app.model_gateway.price_url='http://127.0.0.1:1'
+            report['checks']['unavailable_is_503']=core.handle('GET','/schema')[0]==503
+        finally:app.model_gateway.price_url=original_url
+        report['checks']['unavailable_recovery']=core.handle('POST','/predict',request)[0]==200
     report['checks']['original_artifacts_unchanged']=all(sha(paths[k])==v for k,v in before.items())
     if not all(v for k,v in report['checks'].items() if isinstance(v,bool)):
         raise ValueError('只读/身份/异常校验失败')
@@ -178,9 +214,10 @@ def main():
     parser.add_argument('--output',required=True)
     parser.add_argument('--classification',choices=['formal','synthetic','unconfirmed'],default='unconfirmed')
     parser.add_argument('--repeats',type=int,default=3)
+    parser.add_argument('--replacement-build',default=None)
     args=parser.parse_args()
     if not 1<=args.repeats<=10:parser.error('repeats范围1至10')
-    report=verify(args.build_dir,args.output,args.classification,args.repeats)
+    report=verify(args.build_dir,args.output,args.classification,args.repeats,args.replacement_build)
     print(json.dumps({k:report[k] for k in ('status','classification','formal_acceptance','field_count','model','timings','checks')},ensure_ascii=True,indent=2))
 
 
