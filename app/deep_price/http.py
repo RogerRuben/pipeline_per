@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .analysis import DeepPriceAnalysis
 from .errors import DeepPriceError
+from .features import AnalysisFeatures
 
 PREFIX = '/api/deep-price/v1'
 
@@ -57,7 +58,7 @@ def handle_http(handler, method):
             except (ValueError, UnicodeError):
                 raise DeepPriceError('invalid_input', 'JSON无效或包含非有限数值')
         service = DeepPriceAnalysis(handler.app.store, handler.app.model_gateway)
-        status, body = service.handle(method, unquote(parsed.path[len(PREFIX):]), payload, parse_qs(parsed.query))
+        status, body = AnalysisFeatures(service).handle(method, unquote(parsed.path[len(PREFIX):]), payload, parse_qs(parsed.query))
         handler._json(body, status)
     except DeepPriceError as exc:
         handler._json(exc.response(request_id), exc.status)

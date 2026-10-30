@@ -78,6 +78,8 @@ class DeepPriceAnalysis:
             if path == '/schema':
                 output = dict(metadata, fields=fields, capabilities={'ml': True, 'additive_rules': False,
                               'mixed_adjustment': False, 'explanation': 'not_configured', 'batch_limit': 100})
+                output.update(backend=before.get('backend'), fixture=bool(schema.get('virtual_fixture')),
+                              published_at=snapshot.release.get('activated_at'), analysis_metadata=schema.get('analysis_metadata') or {})
             elif path == '/products':
                 try:
                     page = int((query.get('page') or ['1'])[0])

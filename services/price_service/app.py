@@ -77,6 +77,8 @@ class PriceService(ServiceApplication):
                 "required_modules": self.bundle.get("required_modules") or [],
                 "load_warning": self.load_error,
                 "automl_explanation": self.bundle.get("automl_explanation"),
+                "analysis_metadata": self.analysis_metadata(),
+                "virtual_fixture": bool(self.bundle.get("virtual_fixture")),
             }
         fields = []
         for item in self.bundle.raw_contract:
@@ -91,7 +93,22 @@ class PriceService(ServiceApplication):
             })
         product_code = self.bundle.bundle.get("product_code") or self.bundle.bundle.get("manifest", {}).get("product_code")
         model_version = self.bundle.bundle.get("model_version") or self.bundle.bundle.get("manifest", {}).get("model_version")
-        return {"service": self.service_name, "product_code": product_code, "model_version": model_version, "backend": self.backend, "fields": fields, "load_warning": self.load_error}
+        return {"service": self.service_name, "product_code": product_code, "model_version": model_version, "backend": self.backend, "fields": fields, "load_warning": self.load_error,
+                "analysis_metadata": self.analysis_metadata(), "virtual_fixture": 'virtual' in str(self.bundle.bundle.get('manifest', {}).get('training_source', '')).lower()}
+
+    def analysis_metadata(self):
+        raw = self.bundle if self.backend == 'native_pickle' else self.bundle.bundle
+        explanation = raw.get('automl_explanation') or {}
+        metrics = {key: raw.get(key, explanation.get(key)) for key in
+                   ('training_metrics','development_metrics','holdout_metrics','test_metrics','reference_metrics','evaluation_scope')
+                   if raw.get(key, explanation.get(key)) is not None}
+        importance = raw.get('feature_importance', explanation.get('feature_importance'))
+        return {'metrics': metrics, 'feature_importance': importance,
+                'expert_scores': explanation.get('price_attribute_scores'),
+                'source': 'loaded_price_model', 'model_names': self.schema_model_names()}
+
+    def schema_model_names(self):
+        return active_model_names(self.bundle) if self.backend == 'native_pickle' else []
 
     def health(self):
         data = ServiceApplication.health(self)
