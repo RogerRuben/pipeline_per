@@ -1,0 +1,7 @@
+{
+  "missing_numeric_training": "Original V3 rejects incomplete numeric training input; kept unchanged and moved missing checks to inference negative cases.",
+  "decimal_boundary": "Legacy six-member V3 Top10 initially rejected x28 due to floating endpoint overshoot; generated samples now clamp to exact published bounds without loosening validation.",
+  "native_equivalence_max_delta_wan": 4.993934439312397e-07,
+  "original_pipeline_equivalence_tolerance": 1e-05,
+  "business_integer_contract": "V3 modeling type number does not erase business search_type=integer; preserve integer controls and sampling, reject fractional component counts."
+}

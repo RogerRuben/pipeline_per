@@ -1,0 +1,23 @@
+test_ambiguous_product_sheets_are_rejected (__main__.PortableCompatibilityTests) ... ok
+test_broken_terminal_probes_do_not_break_optuna_import (__main__.PortableCompatibilityTests) ... ok
+test_csv_delimiters_and_utf16_export (__main__.PortableCompatibilityTests) ... ok
+test_empty_middle_and_trailing_columns_are_ignored_only_if_all_rows_empty (__main__.PortableCompatibilityTests) ... ok
+test_failed_terminal_writes_are_logged_and_filesystem_errors_still_raise (__main__.PortableCompatibilityTests) ... ok
+test_header_formulas_require_a_cached_value (__main__.PortableCompatibilityTests) ... ok
+test_hidden_data_sheet_is_not_selected (__main__.PortableCompatibilityTests) ... ok
+test_invalid_id_reports_sheet_cell_and_character (__main__.PortableCompatibilityTests) ... ok
+test_invisible_and_fullwidth_header_characters_are_normalized_without_lowercasing (__main__.PortableCompatibilityTests) ... ok
+test_named_empty_sheet_does_not_fall_back_to_other_product (__main__.PortableCompatibilityTests) ... ok
+test_named_product_sheet_is_selected_after_expert_sheet (__main__.PortableCompatibilityTests) ... ok
+test_normal_legacy_ascii_record_is_not_consumed_as_header (__main__.PortableCompatibilityTests) ... ok
+test_normalization_collisions_are_rejected (__main__.PortableCompatibilityTests) ... ok
+test_original_row_coordinates_survive_blank_rows (__main__.PortableCompatibilityTests) ... ok
+test_real_unlabelled_data_column_is_not_silently_dropped (__main__.PortableCompatibilityTests) ... ok
+test_spawn_worker_uses_same_console_protection (__main__.PortableCompatibilityTests) ... ok
+test_strict_ooxml_namespace_and_relationships (__main__.PortableCompatibilityTests) ... ok
+test_styled_empty_cells_do_not_change_the_schema (__main__.PortableCompatibilityTests) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.915s
+
+OK

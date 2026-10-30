@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import json
+import errno
 import mimetypes
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -85,11 +86,37 @@ def _json_bytes(payload):
     return json.dumps(payload, ensure_ascii=False, indent=2, default=str).encode("utf-8")
 
 
+def _peer_disconnected(exc):
+    return (isinstance(exc,(BrokenPipeError,ConnectionResetError,ConnectionAbortedError))
+            or getattr(exc,'winerror',None) in (10053,10054)
+            or exc.errno in (errno.EPIPE,errno.ECONNRESET,errno.ECONNABORTED))
+
+
 def make_handler(app):
     class Handler(BaseHTTPRequestHandler):
         server_version = "IndustrialModelService/1.0"
 
+        def handle(self):
+            try:
+                super().handle()
+            except OSError as exc:
+                if not _peer_disconnected(exc):
+                    raise
+                self.close_connection=True
+
         def _send(self, status, content_type, data):
+            try:
+                self._write_response(status,content_type,data)
+            except OSError as exc:
+                # A timed-out/closed client cannot receive another 500 response.
+                # Ignore only known peer-disconnect errors, not application or
+                # filesystem failures. Do not retry or alter a computed result.
+                if _peer_disconnected(exc):
+                    self.close_connection=True
+                    return
+                raise
+
+        def _write_response(self, status, content_type, data):
             self.send_response(int(status))
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))

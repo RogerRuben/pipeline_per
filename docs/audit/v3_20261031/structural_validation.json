@@ -1,0 +1,7 @@
+{
+  "status": "pass",
+  "checks_passed": 174,
+  "errors": [],
+  "python": "3.12.8",
+  "scope": "V3-validation structural/provenance checks only; no inference, browser, EXE or Win7 acceptance"
+}

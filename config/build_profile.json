@@ -1,6 +1,6 @@
 {
   "schema_version": "pipeline-build-profile-1.0",
-  "stage": "P1-2",
+  "stage": "V3-validation",
   "price_engine": "optuna_v3",
   "input": "input/products.xlsx",
   "runtime_prediction": "http_price_service_only",

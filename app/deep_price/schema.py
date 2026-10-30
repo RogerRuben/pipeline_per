@@ -29,6 +29,8 @@ def fields_for(snapshot, schema):
             raise DeepPriceError('unavailable', '业务/模型字段单位不一致：' + key, 503)
         kind = definition.get('value_type') or 'number'
         kind = {'float': 'number', 'bool': 'boolean', 'ip_grade': 'integer'}.get(kind, kind)
+        if kind=='number' and definition.get('search_type')=='integer':
+            kind='integer'
         if kind not in ('number', 'integer', 'enum', 'boolean', 'string'):
             raise DeepPriceError('unavailable', '未知业务字段类型：' + key, 503)
         group_label = definition.get('parameter_group') or '其他'
