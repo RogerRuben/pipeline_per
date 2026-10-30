@@ -1,0 +1,20 @@
+{
+  "source_sha": "aa41d5b3cbdb7d87a0d9d8aea815be72743b2898",
+  "classification": "synthetic",
+  "native_pickle": true,
+  "products": 160,
+  "fields": 60,
+  "integer_input_step": "1",
+  "integer_top10_point_count": 3,
+  "prediction_display": "17.5357",
+  "scenario_display": [
+    "17.5357",
+    "17.2628"
+  ],
+  "single_sensitivity": true,
+  "top10": true,
+  "scenario_and_csv_export": true,
+  "model_metrics_bound_to_sha": true,
+  "independent_business_accuracy_certified": false,
+  "notes": "CSV raw values were replayed to the price service; integer Schema and Top10 rechecked after final backend adaptation."
+}

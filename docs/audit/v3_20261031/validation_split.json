@@ -1,0 +1,12 @@
+{
+  "min_samples": 4,
+  "records": 160,
+  "requested_test_size": 0.2,
+  "effective_test_size": 0.2,
+  "requested_test_rows": 32,
+  "validation_rows": 32,
+  "training_rows": 128,
+  "adjusted": false,
+  "auto_adjust_test_size": true,
+  "tiny_sample_mode": false
+}

@@ -1,0 +1,60 @@
+{
+  "classification": "synthetic",
+  "formal_acceptance": false,
+  "source_sha": "aa41d5b3cbdb7d87a0d9d8aea815be72743b2898",
+  "model": {
+    "model_version": "user-optuna-v3-joint-pareto-2.0",
+    "model_count": 6,
+    "model_names": [
+      "lasso",
+      "ridge",
+      "expert_tree",
+      "extratrees",
+      "svr",
+      "gbdt"
+    ],
+    "backend": "native_pickle",
+    "exact_mode": true
+  },
+  "field_count": 36,
+  "top10": {
+    "compared_field_count": 36,
+    "sample_count": 305,
+    "batch_count": 4
+  },
+  "timings": {
+    "model_load": [
+      0.39
+    ],
+    "single": [
+      0.156,
+      0.172,
+      0.156,
+      0.125,
+      0.094
+    ],
+    "batch": [
+      0.296
+    ],
+    "scenario": [
+      0.313
+    ],
+    "top10": [
+      12.906
+    ]
+  },
+  "checks": {
+    "missing_input_response_status": 400,
+    "price_consistency_max_delta_wan": 0,
+    "records_compared": 5,
+    "read_only": true,
+    "model_identity": true,
+    "actual_service_restart_rejects_old_identity": true,
+    "actual_service_restart_fresh_prediction": true,
+    "actual_service_restart_recovery": true,
+    "unavailable_is_503": true,
+    "unavailable_recovery": true,
+    "original_artifacts_unchanged": true
+  },
+  "model_sha256": "b2ef0216c34d09419e79a73541494803e032926be4c9a97edbef2ad00be3a97d"
+}

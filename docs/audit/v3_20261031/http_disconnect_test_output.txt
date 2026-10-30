@@ -1,0 +1,10 @@
+test_application_exception_still_returns_500 (__main__.DisconnectTests) ... ok
+test_peer_reset_before_request_dispatch_is_quiet (__main__.DisconnectTests) ... ok
+test_posix_and_windows_disconnects_do_not_trigger_error_responses (__main__.DisconnectTests) ... ok
+test_unrelated_handler_errors_remain_visible (__main__.DisconnectTests) ... ok
+test_unrelated_io_errors_are_not_swallowed (__main__.DisconnectTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.004s
+
+OK

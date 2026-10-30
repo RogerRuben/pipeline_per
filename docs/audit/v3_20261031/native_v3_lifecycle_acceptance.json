@@ -1,0 +1,1149 @@
+{
+  "classification": "synthetic",
+  "formal_acceptance": false,
+  "source_sha": "aa41d5b3cbdb7d87a0d9d8aea815be72743b2898",
+  "product_source_sha256": "8094b76bf68c85dc44f87cd0fc27886711ad8175555fbd072599b9e8da5f5e2b",
+  "model_sha256": "260f18f43e82dbf3b3670e486a4ba6fa3884713015c517f279930ea5c7ea3dab",
+  "environment": {
+    "python": "3.8.10",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "numpy": "1.19.5",
+    "scikit_learn": "0.24.2",
+    "xgboost": null,
+    "joblib": "1.0.1"
+  },
+  "host": "Windows-10-10.0.26200-SP0",
+  "win7_validated": false,
+  "virtual_data_declared": true,
+  "checks": {
+    "missing_input_response_status": 400,
+    "price_consistency_max_delta_wan": 0,
+    "records_compared": 5,
+    "read_only": true,
+    "model_identity": true,
+    "actual_service_restart_rejects_old_identity": true,
+    "actual_service_restart_fresh_prediction": true,
+    "actual_service_restart_recovery": true,
+    "actual_model_replacement_rejects_old_identity": true,
+    "actual_model_replacement_fresh_prediction": true,
+    "actual_model_replacement_recovery": true,
+    "v3_cross_batch_replacement_rejected": true,
+    "unavailable_is_503": true,
+    "unavailable_recovery": true,
+    "original_artifacts_unchanged": true
+  },
+  "timings": {
+    "model_load": [
+      0.328
+    ],
+    "single": [
+      0.094,
+      0.094,
+      0.094,
+      0.125,
+      0.109
+    ],
+    "batch": [
+      0.14
+    ],
+    "scenario": [
+      0.125
+    ],
+    "top10": [
+      4.5,
+      4.578,
+      4.438
+    ]
+  },
+  "model": {
+    "model_version": "user-optuna-v3-joint-pareto-2.0",
+    "model_count": 2,
+    "model_names": [
+      "lasso",
+      "ridge"
+    ],
+    "backend": "native_pickle",
+    "exact_mode": true
+  },
+  "runtime_workspace_contains_training_products": false,
+  "field_count": 60,
+  "top10": {
+    "compared_field_count": 60,
+    "sample_count": 350,
+    "batch_count": 4
+  },
+  "metadata": {
+    "backend": "native_pickle",
+    "published_at": "2026-10-31 01:18:30",
+    "fixture": true,
+    "metrics": {
+      "evaluation_scope": "searched_split_development",
+      "selected_training_metrics": {
+        "mape_percent": 0.9117698068257432,
+        "r2": 0.9942884477251925,
+        "rows": 128,
+        "status": "ok"
+      },
+      "full_refit_training_metrics": {
+        "mape_percent": 0.9484680286108373,
+        "r2": 0.99446085098781,
+        "rows": 160,
+        "status": "ok"
+      },
+      "deployed_training_metrics": {
+        "mape_percent": 0.9484680286108373,
+        "r2": 0.99446085098781,
+        "rows": 160,
+        "status": "ok"
+      },
+      "validation_metrics": {
+        "r2": 0.9919905092877622,
+        "mape": 0.01495940902620101,
+        "mae": 0.21253386001164337,
+        "rmse": 0.24424763363847918
+      },
+      "validation_protocol": "joint_searched_split",
+      "deployment_scope": "full_data",
+      "business_accuracy_certified": false,
+      "training_rows": 160,
+      "feature_count": 60,
+      "member_count": 2,
+      "trials_completed": 40,
+      "trials_requested": 40
+    },
+    "feature_importance": null,
+    "expert_scores": [
+      {
+        "field_id": "numeric_00",
+        "label": "连续参数00",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_01",
+        "label": "连续参数01",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_02",
+        "label": "连续参数02",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_03",
+        "label": "连续参数03",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_04",
+        "label": "连续参数04",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_05",
+        "label": "连续参数05",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_06",
+        "label": "连续参数06",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_07",
+        "label": "连续参数07",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_08",
+        "label": "连续参数08",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_09",
+        "label": "连续参数09",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_10",
+        "label": "连续参数10",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_11",
+        "label": "连续参数11",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_12",
+        "label": "连续参数12",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_13",
+        "label": "连续参数13",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_14",
+        "label": "连续参数14",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_15",
+        "label": "连续参数15",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_16",
+        "label": "连续参数16",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_17",
+        "label": "连续参数17",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_18",
+        "label": "连续参数18",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_19",
+        "label": "连续参数19",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_20",
+        "label": "连续参数20",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_21",
+        "label": "连续参数21",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_22",
+        "label": "连续参数22",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "numeric_23",
+        "label": "连续参数23",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_00",
+        "label": "部件数量00",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_01",
+        "label": "部件数量01",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_02",
+        "label": "部件数量02",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_03",
+        "label": "部件数量03",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_04",
+        "label": "部件数量04",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_05",
+        "label": "部件数量05",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_06",
+        "label": "部件数量06",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_07",
+        "label": "部件数量07",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_08",
+        "label": "部件数量08",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_09",
+        "label": "部件数量09",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_10",
+        "label": "部件数量10",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "integer_11",
+        "label": "部件数量11",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_00",
+        "label": "是否配置功能00",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_01",
+        "label": "是否配置功能01",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_02",
+        "label": "是否配置功能02",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_03",
+        "label": "是否配置功能03",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_04",
+        "label": "是否配置功能04",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_05",
+        "label": "是否配置功能05",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_06",
+        "label": "是否配置功能06",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_07",
+        "label": "是否配置功能07",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_08",
+        "label": "是否配置功能08",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "flag_09",
+        "label": "是否配置功能09",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_00",
+        "label": "部件配置00",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_01",
+        "label": "部件配置01",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_02",
+        "label": "部件配置02",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_03",
+        "label": "部件配置03",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_04",
+        "label": "部件配置04",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_05",
+        "label": "部件配置05",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_06",
+        "label": "部件配置06",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "category_07",
+        "label": "部件配置07",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "optional_00",
+        "label": "可选性能00",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "optional_01",
+        "label": "可选性能01",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "optional_02",
+        "label": "可选性能02",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "optional_03",
+        "label": "可选性能03",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "optional_04",
+        "label": "可选性能04",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      },
+      {
+        "field_id": "optional_05",
+        "label": "可选性能05",
+        "score": 1.0,
+        "specified": false,
+        "enabled": true,
+        "used_in_training": true,
+        "exclusion_reason": "",
+        "score_source": "default",
+        "default_score": 1.0,
+        "model_multipliers": {
+          "lasso": 0.5,
+          "ridge": 0.3,
+          "svr": 0.5
+        },
+        "multiplier_display": "稀疏 0.500；岭回归 0.300；支持向量 0.500"
+      }
+    ],
+    "source": "bound_training_report",
+    "evaluation_metadata_sha256": "9d4d3261dd153cfb945d7c2d23817b610304dcb025c9d9815cc41c1c5a861941",
+    "training_report_sha256": "2ab93c6d2893fd575027de48fdddf39004177d41be9b2a7f8a99b0dc1982956d",
+    "model_names": [
+      "lasso",
+      "ridge"
+    ]
+  },
+  "replacement_model_sha256": "37df47be3e870494a3b6cb342b5b49c7446dd886cb23706e15a41ded243da472",
+  "status": "pass",
+  "formal_model_api_checks_passed": false,
+  "acceptance_scope": "Programmatic consistency and inference timing only; browser/target-Win7/business-accuracy acceptance remain independent."
+}

@@ -1,0 +1,11 @@
+{
+  "classification": "synthetic",
+  "seed": 20261031,
+  "rows": 160,
+  "attributes": 60,
+  "source_sha256": "8094b76bf68c85dc44f87cd0fc27886711ad8175555fbd072599b9e8da5f5e2b",
+  "engine": "optuna_v3",
+  "profile": "existing quick40; 600s cap; no algorithm changes",
+  "training_missing_policy": "complete numeric training inputs required by unchanged V3; missing values tested as API negative cases",
+  "accuracy_scope": "software acceptance only, not real business certification"
+}

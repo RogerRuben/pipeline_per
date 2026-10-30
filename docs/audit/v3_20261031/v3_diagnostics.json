@@ -1,0 +1,15 @@
+{
+  "valid_trials": 40,
+  "failed_trials": 0,
+  "cache_statistics": {
+    "model_fits": 169,
+    "prediction_cache_hits": 6,
+    "prediction_cache_misses": 169,
+    "cached_entries_peak": 169,
+    "split_cache_hits": 14,
+    "cache_fallbacks": 0
+  },
+  "sampler_fallback_count": 0,
+  "sampler_fallbacks": [],
+  "failures": []
+}

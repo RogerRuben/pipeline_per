@@ -1,0 +1,8 @@
+test_bound_report_preserves_actual_metric_names_and_scope (__main__.MetadataTests) ... ok
+test_missing_provenance_is_rejected (__main__.MetadataTests) ... ok
+test_wrong_model_binding_is_rejected (__main__.MetadataTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.019s
+
+OK
