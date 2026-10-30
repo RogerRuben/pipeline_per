@@ -168,7 +168,10 @@ def sample_values(field,base,count):
         raise DeepPriceError('invalid_input','当前数值不在业务合法范围')
     if field['type']=='integer':
         lo,hi = math.ceil(lo),math.floor(hi)
-    values = [lo+(hi-lo)*i/(count-1) for i in range(count)]
+    # Decimal business bounds can overshoot by one ULP when reconstructing the
+    # endpoint (e.g. 3.8000000000000003). Keep generated points inside the exact
+    # published interval rather than loosening input validation globally.
+    values = [min(hi,max(lo,lo+(hi-lo)*i/(count-1))) for i in range(count)]
     if field['type']=='integer':
         values = list(dict.fromkeys(round(v) for v in values))
     return values

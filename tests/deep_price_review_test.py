@@ -14,6 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 import deep_price_comprehensive_test as fixtures
 from app.deep_price.analysis import DeepPriceAnalysis, Deadline
+from app.deep_price.features import sample_values
 
 
 class WeightedFixture:
@@ -28,6 +29,15 @@ class ReviewTests(unittest.TestCase):
     request=fixtures.ComprehensiveTests.request
     get_schema=fixtures.ComprehensiveTests.get_schema
     predict=fixtures.ComprehensiveTests.predict
+
+    def test_decimal_sampling_never_overshoots_business_bounds(self):
+        import random
+        rng=random.Random(20261031)
+        for _ in range(500):
+            lo=rng.uniform(-100,100);hi=lo+rng.uniform(.001,50);base=(lo+hi)/2
+            field={'type':'number','minimum':lo,'maximum':hi,'allowed_values':[]}
+            values=sample_values(field,base,21)
+            self.assertTrue(all(lo<=v<=hi for v in values))
 
     def wide_model(self,count):
         fields=['f%d'%i for i in range(count)]

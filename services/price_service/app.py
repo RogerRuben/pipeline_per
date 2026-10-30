@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import uuid
 from pathlib import Path
@@ -25,7 +26,7 @@ class PriceService(ServiceApplication):
     service_name = "price-prediction-service"
     service_version = "1.0.1"
 
-    def __init__(self, model_path=None, fallback_json=None, allow_degraded=False, allow_model_fallback=False):
+    def __init__(self, model_path=None, fallback_json=None, allow_degraded=False, allow_model_fallback=False, evaluation_metadata=None):
         self.model_path = Path(model_path).resolve() if model_path else None
         self.fallback_json = Path(fallback_json).resolve() if fallback_json else None
         self.allow_degraded = bool(allow_degraded)
@@ -36,6 +37,18 @@ class PriceService(ServiceApplication):
         self.model_sha256 = None
         self.model_instance_id = uuid.uuid4().hex
         self._load()
+        self.evaluation_metadata=None
+        self.evaluation_metadata_sha256=None
+        if evaluation_metadata:
+            content=Path(evaluation_metadata).read_bytes()
+            metadata=json.loads(content.decode('utf-8-sig'))
+            if metadata.get('schema_version')!='price-model-evaluation-metadata-1.0' or metadata.get('price_model_sha256')!=self.model_sha256:
+                raise ValueError('模型评价元数据未绑定当前模型SHA，拒绝加载')
+            if not isinstance(metadata.get('metrics'),dict) or not isinstance(metadata.get('source_training_report_sha256'),str) or not re.fullmatch('[0-9a-f]{64}',metadata['source_training_report_sha256']):
+                raise ValueError('模型评价元数据缺少真实训练报告来源')
+            json.dumps(metadata,allow_nan=False)
+            self.evaluation_metadata=metadata
+            self.evaluation_metadata_sha256=hashlib.sha256(content).hexdigest()
 
     def _load(self):
         if self.model_path and self.model_path.is_file():
@@ -78,7 +91,7 @@ class PriceService(ServiceApplication):
                 "load_warning": self.load_error,
                 "automl_explanation": self.bundle.get("automl_explanation"),
                 "analysis_metadata": self.analysis_metadata(),
-                "virtual_fixture": bool(self.bundle.get("virtual_fixture")),
+                "virtual_fixture": bool(self.bundle.get("virtual_fixture")) or bool(self.evaluation_metadata and self.evaluation_metadata.get('data_classification')=='synthetic'),
             }
         fields = []
         for item in self.bundle.raw_contract:
@@ -103,9 +116,16 @@ class PriceService(ServiceApplication):
                    ('training_metrics','development_metrics','holdout_metrics','test_metrics','reference_metrics','evaluation_scope')
                    if raw.get(key, explanation.get(key)) is not None}
         importance = raw.get('feature_importance', explanation.get('feature_importance'))
+        if self.evaluation_metadata:
+            # Keep report key names/scopes; never rename selected validation
+            # scores to independent test results or invent feature importance.
+            metrics.update(self.evaluation_metadata['metrics'])
         return {'metrics': metrics, 'feature_importance': importance,
                 'expert_scores': explanation.get('price_attribute_scores'),
-                'source': 'loaded_price_model', 'model_names': self.schema_model_names()}
+                'source': 'bound_training_report' if self.evaluation_metadata else 'loaded_price_model',
+                'evaluation_metadata_sha256':self.evaluation_metadata_sha256,
+                'training_report_sha256':self.evaluation_metadata.get('source_training_report_sha256') if self.evaluation_metadata else None,
+                'model_names': self.schema_model_names()}
 
     def schema_model_names(self):
         return active_model_names(self.bundle) if self.backend == 'native_pickle' else []
@@ -325,10 +345,11 @@ def main():
     parser.add_argument("--fallback-json", default=os.environ.get("PRICE_JSON_BUNDLE", str(ROOT / "models" / "price_bundle.json")))
     parser.add_argument("--allow-degraded", action="store_true", default=str(os.environ.get("PRICE_ALLOW_DEGRADED", "0")).lower() in ("1", "true", "yes"))
     parser.add_argument("--allow-model-fallback", action="store_true", default=str(os.environ.get("PRICE_ALLOW_MODEL_FALLBACK", "0")).lower() in ("1", "true", "yes"))
+    parser.add_argument('--evaluation-metadata',default=None,help='已绑定模型SHA的训练评价JSON，不修改模型权重')
     args = parser.parse_args()
     model = args.model if Path(args.model).is_file() else None
     fallback = args.fallback_json if Path(args.fallback_json).is_file() else None
-    run_service(PriceService(model, fallback, args.allow_degraded, args.allow_model_fallback), args.host, args.port)
+    run_service(PriceService(model, fallback, args.allow_degraded, args.allow_model_fallback,evaluation_metadata=args.evaluation_metadata), args.host, args.port)
 
 
 if __name__ == "__main__":
