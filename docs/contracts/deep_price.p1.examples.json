@@ -1,0 +1,34 @@
+{
+  "note": "Documentation-only synthetic values. Clients must use fresh server-issued identity from schema.",
+  "predict_request": {
+    "product_code": "BUSINESS",
+    "release_id": "REL-1",
+    "model_version": "fixture-v1",
+    "price_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_instance_id": "fixture-instance",
+    "business_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "price_output_signature": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "parameters": {
+      "size": 5,
+      "kind": "经济"
+    }
+  },
+  "predict_response": {
+    "product_code": "BUSINESS",
+    "release_id": "REL-1",
+    "model_version": "fixture-v1",
+    "price_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_instance_id": "fixture-instance",
+    "business_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "price_output_signature": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "price_unit": "万元",
+    "request_id": "DEEP-fixture",
+    "success": true,
+    "pricing_mode": "ml",
+    "predicted_price_wan": 50,
+    "business_parameters": {
+      "size": 5,
+      "kind": "经济"
+    }
+  }
+}

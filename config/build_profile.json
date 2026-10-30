@@ -1,6 +1,6 @@
 {
   "schema_version": "pipeline-build-profile-1.0",
-  "stage": "P0",
+  "stage": "P1-1",
   "price_engine": "optuna_v3",
   "input": "input/products.xlsx",
   "runtime_prediction": "http_price_service_only",
@@ -12,5 +12,6 @@
   "mixed_adjustment": "unsupported",
   "packaging": "onedir",
   "userdata_policy": "external_persistent",
-  "source_commit": "e6bd67b8efb415af6a5faea1f7bc1af977a25021"
+  "source_commit": "e6bd67b8efb415af6a5faea1f7bc1af977a25021",
+  "deep_price_api_enabled": true
 }

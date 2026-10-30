@@ -40,6 +40,7 @@ from .requirement_versions import RequirementVersionService, demand_fingerprint
 from .generation_profiles import public_profiles
 from .ranking_explanation import annotate_ranking_explanations
 from .relaxation_advisor import build_relaxation_suggestions
+from .deep_price.http import handle_http as handle_deep_price_http
 
 
 class GeneratedSessions(object):
@@ -2396,6 +2397,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store, no-cache, must-revalidate"); self.send_header("Pragma","no-cache"); self.end_headers(); self.wfile.write(data)
 
     def do_GET(self):
+        if handle_deep_price_http(self, 'GET'):
+            return
         parsed = urlparse(self.path); path, query = parsed.path, parse_qs(parsed.query)
         try:
             if path in ("/login", "/login.html") and self.app.auth_enabled and self._is_authenticated():
@@ -2472,6 +2475,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc: traceback.print_exc(); self._json({"error":type(exc).__name__,"message":str(exc)},500)
 
     def do_POST(self):
+        if handle_deep_price_http(self, 'POST'):
+            return
         path = urlparse(self.path).path
         try:
             request = self._body()

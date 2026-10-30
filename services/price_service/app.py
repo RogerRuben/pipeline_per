@@ -2,9 +2,11 @@
 from __future__ import print_function
 
 import argparse
+import hashlib
 import json
 import os
 import sys
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,7 +16,7 @@ if str(ROOT) not in sys.path:
 from services.common.http_service import ServiceApplication, JsonServiceError, run_service
 from services.price_service.native_bundle import (
     load_bundle, predict as native_predict, predict_batch as native_predict_batch,
-    file_sha256, active_model_names,
+    active_model_names,
     prepare_vector,
 )
 
@@ -31,12 +33,16 @@ class PriceService(ServiceApplication):
         self.backend = None
         self.bundle = None
         self.load_error = None
+        self.model_sha256 = None
+        self.model_instance_id = uuid.uuid4().hex
         self._load()
 
     def _load(self):
         if self.model_path and self.model_path.is_file():
             try:
-                self.bundle = load_bundle(self.model_path)
+                raw = self.model_path.read_bytes()
+                self.bundle = load_bundle(self.model_path, bundle_bytes=raw)
+                self.model_sha256 = hashlib.sha256(raw).hexdigest()
                 self.backend = "native_pickle"
                 return
             except Exception as exc:
@@ -45,12 +51,14 @@ class PriceService(ServiceApplication):
                     raise RuntimeError("原生价格模型存在但加载失败，禁止静默切换模型: %s" % exc)
         if self.fallback_json and self.fallback_json.is_file():
             from app.model_runtime import PriceBundleV4, PriceBundle
-            raw = json.loads(self.fallback_json.read_text(encoding="utf-8"))
+            content = self.fallback_json.read_bytes()
+            raw = json.loads(content.decode("utf-8"))
             if str(raw.get("recommendation_contract_version") or "") == "4.0":
                 self.bundle = PriceBundleV4(raw, self.fallback_json)
             else:
                 self.bundle = PriceBundle(raw, self.fallback_json)
             self.backend = "portable_json"
+            self.model_sha256 = hashlib.sha256(content).hexdigest()
             return
         raise RuntimeError("未找到可加载的价格模型。请配置price_native_bundle.pkl或price_bundle.json")
 
@@ -92,7 +100,8 @@ class PriceService(ServiceApplication):
             "model_version": self.schema().get("model_version"),
             "product_code": self.schema().get("product_code"),
             "model_path": str(self.model_path or self.fallback_json or ""),
-            "model_sha256": file_sha256(self.model_path) if self.model_path and self.model_path.is_file() else None,
+            "model_sha256": self.model_sha256,
+            "model_instance_id": self.model_instance_id,
             "load_warning": self.load_error,
             "exact_mode": self.backend == "native_pickle" and not self.allow_degraded,
             "model_count": self.schema().get("model_count"),
@@ -102,6 +111,7 @@ class PriceService(ServiceApplication):
         return data
 
     def _one(self, request):
+        self._check_identity(request)
         params = request.get("parameters") or request.get("params") or {}
         if self.backend == "native_pickle":
             result = native_predict(self.bundle, params, allow_degraded=self.allow_degraded)
@@ -133,6 +143,8 @@ class PriceService(ServiceApplication):
                 "warnings": ((result.get("input_status") or {}).get("warnings") or [str(x) for x in result.get("feature_anomalies", [])])+(['价格预测超出历史可信区域'] if (result.get('price_risk') or {}).get('is_extrapolation') else []),
             },
             "model": {
+                "model_sha256": self.model_sha256,
+                "model_instance_id": self.model_instance_id,
                 "service_version": self.service_version,
                 "model_version": self.schema().get("model_version"),
                 "product_code": self.schema().get("product_code"),
@@ -202,7 +214,20 @@ class PriceService(ServiceApplication):
             output["configuration_details"] = details
         return output
 
+    def _check_identity(self, request):
+        for key, actual in (("expected_model_sha256", self.model_sha256),
+                            ("expected_model_instance_id", self.model_instance_id)):
+            if key in request and request[key] != actual:
+                raise JsonServiceError("价格模型实例已变化，请刷新后重试", 409, "version_conflict")
+
     def handle_post(self, path, payload):
+        try:
+            return self._handle_post(path, payload)
+        except ValueError as exc:
+            raise JsonServiceError(str(exc), 400, "invalid_input")
+
+    def _handle_post(self, path, payload):
+        self._check_identity(payload)
         if path == "/api/v1/predict":
             return self._one(payload)
         if path == "/api/v1/predict/batch":
