@@ -1,0 +1,38 @@
+test_50_and_60_fields_complete_all_samples_in_bounded_http_batches (__main__.ReviewTests) ... ok
+test_business_change_and_restore_between_batches_is_not_missed (__main__.ReviewTests) ... ok
+test_legacy_unscoped_or_inconsistent_price_basis_rule_fails_closed (__main__.ReviewTests) ... ok
+test_model_replacement_in_later_batch_rejects_entire_analysis (__main__.ReviewTests) ... ok
+test_product_model_hash_and_normalization_scope_must_match (__main__.ReviewTests) ... ok
+test_timeout_budget_is_shared_across_chunks (__main__.ReviewTests) ... ----------------------------------------
+Exception happened during processing of request from ('127.0.0.1', 53476)
+Traceback (most recent call last):
+  File "D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\services\common\http_service.py", line 126, in do_POST
+    self._send(200, "application/json; charset=utf-8", _json_bytes(result))
+  File "D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\services\common\http_service.py", line 101, in _send
+    self.wfile.write(data)
+  File "socketserver.py", line 826, in write
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "socketserver.py", line 683, in process_request_thread
+  File "socketserver.py", line 360, in finish_request
+  File "socketserver.py", line 747, in __init__
+  File "http\server.py", line 427, in handle
+  File "http\server.py", line 415, in handle_one_request
+  File "D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\services\common\http_service.py", line 130, in do_POST
+    self._send(500, "application/json; charset=utf-8", _json_bytes({"success": False, "error": "internal_error", "message": str(exc), "trace": traceback.format_exc()}))
+  File "D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\services\common\http_service.py", line 100, in _send
+    self.end_headers()
+  File "http\server.py", line 529, in end_headers
+  File "http\server.py", line 533, in flush_headers
+  File "socketserver.py", line 826, in write
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+----------------------------------------
+ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 8.871s
+
+OK

@@ -1,0 +1,35 @@
+{
+  "source_sha": "c420fc76d7858308d2880dfd97b833e7aaeededa",
+  "virtual_fixture": true,
+  "predict_delay_seconds": 4,
+  "requestPending": true,
+  "duringRace": {
+    "exportDisabled": true,
+    "focused": "field_stroke_mm",
+    "price": "—",
+    "status": "输入已变化，正在进行的旧计算结果将被丢弃，请重新计算。",
+    "value": "180"
+  },
+  "afterRace": {
+    "exportDisabled": true,
+    "exportOptions": 1,
+    "focused": "field_stroke_mm",
+    "predictEnabled": true,
+    "price": "—",
+    "status": "输入已变化，正在进行的旧计算结果将被丢弃，请重新计算。",
+    "value": "180"
+  },
+  "recalculated": {
+    "exportEnabled": true,
+    "price": "20.9329",
+    "status": "预测完成，价格来自统一服务。",
+    "value": "180"
+  },
+  "assertions": {
+    "typing_while_pending": true,
+    "no_blur_before_old_response": true,
+    "old_response_did_not_fill_price": true,
+    "old_response_did_not_enable_export": true,
+    "new_input_recalculated": true
+  }
+}
