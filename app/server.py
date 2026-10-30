@@ -2390,6 +2390,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/admin","/admin/"): rel = "admin.html"
         elif path in ("/effectiveness", "/effectiveness/"): rel = "effectiveness.html"
         elif path in ("/price", "/price/"): rel = "price.html"
+        elif path in ("/price/deep", "/price/deep/"): rel = "deep_price/index.html"
         else: rel = "index.html" if path in ("", "/") else unquote(path.lstrip("/"))
         target = (self.app.static_dir / rel).resolve()
         if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return

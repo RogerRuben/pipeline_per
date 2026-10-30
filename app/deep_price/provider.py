@@ -50,7 +50,8 @@ class BusinessSnapshot:
             for row in self.conn.execute("SELECT * FROM agreements WHERE enabled=1 AND product_code=? "
                                          "AND agreement_source IN ('historical','imported') ORDER BY agreement_id", (self.product_code,)):
                 self.products.append({'product_id': row['agreement_id'], 'name': row['agreement_name'],
-                                      'parameters': json.loads(row['params_json'])})
+                                      'parameters': json.loads(row['params_json']),
+                                      'historical_price_wan': row['historical_price_wan'] if 'historical_price_wan' in row.keys() else None})
             self.codec = _SnapshotCodec(self.conn)
             # Keep the read transaction through parameter encoding, then release
             # it before HTTP. Retain this connection for data_version detection.
