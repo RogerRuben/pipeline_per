@@ -1,0 +1,91 @@
+{
+  "product_code": "SERVO_CYLINDER_DEMO",
+  "release_id": "REL-80C0B223CE",
+  "model_version": "price-json-20260726-v18064013",
+  "price_model_sha256": "fd948b6d373994e2c0d6c19758a85445f8dfb58101b793dd83f9a5549b630f83",
+  "price_unit": "万元",
+  "business_snapshot_sha256": "183a13a3e6bf588c877ed829fa3a6f45819ad719bede8ad2be00ac0c41767fba",
+  "price_output_signature": "123dc0c18d46e43d34ada9a9be1f29f9bcf8628769129f76849a405660042f98",
+  "model_instance_id": "460425a9a59f4f8dabbee39fca571159",
+  "request_id": "DEEP-a301c169c9de40c59c0ce30b46e5e60f",
+  "success": true,
+  "items": [
+    {
+      "item_id": "scenario-1",
+      "result": {
+        "product_code": "SERVO_CYLINDER_DEMO",
+        "release_id": "REL-80C0B223CE",
+        "model_version": "price-json-20260726-v18064013",
+        "price_model_sha256": "fd948b6d373994e2c0d6c19758a85445f8dfb58101b793dd83f9a5549b630f83",
+        "price_unit": "万元",
+        "business_snapshot_sha256": "183a13a3e6bf588c877ed829fa3a6f45819ad719bede8ad2be00ac0c41767fba",
+        "price_output_signature": "123dc0c18d46e43d34ada9a9be1f29f9bcf8628769129f76849a405660042f98",
+        "model_instance_id": "460425a9a59f4f8dabbee39fca571159",
+        "request_id": "DEEP-a301c169c9de40c59c0ce30b46e5e60f",
+        "success": true,
+        "pricing_mode": "ml",
+        "predicted_price_wan": 20.8959,
+        "business_parameters": {
+          "stroke_mm": 200,
+          "rated_thrust_n": 16249.4763,
+          "peak_thrust_n": 23846.7183,
+          "speed_mm_s": 62.3334,
+          "accuracy_mm": 0.62471,
+          "response_time_ms": 171.7861,
+          "temp_low_c": -32.1336,
+          "temp_high_c": 98.1261,
+          "duty_cycle_pct": 63.2494,
+          "mass_kg": 16.8898,
+          "salt_spray_h": 240,
+          "protection_grade": 67,
+          "manual_emergency": 1,
+          "self_lock": 1,
+          "position_feedback": 1,
+          "overload_protection": 1,
+          "self_diagnosis": 0
+        }
+      },
+      "label": "方案 1"
+    },
+    {
+      "item_id": "scenario-2",
+      "result": {
+        "product_code": "SERVO_CYLINDER_DEMO",
+        "release_id": "REL-80C0B223CE",
+        "model_version": "price-json-20260726-v18064013",
+        "price_model_sha256": "fd948b6d373994e2c0d6c19758a85445f8dfb58101b793dd83f9a5549b630f83",
+        "price_unit": "万元",
+        "business_snapshot_sha256": "183a13a3e6bf588c877ed829fa3a6f45819ad719bede8ad2be00ac0c41767fba",
+        "price_output_signature": "123dc0c18d46e43d34ada9a9be1f29f9bcf8628769129f76849a405660042f98",
+        "model_instance_id": "460425a9a59f4f8dabbee39fca571159",
+        "request_id": "DEEP-a301c169c9de40c59c0ce30b46e5e60f",
+        "success": true,
+        "pricing_mode": "ml",
+        "predicted_price_wan": 20.5219,
+        "business_parameters": {
+          "stroke_mm": 180,
+          "rated_thrust_n": 15000,
+          "peak_thrust_n": 23846.7183,
+          "speed_mm_s": 62.3334,
+          "accuracy_mm": 0.62471,
+          "response_time_ms": 171.7861,
+          "temp_low_c": -32.1336,
+          "temp_high_c": 98.1261,
+          "duty_cycle_pct": 63.2494,
+          "mass_kg": 16.8898,
+          "salt_spray_h": 240,
+          "protection_grade": 67,
+          "manual_emergency": 1,
+          "self_lock": 1,
+          "position_feedback": 1,
+          "overload_protection": 1,
+          "self_diagnosis": 0
+        }
+      },
+      "label": "方案 2"
+    }
+  ],
+  "result_id": "qHpnQQwANh3mj2uWcLGvFOZleJUx4x4x",
+  "result_kind": "/scenario",
+  "result_ttl_seconds": 1800
+}

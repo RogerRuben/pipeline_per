@@ -14,3 +14,6 @@
 *.jpg binary
 *.ico binary
 *.db binary
+
+# Preserve the exact browser-downloaded acceptance CSV bytes.
+docs/audit/p1_2/browser-scenario-export.csv -text

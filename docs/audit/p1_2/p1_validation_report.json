@@ -1,0 +1,57 @@
+{
+  "time_utc": "2026-10-30T15:03:19.554489+00:00",
+  "source_sha": "188a15d3b83630b67d4a291b8c543d70e02f5657",
+  "source_tree_sha256": "136cb278360b545cd4d03ef64d67d19187ae815c9fe5c56c60f4e3ad0b9ea872",
+  "environment": {
+    "python": "3.8.10 (tags/v3.8.10:3d8993a, May  3 2021, 11:48:03) [MSC v.1928 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "packages": {
+      "optuna": "3.6.0",
+      "numpy": "1.19.5",
+      "scipy": "1.5.4",
+      "scikit-learn": "0.24.2"
+    }
+  },
+  "model": "trusted generated LinearFixture + existing virtual portable JSON, not formal V3",
+  "win7_validated": false,
+  "checks": [
+    {
+      "command": "python tests/deep_price_comprehensive_test.py",
+      "status": "pass",
+      "exit_code": 0,
+      "tests_count": 20
+    },
+    {
+      "command": "python tests/portable_compatibility_test.py",
+      "status": "pass",
+      "exit_code": 0,
+      "tests_count": 18
+    },
+    {
+      "command": "python tests/price_dynamic_model_hotfix_test.py",
+      "status": "pass",
+      "exit_code": 0
+    },
+    {
+      "command": "python tests/v21_workflow_portal_workbench_test.py",
+      "status": "pass",
+      "exit_code": 0
+    },
+    {
+      "command": "python tests/full_pipeline_test.py",
+      "status": "pass",
+      "exit_code": 0
+    }
+  ],
+  "status": "pass",
+  "fixture_identity": {
+    "native_fixture": {
+      "model_version": "fixture-v1",
+      "sha256": "d717cfb77fb15f374dfa866775faf3dee712aa42edbc7a9925a657c757035686",
+      "price_unit": "万元",
+      "normalized_price": 50.0
+    },
+    "portable_virtual_sha256": "fd948b6d373994e2c0d6c19758a85445f8dfb58101b793dd83f9a5549b630f83",
+    "formal_v3": false
+  }
+}

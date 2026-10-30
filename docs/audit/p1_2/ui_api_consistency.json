@@ -1,0 +1,26 @@
+{
+  "source_sha": "8ebe6c2e04e9e19385e5614bd019a3555ab08bb0",
+  "model_version": "price-json-20260726-v18064013",
+  "model_sha256": "fd948b6d373994e2c0d6c19758a85445f8dfb58101b793dd83f9a5549b630f83",
+  "price_unit": "万元",
+  "virtual_fixture": true,
+  "tolerance": 1e-08,
+  "checks": [
+    {
+      "scenario": 1,
+      "page_and_export_price_wan": 20.8959,
+      "recommendation_wire_price_wan": 20.8959,
+      "stroke_mm": 200.0,
+      "rated_thrust_n": 16249.4763,
+      "equal": true
+    },
+    {
+      "scenario": 2,
+      "page_and_export_price_wan": 20.5219,
+      "recommendation_wire_price_wan": 20.5219,
+      "stroke_mm": 180.0,
+      "rated_thrust_n": 15000.0,
+      "equal": true
+    }
+  ]
+}
