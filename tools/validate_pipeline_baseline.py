@@ -28,7 +28,7 @@ def main():
     api = read('docs/contracts/deep_price.openapi.json')
     check(profile['price_engine'] == 'optuna_v3', 'explicit Optuna V3 profile')
     check(profile['runtime_prediction'] == 'http_price_service_only', 'HTTP-only analysis prediction policy')
-    check(profile['stage'] in ('P0', 'P1-1') and not profile['deep_price_enabled'], 'UI integration remains disabled until P1-2')
+    check(profile['stage'] in ('P0', 'P1-1', 'P1-2') and profile['deep_price_enabled'] == (profile['stage']=='P1-2'), 'UI capability matches implemented stage')
     check(profile['mixed_adjustment'] == 'unsupported', 'mixed pricing disabled')
     check(profile['userdata_policy'] == 'external_persistent', 'persistent data separate from distribution')
     check(profile['source_commit'] == baseline['commit'], 'profile source commit matches baseline')
@@ -77,9 +77,11 @@ def main():
     # loaded-model identity metadata, and the reproduced startup defect fix.
     proc = subprocess.run(['git', 'diff', '--name-only', baseline['commit'], '--', 'app', 'automl_pipeline', 'services'], cwd=str(ROOT), capture_output=True, text=True)
     allowed = {'app/server.py', 'app/model_service_client.py', 'app/data_master.py',
-               'services/price_service/app.py', 'services/price_service/native_bundle.py'} if profile['stage'] == 'P1-1' else set()
+               'services/price_service/app.py', 'services/price_service/native_bundle.py'} if profile['stage'] in ('P1-1','P1-2') else set()
+    if profile['stage']=='P1-2':
+        allowed.update({'app/configuration.py','app/generation_tasks.py'})
     changed = proc.stdout.splitlines()
-    check(proc.returncode == 0 and all(p in allowed or (profile['stage'] == 'P1-1' and p.startswith('app/deep_price/')) for p in changed), 'source changes limited to documented stage scope')
+    check(proc.returncode == 0 and all(p in allowed or (profile['stage'] in ('P1-1','P1-2') and p.startswith('app/deep_price/')) or (profile['stage']=='P1-2' and p.startswith('app/static/deep_price/')) for p in changed), 'source changes limited to documented stage scope')
     report = {'status': 'pass' if not errors else 'fail', 'checks_passed': len(checks), 'errors': errors, 'python': sys.version.split()[0], 'scope': profile['stage'] + ' structural/provenance checks only; no inference, browser, EXE or Win7 acceptance'}
     print(json.dumps(report, ensure_ascii=True, indent=2))
     return 1 if errors else 0

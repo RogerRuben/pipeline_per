@@ -1,11 +1,11 @@
 {
   "schema_version": "pipeline-build-profile-1.0",
-  "stage": "P1-1",
+  "stage": "P1-2",
   "price_engine": "optuna_v3",
   "input": "input/products.xlsx",
   "runtime_prediction": "http_price_service_only",
   "price_unit": "万元",
-  "deep_price_enabled": false,
+  "deep_price_enabled": true,
   "effectiveness_backend": "trial_snapshot",
   "pump_v13_enabled": false,
   "llm_enabled": false,

@@ -31,12 +31,15 @@ def fields_for(snapshot, schema):
         kind = {'float': 'number', 'bool': 'boolean', 'ip_grade': 'integer'}.get(kind, kind)
         if kind not in ('number', 'integer', 'enum', 'boolean', 'string'):
             raise DeepPriceError('unavailable', '未知业务字段类型：' + key, 503)
-        group = {'功能': 'function', '性能': 'performance', '环境': 'environment'}.get(definition.get('parameter_group'), 'other')
+        group_label = definition.get('parameter_group') or '其他'
+        group = {'功能':'function','功能参数':'function','function':'function',
+                 '性能':'performance','性能参数':'performance','performance':'performance',
+                 '环境':'environment','环境参数':'environment','environment':'environment'}.get(group_label,'other')
         field = {'field_id': key, 'label_zh': definition['label'], 'unit': unit, 'type': kind,
                  'required': bool(spec.get('required', definition.get('required'))) if key in specs else False,
                  'allowed_values': parsed(definition.get('allowed_values_json'), []),
                  'model_value_mapping': parsed(definition.get('model_value_mapping_json'), {}),
-                 'group': group, 'price_model_input': key in specs, 'additive_rule_id': None}
+                 'group': group, 'group_label':group_label, 'price_model_input': key in specs, 'additive_rule_id': None}
         for source, target in [('min_value', 'minimum'), ('max_value', 'maximum')]:
             if definition.get(source) is not None:
                 field[target] = definition[source]

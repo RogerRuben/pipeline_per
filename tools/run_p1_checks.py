@@ -18,8 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def source_fingerprint():
     h = hashlib.sha256()
     files = []
-    for directory in ('app', 'services', 'tests'):
-        files.extend((ROOT/directory).rglob('*.py'))
+    tracked = subprocess.check_output(['git','ls-files','-z','--','app','services','tests','config','tools','run_app.py'],cwd=str(ROOT)).decode('utf-8').split('\0')
+    files = [ROOT/p for p in tracked if p and Path(p).suffix in ('.py','.js','.css','.html','.json')]
     for p in sorted(files):
         h.update(p.relative_to(ROOT).as_posix().encode('utf-8'))
         h.update(p.read_text(encoding='utf-8-sig').encode('utf-8'))
@@ -45,7 +45,8 @@ def main():
               'source_tree_sha256':source_fingerprint(), 'environment':json.loads(env.stdout),
               'model':'trusted generated LinearFixture + existing virtual portable JSON, not formal V3',
               'win7_validated':False, 'checks':[]}
-    for name in ('deep_price_contract_test.py','portable_compatibility_test.py','price_dynamic_model_hotfix_test.py'):
+    for name in ('deep_price_comprehensive_test.py','portable_compatibility_test.py','price_dynamic_model_hotfix_test.py',
+                 'v21_workflow_portal_workbench_test.py','full_pipeline_test.py'):
         program = 'import tempfile,runpy;tempfile.tempdir='+repr(str(temp))+';runpy.run_path('+repr(str(ROOT/'tests'/name))+",run_name='__main__')"
         result = subprocess.run([args.python,'-X','utf8','-c',program],cwd=str(ROOT),capture_output=True,text=True,encoding='utf-8',errors='replace')
         (logs/('p1_'+name+'.log')).write_text(result.stdout+result.stderr,encoding='utf-8')

@@ -216,14 +216,14 @@ def main():
         check("ordered_discrete" in app_js and "integer" in app_js and "unordered_enum" in app_js, "前端统一支持连续、整数、有序离散、无序枚举和布尔属性", report)
         check("showPriceAttributes" in index_html and "showPriceAttributes" in app_js, "价格专用属性默认折叠并可由用户展开", report)
         check("价格＋效能" in app_js and "效能" in app_js and "价格" in app_js, "方案编辑区标识共享、效能专用和价格专用属性", report)
-        check("parameter_roles" in bootstrap and "model_input_bindings" in bootstrap, "Bootstrap返回双模型字段角色和绑定", report)
+        check(bool(bootstrap.get("parameter_roles")) and "price" in bootstrap.get("model_manifest", {}), "Bootstrap返回当前双模型字段角色与服务模型契约（不依赖已退役的绑定表）", report)
 
         port = free_port(); server = create_server(root, "127.0.0.1", port)
         thread = threading.Thread(target=server.serve_forever); thread.daemon = True; thread.start()
         try:
             base = "http://127.0.0.1:%d" % port
             health = get_json(base + "/api/health")
-            check(health["status"] == "ok" and health["version"] == expected_version, "单端口HTTP健康检查通过", report)
+            check(health["status"] == "ok" and health["version"] == "V21" and health["mode"] == app.model_execution_mode, "单端口HTTP健康检查通过（UI/API版本与模型发行号独立）", report)
             task = post_json(base + "/api/generation/request", dict(base_request, session_id="http-session", count=1))
             deadline = time.time() + 60
             while time.time() < deadline:

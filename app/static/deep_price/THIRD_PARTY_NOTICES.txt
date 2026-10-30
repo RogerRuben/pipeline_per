@@ -1,0 +1,6 @@
+ECharts (offline browser charting library)
+Copyright The Apache Software Foundation and contributors.
+Licensed under Apache License 2.0; see LICENSE-APACHE-2.0.txt.
+The original ASF/contributor copyright and license header is preserved in echarts.min.js.
+Source: the user-provided deep-price UI archive, references/deep_price/static/js/echarts.min.js.
+No model or training data is contained in this library. This copy is used only for local chart rendering.

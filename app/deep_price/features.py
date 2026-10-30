@@ -1,5 +1,6 @@
 """Finite, bounded analyses routed exclusively through the existing price gateway."""
 import math
+import uuid
 
 from .analysis import DeepPriceAnalysis, Deadline
 from .errors import DeepPriceError
@@ -13,6 +14,7 @@ class AnalysisFeatures:
         self.core = core
 
     def handle(self, method, path, payload=None, query=None):
+        request_id='DEEP-'+uuid.uuid4().hex
         if method == 'GET' and path in ('/model-summary','/feature-importance','/explanation/status'):
             status, schema = self.core.handle('GET','/schema')
             if status != 200:
@@ -32,7 +34,22 @@ class AnalysisFeatures:
         if method != 'POST' or path not in ('/sensitivity/single','/sensitivity/top10','/scenario'):
             return self.core.handle(method,path,payload,query)
         if path == '/scenario':
-            return self.core.handle('POST','/predict/batch',payload)
+            if not isinstance(payload,dict) or not isinstance(payload.get('items'),list):
+                return 400,DeepPriceError('invalid_input','情景items必须为数组').response(request_id)
+            items,names=[],[]
+            for item in payload['items']:
+                if not isinstance(item,dict) or set(item)-{'item_id','parameters','name'}:
+                    return 400,DeepPriceError('invalid_input','情景字段仅允许item_id、parameters、name').response(request_id)
+                name=item.get('name',item.get('item_id'))
+                if not isinstance(name,str) or not name.strip() or len(name)>100:
+                    return 400,DeepPriceError('invalid_input','情景名称必须为1至100字符').response(request_id)
+                items.append({k:v for k,v in item.items() if k!='name'})
+                names.append(name)
+            status,result=self.core.handle('POST','/predict/batch',dict(payload,items=items))
+            if status==200:
+                for item,name in zip(result['items'],names):
+                    item['label']=name
+            return status,result
         deadline = Deadline(self.core.budget_seconds)
         try:
             if not isinstance(payload, dict) or not isinstance(payload.get('parameters'), dict):
@@ -52,15 +69,16 @@ class AnalysisFeatures:
             fields = {f['field_id']:f for f in schema['fields'] if f['price_model_input']}
             selected = [payload.get('field_id')] if path.endswith('/single') else payload.get('field_ids')
             if selected is None:
-                selected = list(fields)[:10]
-            if not isinstance(selected,list) or not 1 <= len(selected) <= 10 or len(set(selected)) != len(selected) or any(k not in fields for k in selected):
-                raise DeepPriceError('invalid_input','请选择1至10个不同的价格模型字段')
+                selected = [k for k,f in fields.items() if f['type'] in ('number','integer','enum','boolean')
+                            and (f.get('allowed_values') or f['type']=='boolean' or isinstance(payload['parameters'].get(k),(int,float)))]
+            if not isinstance(selected,list) or not 1 <= len(selected) <= 49 or any(not isinstance(k,str) for k in selected) or len(set(selected)) != len(selected) or any(k not in fields for k in selected):
+                raise DeepPriceError('invalid_input','请选择1至49个不同的可计算价格模型字段')
             items = [{'item_id':'base','parameters':payload['parameters']}]
             plan = []
             for key in selected:
                 values = payload.get('values') if path.endswith('/single') else None
                 if values is None:
-                    values = sample_values(fields[key],payload['parameters'].get(key),9 if len(selected)>1 else 21)
+                    values = sample_values(fields[key],payload['parameters'].get(key),max(2,min(9,99//len(selected))) if len(selected)>1 else 21)
                 if not isinstance(values,list) or not 1 <= len(values) <= 99:
                     raise DeepPriceError('invalid_input','采样点必须为1至99个合法标量')
                 unique = []
@@ -92,13 +110,14 @@ class AnalysisFeatures:
                 series.append({'field_id':field['field_id'],'label_zh':field['label_zh'],'unit':field['unit'],'points':points})
             if path.endswith('/top10'):
                 series.sort(key=lambda s:max((abs(p['change_rate_pct']) for p in s['points'] if p['change_rate_pct'] is not None),default=0),reverse=True)
+                series=series[:10]
             result = {key:batch[key] for key in IDENTITY + ('request_id','price_unit')}
-            result.update(success=True,pricing_mode='ml',base_price_wan=base,metric_kind='price_change_rate',series=series,
+            result.update(success=True,pricing_mode='ml',base_price_wan=base,metric_kind='price_change_rate',series=series,compared_field_count=len(selected),
                           note='在所选字段及合法采样范围内按最大绝对价格变化率排序；不是全局重要度或因果效应。')
             deadline.remaining()
             return 200,result
         except DeepPriceError as exc:
-            return exc.status,exc.response('DEEP-ANALYSIS')
+            return exc.status,exc.response(request_id)
 
 
 def sample_values(field,base,count):

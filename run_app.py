@@ -47,7 +47,7 @@ def main():
     (runtime / "last_port.txt").write_text(str(port), encoding="ascii")
     browser_host = "127.0.0.1" if args.host in ("0.0.0.0", "::") else args.host
     info = {
-        "url": "http://%s:%d/" % (browser_host, port),
+        "url": "http://%s:%d/portal" % (browser_host, port),
         "listen": "%s:%d" % (args.host, port),
         "port": port,
         "pid": os.getpid(),

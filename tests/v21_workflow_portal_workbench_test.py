@@ -62,11 +62,11 @@ def portal_and_login_contracts():
     portal = load_service_portal_config(ROOT)
     models = load_model_service_config(ROOT)
     assert list(portal["services"]) == ["recommendation", "quick_price", "cost_effectiveness_analysis", "advanced_price", "effectiveness", "admin"]
-    assert portal["services"]["advanced_price"]["url"] == ""
-    assert portal["services"]["advanced_price"]["enabled"] is False
+    assert portal["services"]["advanced_price"]["url"] == "/price/deep"
+    assert portal["services"]["advanced_price"]["enabled"] is True
     assert portal["services"]["advanced_price"]["visible"] is True
     assert portal["services"]["cost_effectiveness_analysis"]["url"].endswith(":17000")
-    assert portal["services"]["cost_effectiveness_analysis"]["open_new_window"] is True
+    assert portal["services"]["cost_effectiveness_analysis"]["url"].startswith("http://")  # Portal derives external/new-window from URL.
     assert "advanced_price" not in models
     assert models["price_service_url"].endswith(":18101")
     assert models["effectiveness_service_url"].endswith(":18102")
@@ -126,12 +126,11 @@ def portal_and_login_contracts():
 def standard_startup_contract():
     standard = (ROOT / "START_ALL_SERVICES_WIN7.bat").read_text(encoding="utf-8")
     no_browser = (ROOT / "START_ALL_NO_BROWSER.bat").read_text(encoding="utf-8")
-    assert 'start "Recommendation System"' in standard
-    assert 'runtime\\last_port.txt' in standard
-    assert '/api/health' in standard
-    assert '!MAIN_PORT!/portal' in standard
-    assert 'start "" "!PORTAL_URL!"' in standard
-    assert 'set "IPDEMO_AUTH_ENABLED=1"' in standard
+    assert 'call START_RECOMMENDATION_WITH_SERVICES_WIN7.bat' in standard
+    delegated = (ROOT / "START_RECOMMENDATION_WITH_SERVICES_WIN7.bat").read_text(encoding="utf-8")
+    assert 'set IPDEMO_MODEL_EXECUTION_MODE=services' in delegated
+    assert 'set IPDEMO_MODEL_SERVICE_FALLBACK=0' in delegated
+    assert 'call START_ALL_NO_BROWSER.bat' in delegated
     assert "--no-browser" in no_browser
     assert "17891/portal" not in standard
 
