@@ -1,0 +1,1088 @@
+{
+  "archives": [
+    {
+      "name": "软件公司界面接口交付版_锁V17_泵系统V13_20260904.zip",
+      "size": 434438,
+      "sha256": "ef8acdea0a1f48b394d927404ae9a4f5081529bb970a6f9c559fe5ecc465bd3b",
+      "distribution": "local_original_only"
+    },
+    {
+      "name": "价格预测界面1005(1).rar",
+      "size": 1099306,
+      "sha256": "050da624d65eaf9fb50a385518fc5bef276d87e955b605917927973974379674",
+      "distribution": "local_original_only"
+    }
+  ],
+  "members": [
+    {
+      "asset": "deep_price",
+      "path": ".idea/.gitignore",
+      "size": 109,
+      "sha256": "fa570d3e88feff1aa75e86e55719188aa6ef45368ad4c0c958c1cb45ef773262",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": ".idea/aaa0727.iml",
+      "size": 325,
+      "sha256": "ee8fcf25e6c2b2a06ac752440d16594d8769147755d6e55339be0afe7b97140f",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": ".idea/inspectionProfiles/profiles_settings.xml",
+      "size": 174,
+      "sha256": "6172c5997eeb3cd19c9ca2b5b97d6e2983cdd1fa60b2460d7bbb74055edcaa46",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": ".idea/inspectionProfiles/Project_Default.xml",
+      "size": 411,
+      "sha256": "b0e896f380bddd7cc8c04842fff528383fef948766995614c0e06437e1e3fc3f",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": ".idea/misc.xml",
+      "size": 284,
+      "sha256": "e7b0abd1fee05cf866ebd750b04d114af9837bc4035a49571f0fc9fd50cf8117",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": ".idea/modules.xml",
+      "size": 273,
+      "sha256": "a7ab7be767e4e1f0bc4f31e97dfbe098f519de074ee7e9b313f7494876fc66d5",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": ".idea/workspace.xml",
+      "size": 4398,
+      "sha256": "96fc00554b31994e9ba4a638c8493868a6396ccbe2a801f466ff614e3a0cd272",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/app.cpython-311.pyc",
+      "size": 72645,
+      "sha256": "e941fcb63aab8f673fc907c176c4cc40a4245a978684f105db98ec0fe7ac087c",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/explain_engine.cpython-311.pyc",
+      "size": 13273,
+      "sha256": "85ebc8b8407704c8e60ff6fd1e2c48796c0b4f9618434aa6612916078d61f197",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/explain_engine0821.cpython-311.pyc",
+      "size": 27270,
+      "sha256": "37dd788ab5e850b75bb1b7c1a9385579d5505e9b6ee88328e02a6b3dc3ee7c15",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/explain_engine0821_2.cpython-311.pyc",
+      "size": 22990,
+      "sha256": "6b8ecf0d8949f1738062e6c3a81fa74320f8703327b6c6406f8efa23317edcfc",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/fit_batch_coefficient.cpython-311.pyc",
+      "size": 23367,
+      "sha256": "725dacb44597566c486955370ff58228324f27d944abe8d182149dcc0c5ffae0",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/pipeline.cpython-311.pyc",
+      "size": 9177,
+      "sha256": "4544d7c05e35e8ff329d7565fa37044ed3c228bd9c7001059e6ea6960bec2cb4",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/pipeline0727.cpython-311.pyc",
+      "size": 6525,
+      "sha256": "480ae34c309d5301d6f881c00c0935f7da61a4354e0c909cf62b46865ccd4beb",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/pipeline0821.cpython-311.pyc",
+      "size": 10198,
+      "sha256": "ec0fd0c844c07f5f6a480df22cb0d7170fce5cf1deb35fcb866fbd80634eb2e7",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/predictor.cpython-311.pyc",
+      "size": 7334,
+      "sha256": "ce8ae22e3510a482eef29b8f475088b4df0c836fbe2bfbbac2b6bd54e29c64a9",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/predictor0727.cpython-311.pyc",
+      "size": 5161,
+      "sha256": "b7751181c6959b1a0f4d75d20d83b2bfc3187c8ba95b610ea8290c00a1d0b2f2",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/predictor0730.cpython-311.pyc",
+      "size": 7866,
+      "sha256": "253d1126546d92dd08057e725fdca465d96d8ecc3623e027c293a958898347a5",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "__pycache__/retriever.cpython-311.pyc",
+      "size": 4801,
+      "sha256": "4cd7e20798e7d0e43dbb698dc23fdd37f6e3687e3696ca93b0646f9398fa4249",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "app.py",
+      "size": 51870,
+      "sha256": "bec2a940a2ee7a0a3947c0cc823c6cbe7990f5ef8f8da7d790f096c192cc8f6a",
+      "included_as_reference": true,
+      "reference_sha256": "be389cf7195750d88e323020bd3dd38d06a833a05b5808e65ef2f1730ed331ec"
+    },
+    {
+      "asset": "deep_price",
+      "path": "causal_chains_long2.csv",
+      "size": 47754,
+      "sha256": "54b443aba6ee7ae43064db4fd28aa884366940ed75fd5188e441b16db85b2ae1",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "explain_engine0821_2.py",
+      "size": 21380,
+      "sha256": "3c039f4911b2e340ee49701674f752dcf30bed3bccea5c1db5a340a3624cb9ac",
+      "included_as_reference": true,
+      "reference_sha256": "fd6cc177ddee16874a5a80ee819b20257cf802378c6947132bf0cc55664b0e1b"
+    },
+    {
+      "asset": "deep_price",
+      "path": "explanation_result.txt",
+      "size": 11064,
+      "sha256": "7f1429695acbc232a9ea3a482c7a5b54447953a071697097d084a31d2c28ad2c",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "feature_importance.xlsx",
+      "size": 9444,
+      "sha256": "ad000cd8d3c6de40217ee37b6094b0a6ecfa1b2e2be8da3e5a2860c0e2d94481",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "feature_names.pkl",
+      "size": 401,
+      "sha256": "22f82ede1f04b4770d9c270f3fcdf5ccedbae1bb2dd627fcc4160025dcc83307",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "knowledge_triples.csv",
+      "size": 54933,
+      "sha256": "06d91134a0a4ffbe6ca660415af1e9f8082d1e719cf726ff64949e57f70f7b37",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/ensemble_weights.npy",
+      "size": 176,
+      "sha256": "3ef756733d498ae2938c62b909ab5824a0926bb2de52a9883a809a53cfa8420f",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/et_complete.pkl",
+      "size": 288385,
+      "sha256": "c9635b2358c6f4d953cf00d548dbf556716fe2d89c19d1042527de6c11782868",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/feature_names.pkl",
+      "size": 401,
+      "sha256": "22f82ede1f04b4770d9c270f3fcdf5ccedbae1bb2dd627fcc4160025dcc83307",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/gbdt_complete.pkl",
+      "size": 133724,
+      "sha256": "3e717e715b9b973f11bf7be7f2e154bbbda65d47914205e0db00b7a6d0b40428",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/lasso_complete.pkl",
+      "size": 1603,
+      "sha256": "a03d348c5f80248436cf21d3ad92442224d95b191cee37fae8a2477a8075c2c3",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/metrics.json",
+      "size": 66,
+      "sha256": "3d4c53fb1f89abc07ab82d2ac3bb86ffcc0b22963e5f859819c2dce363574d99",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/minmax.pkl",
+      "size": 1952,
+      "sha256": "b5acab9718042cf3ef18179e3909bd435458c43258c82f58d1d0afd1ca922a5d",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/rf_complete.pkl",
+      "size": 12282,
+      "sha256": "0d2c47a4462ddbc384008226357dd97250cf4e315565116d25cffd7dcd288c1b",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/ridge_complete.pkl",
+      "size": 1517,
+      "sha256": "2c88ca5388e12b1db032cc7d033719367757d326d46257f200d12edef056d9e8",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/rules.json",
+      "size": 4894,
+      "sha256": "5bcb197a3761aaad3f2c49d083d67b23e04a0580c19e7f5f96d72895d83b28ed",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "model/svr_complete.pkl",
+      "size": 9307,
+      "sha256": "ae2cde8d30aa0a24075b745c7cf9a13ac167f7c10b41e9f315dac803ae211df8",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/ensemble_weights.npy",
+      "size": 176,
+      "sha256": "bba64536bf068acf49945cf39aeba43264ce33bfe3f8c9b5b1ed2d0bb24133f6",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/et.pkl",
+      "size": 878068,
+      "sha256": "99e717e255ea82ce70a590925df3d6afbf64e6feeea38014040cc223eb4e8b85",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/et_complete.pkl",
+      "size": 853688,
+      "sha256": "d9a436a66e28cdcb88264ee44dc716e0af5d24e9ce3f5df981f8353680eaada8",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/feature_names.pkl",
+      "size": 401,
+      "sha256": "22f82ede1f04b4770d9c270f3fcdf5ccedbae1bb2dd627fcc4160025dcc83307",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/gbdt.pkl",
+      "size": 201289,
+      "sha256": "8dd616930ea8cfc2a21d9de3f3526094f4b57516a178ac645545f3f27dcf8480",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/gbdt_complete.pkl",
+      "size": 434926,
+      "sha256": "4786ad7f5c26190fa978d8532343690fe8d08b114ce3aac21b83b02fd4f514ee",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/lasso.pkl",
+      "size": 1191,
+      "sha256": "287c8dffcacc7cfcf84b59203a5960862f7215c6645f32b9a121458ca3d2eb95",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/lasso_complete.pkl",
+      "size": 1603,
+      "sha256": "8226997b652015b96c6554693d84e7567f20dec7e61c532e24dad554fccdc3b5",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/minmax.pkl",
+      "size": 1952,
+      "sha256": "3cf0d4f2639d075f96f57cc93d70a6a214151effba8fa4fdaaf467e0ff570b6e",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/rf.pkl",
+      "size": 12498,
+      "sha256": "d7ccf74a3d1bd347ea5556e973e8002144938b5a9a2f27bd881b075dcce4f621",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/rf_complete.pkl",
+      "size": 12423,
+      "sha256": "79eda5fe1a7f473e332c15f65e4baa935a28613f64b74e5a77ef1d27751327f2",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/ridge.pkl",
+      "size": 1111,
+      "sha256": "e60cf3b6ee3309a1d3acdf1c517df2448be1680c245205351876c0a19b6f159d",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/ridge_complete.pkl",
+      "size": 1524,
+      "sha256": "93b02903a93c4176e07508c17c0fd934e683cccea91f0557d195c0a7ac46a89a",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/rules.json",
+      "size": 3348,
+      "sha256": "9fdce30b88e063f1682fd341090f337ff7a7f7a07267c246f6ca11fb4f1d3151",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/scaler.pkl",
+      "size": 2058,
+      "sha256": "cdddc9a5ed7e4c41b1b4c626133135ee187eb2998f5b07cbf3f2fd266c8d9b9e",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/svr.pkl",
+      "size": 9532,
+      "sha256": "66d2de37afa0b3e4f0cf29d64bce0d61007eccb6713f6e0ca82521557abde0af",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "models/svr_complete.pkl",
+      "size": 8671,
+      "sha256": "4fd758d88f93fe13d5a0ef72ec5e70d173acc9732997389442ee75945339686e",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "pipeline0821.py",
+      "size": 15646,
+      "sha256": "55ea00eb250d71bb98cc10a1a2cdc7219e50e8dbcddcc2ca6a2fe321e4e32f4f",
+      "included_as_reference": true,
+      "reference_sha256": "568e3da95a54e743a2c550db2c33ec89a9d82908b44940f2cb9384020959dcd4"
+    },
+    {
+      "asset": "deep_price",
+      "path": "price_prediction_result.csv",
+      "size": 818,
+      "sha256": "0663d950bf8373294afaedeaf83d5c158ae7dc609a29a725b0f30e4799af1f58",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "results/explanation.txt",
+      "size": 9048,
+      "sha256": "197f95ee22e04b5e52d6856cf19bbc361f1519ae795e69dda9c23afdeafe69bd",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "results/mechanism_result_f9f351bf-27cb-4a3c-a7cf-29bf100f011f.txt",
+      "size": 1877,
+      "sha256": "54afc040847625a0a87b24536564f3ac846c61fe74a1ec62d3cafbc6349b63c8",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "results/price_result.csv",
+      "size": 485,
+      "sha256": "ae61bdde6a8376ccae63a5f21b1abcc36cfd0ae69e9b136eb38d3f2800022816",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "results/price_result_8165d48b-3892-47c8-9df2-7b9f07aa260d.csv",
+      "size": 473,
+      "sha256": "3dc2fed3c5a80e69044cff1390c6cc20a0601618ba913f09d90d8d949c088e85",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "results/price_result_f9f351bf-27cb-4a3c-a7cf-29bf100f011f.csv",
+      "size": 478,
+      "sha256": "eb74e0fe961637f38446d8ee5ae92c235e92973dda346599a1ef06a81ae252b2",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "retriever.py",
+      "size": 2399,
+      "sha256": "a292958b4fe05695067fec0cad9c53ff56d3502be73f8267ec52c02cf8866907",
+      "included_as_reference": true,
+      "reference_sha256": "2672fccc27bc3c285daef0741a4d3c960591a55e613210742e3d2af4458cb145"
+    },
+    {
+      "asset": "deep_price",
+      "path": "rules.json",
+      "size": 3348,
+      "sha256": "9fdce30b88e063f1682fd341090f337ff7a7f7a07267c246f6ca11fb4f1d3151",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "static/feature_importance.png",
+      "size": 46579,
+      "sha256": "76716c55e8b7d8e6d0f64f6a4dd007d9980231862162750afa12722e74a194ab",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "static/js/echarts.min.js",
+      "size": 1121926,
+      "sha256": "69bbb9019794e8e557e2b8799844d5c906baea4132f43d467b91fa3a33961e9e",
+      "included_as_reference": true,
+      "reference_sha256": "2cd8b2aee0643dbaaf2f763d8dfd93ff66fbf21cc488d885c2e0093bd22cd76d"
+    },
+    {
+      "asset": "deep_price",
+      "path": "static/model_mechanism.txt",
+      "size": 3088,
+      "sha256": "5049f6074e6fd529da935aab3b152b679f54f4ee44b2c10b21c4f8a7738cd2b0",
+      "included_as_reference": false
+    },
+    {
+      "asset": "deep_price",
+      "path": "templates/factor_analysis.html",
+      "size": 8970,
+      "sha256": "7d964e4dd1b9a7fef15983ce90a2c2afc0ca665bcc463de753f97991167d90bb",
+      "included_as_reference": true,
+      "reference_sha256": "dc750881645fab7b2b8699fe5907910ca5a4925a2120dc741ceae87e8e6e2cd1"
+    },
+    {
+      "asset": "deep_price",
+      "path": "templates/index.html",
+      "size": 49626,
+      "sha256": "a3af7aac58035bbe4f2ee1f354cda5c3e5466d21b031c35a69d77d6a5505df0e",
+      "included_as_reference": true,
+      "reference_sha256": "6763b394598f0bf10edf2b9d91a16ba4bc867bebe087f0239213caa53f8bbbc7"
+    },
+    {
+      "asset": "deep_price",
+      "path": "templates/model_evaluation.html",
+      "size": 11586,
+      "sha256": "6bc6c887f42ba6a6fe2a219171cfdf2235fdc399080d620414a532906ea8f45c",
+      "included_as_reference": true,
+      "reference_sha256": "6bc6c887f42ba6a6fe2a219171cfdf2235fdc399080d620414a532906ea8f45c"
+    },
+    {
+      "asset": "deep_price",
+      "path": "templates/page1.html",
+      "size": 55625,
+      "sha256": "7cb719f0bf2bee583fe7b11ee55a217c0679ba5052dc3d5f86e72db688ba2c20",
+      "included_as_reference": true,
+      "reference_sha256": "3eb87bc09d167231c85f3cede02ae06ddf835fd1dc98483c62d03e9d23078705"
+    },
+    {
+      "asset": "deep_price",
+      "path": "templates/scenario_analysis.html",
+      "size": 30866,
+      "sha256": "98258b4bb7d5c3d44ad16d67ed41b78220e906a9675eb9664877d8edaa216604",
+      "included_as_reference": true,
+      "reference_sha256": "ad9aa4189abf88e5be9b9b218e11ed5c9e590b081f29ab32c96623e71ecb2160"
+    },
+    {
+      "asset": "deep_price",
+      "path": "text.py",
+      "size": 2876,
+      "sha256": "4b650f4eeb574af4d50b6f3917a39977b4be7f2d090be83af30cdee61999759a",
+      "included_as_reference": true,
+      "reference_sha256": "7595854e2d4f18d00191740403e4f20bb665871076b2390183e38dd366f4638a"
+    },
+    {
+      "asset": "deep_price",
+      "path": "样本1.csv",
+      "size": 4645,
+      "sha256": "eba891a09feaa4b72e80cfa9f0ecbd8d6c0ea2553aeb4119dafc5b38f4316f17",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "00_先读我.txt",
+      "size": 989,
+      "sha256": "ae332684b488639511d2a9b98c402b5be74938ef9a0ddff240c279ebf09edd2b",
+      "included_as_reference": true,
+      "reference_sha256": "c8a45057b29e5a9bec233538b5e8c482718d8a87f204da9644d63e81458fd316"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "01_对接说明/软件公司界面接口交付说明.md",
+      "size": 6138,
+      "sha256": "8ba2b464352d88f4aca85367906ef36a551665bf038ccd0a247ec332fb9331cd",
+      "included_as_reference": true,
+      "reference_sha256": "d32e3a06e0f4dade368e9785da1f0a81d1731a969e7de4026e27cab4d7d714bb"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/frozen_lock_model.py",
+      "size": 19746,
+      "sha256": "080897f01eea1717ece208d9f4d932207e55c6abf58b08cc7e572d4f6bb05c59",
+      "included_as_reference": true,
+      "reference_sha256": "080897f01eea1717ece208d9f4d932207e55c6abf58b08cc7e572d4f6bb05c59"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/lock_ui.html",
+      "size": 36501,
+      "sha256": "93eaaf10e5cf0289e7898745ba547c356d1c4a31a47ed5ee1f2ee4360a825fa9",
+      "included_as_reference": true,
+      "reference_sha256": "93eaaf10e5cf0289e7898745ba547c356d1c4a31a47ed5ee1f2ee4360a825fa9"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/lock_utility_model.py",
+      "size": 45210,
+      "sha256": "d186dccde1c592e47d2983e30ff28267e1954094d02be907bea451c9c34d1ded",
+      "included_as_reference": true,
+      "reference_sha256": "d186dccde1c592e47d2983e30ff28267e1954094d02be907bea451c9c34d1ded"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/lock_v17_app.py",
+      "size": 76943,
+      "sha256": "2c3308b3dd324521863fd2df2f63324bf1b35f7e4891eb0eba028a7020fba374",
+      "included_as_reference": true,
+      "reference_sha256": "2c3308b3dd324521863fd2df2f63324bf1b35f7e4891eb0eba028a7020fba374"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/portable_launcher.py",
+      "size": 9096,
+      "sha256": "90f0aeca38ea3c4a728bc4aeffc63a8f7f8aa087e51ae079ecb95d4b31508741",
+      "included_as_reference": true,
+      "reference_sha256": "90f0aeca38ea3c4a728bc4aeffc63a8f7f8aa087e51ae079ecb95d4b31508741"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/preference_models.py",
+      "size": 44646,
+      "sha256": "9a0a25037300972d3b7abcf94c353a4a63df2bdbfda6280e56a50ed4da52ccb2",
+      "included_as_reference": true,
+      "reference_sha256": "9a0a25037300972d3b7abcf94c353a4a63df2bdbfda6280e56a50ed4da52ccb2"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/app/project_excel.py",
+      "size": 49941,
+      "sha256": "31ca1474f172239d8bcf2c945cb2542819f1e7dee914b64d8e7a27f6b85c87b8",
+      "included_as_reference": true,
+      "reference_sha256": "31ca1474f172239d8bcf2c945cb2542819f1e7dee914b64d8e7a27f6b85c87b8"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/docs/README.md",
+      "size": 4519,
+      "sha256": "cc7f6d6c8eecd51c33b3f6cca554f0de5e720ea30e30ae04648c9ec9ef76314e",
+      "included_as_reference": true,
+      "reference_sha256": "cc7f6d6c8eecd51c33b3f6cca554f0de5e720ea30e30ae04648c9ec9ef76314e"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/docs/锁成品V17_Excel填写指南.md",
+      "size": 5617,
+      "sha256": "230e156b837669649e88774e563e48229de42b9496012ca596509acfff77645f",
+      "included_as_reference": true,
+      "reference_sha256": "230e156b837669649e88774e563e48229de42b9496012ca596509acfff77645f"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/docs/锁成品V17_专家操作说明.md",
+      "size": 6146,
+      "sha256": "e897af278c9974d3bec163e2b0394fae5f688ad583ebb0ab14e127794f49a967",
+      "included_as_reference": true,
+      "reference_sha256": "e897af278c9974d3bec163e2b0394fae5f688ad583ebb0ab14e127794f49a967"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/docs/锁成品V17_冻结模型调用说明.md",
+      "size": 4384,
+      "sha256": "3fa00e2bf5e7060de768f11135df589929f06c47e1f9a5d923b23461385a1e47",
+      "included_as_reference": true,
+      "reference_sha256": "3fa00e2bf5e7060de768f11135df589929f06c47e1f9a5d923b23461385a1e47"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/docs/锁成品V17_开发验收说明_20260827.md",
+      "size": 5076,
+      "sha256": "145a0d57b03d9e0cc523c58c0c7382c0135bef9bafd1e3ef1605f18f6dacfd5f",
+      "included_as_reference": true,
+      "reference_sha256": "145a0d57b03d9e0cc523c58c0c7382c0135bef9bafd1e3ef1605f18f6dacfd5f"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/docs/锁成品V17_技术说明与维护手册.md",
+      "size": 9865,
+      "sha256": "3aeeb8b4dc11dce8b8a70b5717df144723531d928cd081851f1ffacbaf1fb4be",
+      "included_as_reference": true,
+      "reference_sha256": "3aeeb8b4dc11dce8b8a70b5717df144723531d928cd081851f1ffacbaf1fb4be"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/requirements.txt",
+      "size": 181,
+      "sha256": "568b13505f7aefdca237d13d5a517beb679cfe4b958e5a8f5b64bebeaad21524",
+      "included_as_reference": true,
+      "reference_sha256": "568b13505f7aefdca237d13d5a517beb679cfe4b958e5a8f5b64bebeaad21524"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/start_lock_demo.bat",
+      "size": 153,
+      "sha256": "c1d2de95b256288db0740f2761bef0b3bf08a0e6f7543aedf8afc58f875b9af2",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/template/demo_lock_v17.xlsx",
+      "size": 14307,
+      "sha256": "106a419dd4af60a118a2801ae4d1d1ae7924c7009ae1be75e067e0db9eeaed5b",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "02_锁成品V17_界面接口版/template/示例_锁成品V17_仅用于界面联调.xlsx",
+      "size": 14307,
+      "sha256": "106a419dd4af60a118a2801ae4d1d1ae7924c7009ae1be75e067e0db9eeaed5b",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/coupling_model.py",
+      "size": 42232,
+      "sha256": "a0c8f4c2011a744342db94d26e253b04193c15b48491c36d2183de8284b2f1c4",
+      "included_as_reference": true,
+      "reference_sha256": "a0c8f4c2011a744342db94d26e253b04193c15b48491c36d2183de8284b2f1c4"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/excel_upgrade_gui.py",
+      "size": 4372,
+      "sha256": "2424a96fbae5503aa4213cbde91135a75f0517026dc7ca12375e87d203d5bae8",
+      "included_as_reference": true,
+      "reference_sha256": "2424a96fbae5503aa4213cbde91135a75f0517026dc7ca12375e87d203d5bae8"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/feasibility_model.py",
+      "size": 35167,
+      "sha256": "eb1d4667e95e25d8cb1cd4f24254959e42ad3bd60cb5de3091b4eb96e2c4c161",
+      "included_as_reference": true,
+      "reference_sha256": "eb1d4667e95e25d8cb1cd4f24254959e42ad3bd60cb5de3091b4eb96e2c4c161"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/formula_constraints.py",
+      "size": 25867,
+      "sha256": "f0eca27076b7dd23856465c1c236b741e4dcb7b8a23f8fba0c841684cb60b9ce",
+      "included_as_reference": true,
+      "reference_sha256": "f0eca27076b7dd23856465c1c236b741e4dcb7b8a23f8fba0c841684cb60b9ce"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/frontier_model.py",
+      "size": 32263,
+      "sha256": "d3fcce1f211150d3b81c59fd766e5766f48fd7060dacfd7fb0bcf5862732128f",
+      "included_as_reference": true,
+      "reference_sha256": "d3fcce1f211150d3b81c59fd766e5766f48fd7060dacfd7fb0bcf5862732128f"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/frozen_effectiveness_model.py",
+      "size": 23621,
+      "sha256": "e5418e34b2c6683bbb1d47d4877dc3894a66844b9a6e6dfb28ce44b5162bed0c",
+      "included_as_reference": true,
+      "reference_sha256": "e5418e34b2c6683bbb1d47d4877dc3894a66844b9a6e6dfb28ce44b5162bed0c"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/frozen_system_model.py",
+      "size": 30470,
+      "sha256": "671df196d129b4700efdcbe7f0cc95724560f76817255c33ecf515b3627857ee",
+      "included_as_reference": true,
+      "reference_sha256": "671df196d129b4700efdcbe7f0cc95724560f76817255c33ecf515b3627857ee"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/hierarchical_uta.py",
+      "size": 120106,
+      "sha256": "95fd325e70b3ededcb51f7726fac5160821452a7152093fe728f709485d20cc9",
+      "included_as_reference": true,
+      "reference_sha256": "95fd325e70b3ededcb51f7726fac5160821452a7152093fe728f709485d20cc9"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/interactive_project_app.py",
+      "size": 314900,
+      "sha256": "dc2f118c17fd6ffd8bb5eeb63589fe33b93f89c1ffdb44ed11aace01bfadd487",
+      "included_as_reference": true,
+      "reference_sha256": "dc2f118c17fd6ffd8bb5eeb63589fe33b93f89c1ffdb44ed11aace01bfadd487"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/preference_models.py",
+      "size": 44646,
+      "sha256": "9a0a25037300972d3b7abcf94c353a4a63df2bdbfda6280e56a50ed4da52ccb2",
+      "included_as_reference": true,
+      "reference_sha256": "9a0a25037300972d3b7abcf94c353a4a63df2bdbfda6280e56a50ed4da52ccb2"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/project_excel.py",
+      "size": 49820,
+      "sha256": "11860b7fe4eaffc08cbe23de8d2f28863bbe6e0afd6b6aa866061eaa1242a817",
+      "included_as_reference": true,
+      "reference_sha256": "11860b7fe4eaffc08cbe23de8d2f28863bbe6e0afd6b6aa866061eaa1242a817"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/regional_context.py",
+      "size": 16814,
+      "sha256": "bd010ee56682a3ed23910a53e9648f700ffc7c7471db7aa79211eea4c8881195",
+      "included_as_reference": true,
+      "reference_sha256": "324cb99bb5b641c253bef853792dec1b3394fa355a59ecde86ddad32f71149cc"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/requirement_model.py",
+      "size": 24093,
+      "sha256": "d1626b5bb0aef2f4544556d29aa4e792969d74fa9ddb0ec65de5b2421fd14716",
+      "included_as_reference": true,
+      "reference_sha256": "d1626b5bb0aef2f4544556d29aa4e792969d74fa9ddb0ec65de5b2421fd14716"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/system_app.py",
+      "size": 161231,
+      "sha256": "3acc03aad8e85cc3cbc957c3678cc7dd357f2aa4c9bab0508a2afa3579901f43",
+      "included_as_reference": true,
+      "reference_sha256": "3acc03aad8e85cc3cbc957c3678cc7dd357f2aa4c9bab0508a2afa3579901f43"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/system_excel.py",
+      "size": 56432,
+      "sha256": "9d29f202c1006de49b7517a0a774ca2b99f100a9ee477271b714de3df60ac751",
+      "included_as_reference": true,
+      "reference_sha256": "9d29f202c1006de49b7517a0a774ca2b99f100a9ee477271b714de3df60ac751"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/app/system_ui.html",
+      "size": 127540,
+      "sha256": "c9cb9e1beb7f4bfe6ff4ba31a5aa7312be03ff7cb8352e08a90a59c6eba9ad58",
+      "included_as_reference": true,
+      "reference_sha256": "c9cb9e1beb7f4bfe6ff4ba31a5aa7312be03ff7cb8352e08a90a59c6eba9ad58"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/docs/README.md",
+      "size": 4166,
+      "sha256": "85777cb0a508385866f75f2d1940c2c9f1d6edeb2934e9f004f7005386f0806c",
+      "included_as_reference": true,
+      "reference_sha256": "85777cb0a508385866f75f2d1940c2c9f1d6edeb2934e9f004f7005386f0806c"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/docs/系统级Excel填写指南_V13.md",
+      "size": 4653,
+      "sha256": "f5afe3310a220b7899d5da6b74c06a3a0051dbe8c4130852a3707c51d7a00dd6",
+      "included_as_reference": true,
+      "reference_sha256": "f5afe3310a220b7899d5da6b74c06a3a0051dbe8c4130852a3707c51d7a00dd6"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/docs/系统级V13开发验收说明_20260903.md",
+      "size": 2661,
+      "sha256": "5ca6fc61a671cc693d08920bd437c1cd20fc4dd5abd660b1fe00445f1566e4b2",
+      "included_as_reference": true,
+      "reference_sha256": "5ca6fc61a671cc693d08920bd437c1cd20fc4dd5abd660b1fe00445f1566e4b2"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/docs/系统级冻结模型调用与迁移说明_V13.md",
+      "size": 3852,
+      "sha256": "348bab1b73d4989d513f9b945c03d5fb0d3901697f42f7c966fa40f176bff322",
+      "included_as_reference": true,
+      "reference_sha256": "348bab1b73d4989d513f9b945c03d5fb0d3901697f42f7c966fa40f176bff322"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/docs/系统级技术总报告与维护手册_V13.md",
+      "size": 7168,
+      "sha256": "490ea3702ffd87fde58f0aa5d5e925af1b8830a7534701aed05c8017a5cfaca8",
+      "included_as_reference": true,
+      "reference_sha256": "490ea3702ffd87fde58f0aa5d5e925af1b8830a7534701aed05c8017a5cfaca8"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/docs/系统级用户操作说明_V13.md",
+      "size": 5120,
+      "sha256": "6d73954d0e369df7b9919871a074eb36549169e32a1368f87f6776a973831af8",
+      "included_as_reference": true,
+      "reference_sha256": "6d73954d0e369df7b9919871a074eb36549169e32a1368f87f6776a973831af8"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/requirements.txt",
+      "size": 181,
+      "sha256": "568b13505f7aefdca237d13d5a517beb679cfe4b958e5a8f5b64bebeaad21524",
+      "included_as_reference": true,
+      "reference_sha256": "568b13505f7aefdca237d13d5a517beb679cfe4b958e5a8f5b64bebeaad21524"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/start_pump_demo.bat",
+      "size": 169,
+      "sha256": "a2c06c2c77e09a86bfc7084ca80cb7d8a0c903ad19934c8ad71b6ee31a8914d6",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/template/demo_pump_system_v13.xlsx",
+      "size": 15551,
+      "sha256": "09886c1a3a4a94d5b2278d27e9830311519d2e0f7cd2e8a3684c6d056ec76836",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "03_泵系统V13_界面接口版/template/示例_泵系统V13_仅用于界面联调.xlsx",
+      "size": 15551,
+      "sha256": "09886c1a3a4a94d5b2278d27e9830311519d2e0f7cd2e8a3684c6d056ec76836",
+      "included_as_reference": false
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "04_待补发_甲方正式冻结模型/泵系统V13/README.txt",
+      "size": 122,
+      "sha256": "f186fef1ffc75eb9172931bce964983916a88fb67506d63384c6d18d82b24de9",
+      "included_as_reference": true,
+      "reference_sha256": "399561f307fd7f60ce4eef64d88478d4f50f5941ed48dc9db69f2b0acecde7b9"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "04_待补发_甲方正式冻结模型/锁成品V17/README.txt",
+      "size": 116,
+      "sha256": "4f0fd3bbb036f6d592b47908c375d63d04b4b3cc3116a2f025fe80d4dc8ad55f",
+      "included_as_reference": true,
+      "reference_sha256": "3dde15fc859d4ec262e9e577ab03133049394a4be154f7de914e4b3cf64900fc"
+    },
+    {
+      "asset": "expert_delivery",
+      "path": "交接包文件清单_SHA256.json",
+      "size": 9861,
+      "sha256": "0e4fef0e01e71d84b67186d07b212651f53a663ee61e5684cb85056ac1280fdf",
+      "included_as_reference": false
+    }
+  ],
+  "redactions": [
+    {
+      "path": "references/deep_price/app.py",
+      "change": "Removed embedded API key fallback; environment only",
+      "count": 1
+    }
+  ],
+  "legacy_routes": [
+    {
+      "path": "/",
+      "methods": [
+        "GET"
+      ],
+      "function": "index",
+      "line": 824
+    },
+    {
+      "path": "/factor_analysis",
+      "methods": [
+        "GET"
+      ],
+      "function": "factor_analysis",
+      "line": 829
+    },
+    {
+      "path": "/model_evaluation",
+      "methods": [
+        "GET"
+      ],
+      "function": "model_evaluation",
+      "line": 834
+    },
+    {
+      "path": "/api/model_sets",
+      "methods": [
+        "GET"
+      ],
+      "function": "model_sets",
+      "line": 839
+    },
+    {
+      "path": "/api/active_model",
+      "methods": [
+        "POST"
+      ],
+      "function": "set_active_model",
+      "line": 856
+    },
+    {
+      "path": "/api/upload_model",
+      "methods": [
+        "POST"
+      ],
+      "function": "upload_model",
+      "line": 875
+    },
+    {
+      "path": "/scenario_analysis",
+      "methods": [
+        "GET"
+      ],
+      "function": "scenario_analysis",
+      "line": 893
+    },
+    {
+      "path": "/api/products",
+      "methods": [
+        "GET"
+      ],
+      "function": "products",
+      "line": 898
+    },
+    {
+      "path": "/price_adjust",
+      "methods": [
+        "POST"
+      ],
+      "function": "price_adjust",
+      "line": 936
+    },
+    {
+      "path": "/predict",
+      "methods": [
+        "POST"
+      ],
+      "function": "predict",
+      "line": 967
+    },
+    {
+      "path": "/explain_status/<task_id>",
+      "methods": [
+        "GET"
+      ],
+      "function": "explain_status",
+      "line": 997
+    },
+    {
+      "path": "/explain_stream/<task_id>",
+      "methods": [
+        "GET"
+      ],
+      "function": "explain_stream",
+      "line": 1028
+    },
+    {
+      "path": "/save_csv/<task_id>",
+      "methods": [
+        "GET"
+      ],
+      "function": "save_csv",
+      "line": 1114
+    },
+    {
+      "path": "/save_txt/<task_id>",
+      "methods": [
+        "GET"
+      ],
+      "function": "save_txt",
+      "line": 1130
+    },
+    {
+      "path": "/api/feature_importance",
+      "methods": [
+        "GET"
+      ],
+      "function": "api_feature_importance",
+      "line": 1182
+    },
+    {
+      "path": "/api/sensitivity_features",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "function": "sensitivity_features",
+      "line": 1201
+    },
+    {
+      "path": "/api/sensitivity_single",
+      "methods": [
+        "POST"
+      ],
+      "function": "sensitivity_single",
+      "line": 1220
+    },
+    {
+      "path": "/api/sensitivity_top10",
+      "methods": [
+        "POST"
+      ],
+      "function": "sensitivity_top10",
+      "line": 1366
+    },
+    {
+      "path": "/api/scenario_features",
+      "methods": [
+        "GET"
+      ],
+      "function": "scenario_features",
+      "line": 1432
+    },
+    {
+      "path": "/api/scenario_predict",
+      "methods": [
+        "POST"
+      ],
+      "function": "scenario_predict",
+      "line": 1487
+    }
+  ],
+  "reference_hash_policy": "SHA256 of UTF-8 text normalized to LF; original member hashes remain raw bytes"
+}

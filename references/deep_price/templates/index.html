@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>液压元件价格预测与机理解释系统</title>
+<script src="/static/js/echarts.min.js"></script>
+
+<style>
+
+body {
+    margin: 0;
+    padding: 20px;
+    background: #f5f6f8;
+    font-family: "Microsoft YaHei", Arial, sans-serif;
+    color: #333;
+}
+
+.container {
+    max-width: 1600px;
+    margin: auto;
+}
+
+.title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    background: #163A5F;
+    color: white;
+    padding: 26px 0 18px;
+    border-radius: 10px 10px 0 0;
+}
+
+.main-nav {
+    display: flex;
+    justify-content: center;
+    gap: 36px;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    margin-bottom: 25px;
+    padding: 0 20px;
+}
+
+.main-nav a {
+    text-decoration: none;
+    color: #666;
+    font-size: 15px;
+    padding: 16px 6px 13px;
+    border-bottom: 3px solid transparent;
+}
+
+.main-nav a:hover {
+    color: #2563eb;
+}
+
+.main-nav a.active {
+    color: #2563eb;
+    font-weight: bold;
+    border-bottom-color: #2563eb;
+}
+
+.panel {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.top-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 25px;
+}
+
+
+/* =========================
+   选项卡
+========================= */
+
+.tab-nav {
+    display: flex;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    margin-top: 0;
+    border-radius: 0;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    color: #2563eb;
+    background: transparent;
+}
+
+.tab-btn.active {
+    color: #2563eb;
+    border-bottom: 2px solid #2563eb;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+
+/* =========================
+   输入区域
+========================= */
+
+.feature-group {
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 18px;
+}
+
+.feature-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #2563eb;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.input-hint {
+    margin-top: 4px;
+    color: #dc2626;
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.optional-attribute-fields {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.4fr) minmax(90px, 1fr);
+    gap: 8px;
+    align-items: start;
+}
+
+.optional-attribute-fields input:disabled {
+    color: #94a3b8;
+    background: #eef2f7;
+    cursor: not-allowed;
+}
+
+.attribute-availability.is-placeholder {
+    color: #94a3b8;
+}
+
+.attribute-availability option {
+    color: #172033;
+}
+
+label {
+    font-size: 14px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+.secondary {
+    background: #4b5563;
+}
+
+.predict-btn-wrapper {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.predict-btn-wrapper button {
+    padding: 12px 40px;
+    font-size: 16px;
+}
+
+
+/* =========================
+   预测结果
+========================= */
+
+.result-box {
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 18px;
+    min-height: 90px;
+}
+
+.price {
+    font-size: 30px;
+    font-weight: bold;
+    color: #163A5F;
+    margin-top: 10px;
+}
+
+
+/* =========================
+   当前样本机理分析
+========================= */
+
+.mechanism-section {
+    margin-top: 20px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 18px;
+}
+
+.mechanism-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #163A5F;
+    margin-bottom: 15px;
+}
+
+.mechanism-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    line-height: 1.8;
+}
+
+.mechanism-number {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #163A5F;
+    color: white;
+    text-align: center;
+    line-height: 28px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.mechanism-text {
+    flex: 1;
+    font-size: 14px;
+    color: #444;
+}
+
+.loading-text {
+    color: #777;
+    line-height: 1.8;
+}
+
+
+/* =========================
+   保存按钮
+========================= */
+
+.save-buttons {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.status {
+    color: #666;
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* ===== 现代工业数据看板主题 ===== */
+*{box-sizing:border-box}body{padding:0 20px 38px;background:radial-gradient(circle at 8% 0,#dbeafe 0,transparent 30%),#f3f7fb;color:#172033}.container{max-width:1480px}.title{margin:0 -20px;padding:30px 24px 24px;border-radius:0;background:linear-gradient(120deg,#092b4b,#173f75 62%,#1e40af);letter-spacing:2px;box-shadow:0 8px 28px rgba(15,45,75,.2)}.title:after{content:"PRICE INTELLIGENCE · DECISION SUPPORT";display:block;margin-top:8px;font-size:11px;font-weight:500;letter-spacing:3px;color:#bfdbfe}.main-nav{position:sticky;top:0;z-index:20;margin:0 -20px 26px;border:0;border-radius:0;box-shadow:0 6px 18px rgba(22,58,95,.08)}.main-nav a{padding:18px 10px 15px}.panel{border:0;border-radius:16px;padding:26px;box-shadow:0 10px 35px rgba(30,64,100,.09)}.top-layout{gap:30px}h3{margin:0 0 18px;color:#123b5d}.feature-group,.result-box,.mechanism-section{border:1px solid #e5edf5;background:#f8fbfe;border-radius:12px}.feature-title{color:#1e40af}input,select{padding:10px 11px;border-color:#d7e1eb;background:#fff;transition:.2s}input:focus,select:focus{outline:0;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}button{background:linear-gradient(135deg,#1e40af,#2563eb);box-shadow:0 5px 14px rgba(37,99,235,.2);transition:.2s}button:hover{transform:translateY(-1px)}.price{color:#1e40af;font-size:36px}.metrics-title{margin:22px 0 12px;font-size:15px;font-weight:bold;color:#36566f}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric-card{padding:14px 8px;text-align:center;background:#fff;border:1px solid #e3edf5;border-radius:10px;box-shadow:0 4px 12px rgba(30,64,100,.06)}.metric-value{font-size:21px;font-weight:bold;color:#1e40af}.metric-name{margin-top:5px;font-size:12px;color:#718096}.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.result-chart{height:270px;background:#fff;border:1px solid #e5edf5;border-radius:12px}.mechanism-item{border:0;box-shadow:0 3px 14px rgba(30,64,100,.07)}@media(max-width:1050px){.chart-grid{grid-template-columns:1fr}.metric-grid{grid-template-columns:1fr 1fr}}@media(max-width:900px){.top-layout{grid-template-columns:1fr}.input-grid{grid-template-columns:1fr}.main-nav{gap:8px;overflow:auto;justify-content:flex-start}.title{font-size:22px}}</style>
+
+<style>
+.sensitivity-panel{margin-top:22px}.sensitivity-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.sensitivity-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sensitivity-controls button{margin:0}.sensitivity-controls button.secondary{background:#fff;color:#1e40af;border:1px solid #93b4dc;box-shadow:none}.sensitivity-controls button.active{background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff}.sensitivity-controls select{min-width:210px}.sensitivity-chart{width:100%;height:480px;margin-top:16px;background:#f8fbfe;border:1px solid #e5edf5;border-radius:12px}.sensitivity-note{margin-top:12px;color:#64748b;font-size:13px;line-height:1.7}@media(max-width:700px){.sensitivity-chart{height:400px}}
+.product-picker{display:grid;grid-template-columns:auto minmax(260px,520px) 1fr;align-items:center;gap:14px;margin-bottom:24px;padding:17px 20px;border:1px solid #dbe7f2;border-radius:12px;background:linear-gradient(100deg,#eef5ff,#f8fbfe)}.product-picker-title{font-weight:bold;color:#173f75}.product-picker select{width:100%;background:#fff}.product-picker-note{font-size:12px;color:#718096}@media(max-width:800px){.product-picker{grid-template-columns:1fr}.product-picker-note{margin-top:-5px}}
+</style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+<div class="title">
+液压元件价格预测与机理解释系统
+</div>
+
+<div class="main-nav">
+<a href="/" class="active">价格预测与机理解释</a>
+<a href="/factor_analysis">价格预测模型机理分析</a>
+<a href="/model_evaluation">模型评价指标</a>
+</div>
+
+
+<!-- =====================================================
+     输入 + 预测结果
+===================================================== -->
+
+<div class="panel">
+
+<div class="product-picker">
+  <div class="product-picker-title">选择参考产品</div>
+  <select id="productSelector"><option value="">正在加载产品列表...</option></select>
+  <div id="productPickerNote" class="product-picker-note">选择后自动填写全部属性，您仍可按实际需求修改任意参数。</div>
+</div>
+
+<div class="top-layout">
+
+
+<!-- =====================================================
+     左侧输入
+===================================================== -->
+
+<div>
+
+<h3>产品设计参数输入</h3>
+
+
+<div class="tab-nav">
+
+<button
+    class="tab-btn active"
+    onclick="switchTab('func', event)">
+功能特征
+</button>
+
+<button
+    class="tab-btn"
+    onclick="switchTab('perf', event)">
+性能特征
+</button>
+
+<button
+    class="tab-btn"
+    onclick="switchTab('env', event)">
+环境特征
+</button>
+
+<button
+    class="tab-btn"
+    onclick="switchTab('adjust', event)">
+时间批量校正
+</button>
+
+</div>
+
+
+<!-- =====================
+     功能特征
+===================== -->
+
+<div
+    id="tab-func"
+    class="tab-content active">
+
+<div class="feature-group">
+
+<div class="feature-title">
+功能特征
+</div>
+
+<div class="input-grid">
+
+
+<div>
+<label>控制方式</label>
+
+<select id="控制方式">
+
+<option>手动</option>
+<option>电控</option>
+<option>3</option>
+<option>6</option>
+<option>9</option>
+<option>10</option>
+<option>液控</option>
+
+</select>
+
+</div>
+
+
+<div>
+<label>适用机型</label>
+
+<select id="适用机型">
+
+<option>通用型</option>
+<option>重载型</option>
+<option>3</option>
+<option>6</option>
+<option>8</option>
+<option>精密型</option>
+
+</select>
+
+</div>
+
+
+<div>
+<label>材料类型</label>
+
+<select id="材料类型">
+
+<option>钢</option>
+<option>铝</option>
+<option>铸铁</option>
+<option>a</option>
+<option>5</option>
+
+</select>
+
+</div>
+
+
+<div>
+<label>密封等级</label>
+
+<select id="密封等级">
+
+<option>普通</option>
+<option>增强</option>
+<option>高密封</option>
+<option>a</option>
+<option>5</option>
+
+</select>
+
+</div>
+
+
+<div>
+<label>安装方式</label>
+
+<select id="安装方式">
+
+<option>法兰安装</option>
+<option>螺纹安装</option>
+<option>底座安装</option>
+<option>4</option>
+<option>5</option>
+
+</select>
+
+</div>
+
+
+<div>
+<label>接口类型</label>
+
+<select id="接口类型">
+
+<option>标准接口</option>
+<option>快速接口</option>
+<option>定制接口</option>
+
+</select>
+
+</div>
+
+
+<div>
+<label>认证等级</label>
+
+<select id="认证等级">
+
+<option>无认证</option>
+<option>一般认证</option>
+<option>高等级认证</option>
+
+</select>
+
+</div>
+
+
+</div>
+</div>
+</div>
+
+
+<!-- =====================
+     性能特征
+===================== -->
+
+<div
+    id="tab-perf"
+    class="tab-content">
+
+<div class="feature-group">
+
+<div class="feature-title">
+性能特征
+</div>
+
+<div class="input-grid">
+
+
+<div>
+<label>压力_bar</label>
+<div class="optional-attribute-fields">
+  <div>
+    <select id="压力_bar_availability" class="attribute-availability is-placeholder" data-input-id="压力_bar">
+      <option value="" selected disabled hidden>属性不存在时请选择“无”</option><option value="none">无</option>
+    </select>
+  </div>
+  <input id="压力_bar" value="165" placeholder="请输入属性数值">
+</div>
+</div>
+
+<div>
+<label>出力_kN</label>
+<div class="optional-attribute-fields">
+  <div>
+    <select id="出力_kN_availability" class="attribute-availability is-placeholder" data-input-id="出力_kN">
+      <option value="" selected disabled hidden>属性不存在时请选择“无”</option><option value="none">无</option>
+    </select>
+  </div>
+  <input id="出力_kN" value="30" placeholder="请输入属性数值">
+</div>
+</div>
+
+<div>
+<label>行程_mm</label>
+<input id="行程_mm" value="100">
+</div>
+
+<div>
+<label>速度_mm_s</label>
+<input id="速度_mm_s" value="50">
+</div>
+
+<div>
+<label>MTBF_小时</label>
+<div class="optional-attribute-fields">
+  <div>
+    <select id="MTBF_小时_availability" class="attribute-availability is-placeholder" data-input-id="MTBF_小时">
+      <option value="" selected disabled hidden>属性不存在时请选择“无”</option><option value="none">无</option>
+    </select>
+  </div>
+  <input id="MTBF_小时" value="15000" placeholder="请输入属性数值">
+</div>
+</div>
+
+<div>
+<label>重量_kg</label>
+<input id="重量_kg" value="12">
+</div>
+
+<div>
+<label>功率_kW</label>
+<input id="功率_kW" value="1.5">
+</div>
+
+<div>
+<label>泄漏_mL_min</label>
+<input id="泄漏_mL_min" value="10">
+</div>
+
+<div>
+<label>响应时间_ms</label>
+<input id="响应时间_ms" value="120">
+</div>
+
+<div>
+<label>流量_L_min</label>
+<input id="流量_L_min" value="25">
+</div>
+
+<div>
+<label>固有频率_Hz</label>
+<input id="固有频率_Hz" value="50">
+</div>
+
+<div>
+<label>阻尼系数</label>
+<input id="阻尼系数" value="0.6">
+</div>
+
+<div>
+<label>冗余配置</label>
+<input id="冗余配置" value="3">
+</div>
+
+<div>
+<label>维护周期_小时</label>
+<input id="维护周期_小时" value="5000">
+</div>
+
+<div>
+<label>故障率_10e6_FH</label>
+<input id="故障率_10e6_FH" value="1.2">
+</div>
+
+
+</div>
+</div>
+</div>
+
+
+<!-- =====================
+     环境特征
+===================== -->
+
+<div
+    id="tab-env"
+    class="tab-content">
+
+<div class="feature-group">
+
+<div class="feature-title">
+环境特征
+</div>
+
+<div class="input-grid">
+
+
+<div>
+<label>温度_min_°C</label>
+<input id="温度_min_°C" value="40">
+</div>
+
+
+<div>
+<label>温度_max_°C</label>
+<input id="温度_max_°C" value="100">
+</div>
+
+
+<div>
+
+<label>液压油类型</label>
+
+<select id="液压油类型">
+
+<option>0</option>
+<option>矿物油</option>
+<option>合成油</option>
+<option>环保油</option>
+
+</select>
+
+</div>
+
+
+</div>
+</div>
+</div>
+
+
+<!-- =====================
+     时间批量校正
+===================== -->
+
+<div
+    id="tab-adjust"
+    class="tab-content">
+
+<div class="feature-group">
+
+<div class="feature-title">
+时间批量价格校正
+</div>
+
+
+<div class="input-grid">
+
+
+<div>
+<label>原始单价（万元）</label>
+<input id="adjust_price" value="100">
+</div>
+
+
+<div>
+<label>采购批量</label>
+<input id="adjust_quantity" value="100">
+</div>
+
+
+<div>
+<label>年份</label>
+<input id="adjust_year" value="2024">
+</div>
+
+
+</div>
+
+
+<button onclick="priceAdjust()">
+计算校正价格
+</button>
+
+
+<div class="result-box">
+
+校正后价格：
+
+<div
+    id="adjust_result"
+    class="price">
+
+等待计算
+
+</div>
+
+</div>
+
+
+</div>
+</div>
+
+
+<div class="predict-btn-wrapper">
+
+<button
+    id="predictBtn"
+    onclick="startPredict()">
+
+开始预测
+
+</button>
+
+</div>
+
+
+</div>
+
+
+<!-- =====================================================
+     右侧预测 + 当前样本机理分析
+===================================================== -->
+
+<div>
+
+
+<h3>价格预测结果</h3>
+
+
+<div class="result-box">
+
+<div>
+预测价格：
+</div>
+
+
+<div
+    id="price"
+    class="price">
+
+等待预测
+
+</div>
+<div class="chart-grid"><div id="featureRadar" class="result-chart" aria-label="产品关键特征雷达图"></div><div id="priceComparison" class="result-chart" aria-label="参考产品价格与预测价格对比图"></div></div>
+
+</div>
+
+
+<!-- 保存按钮 -->
+
+<div class="save-buttons">
+
+
+<button onclick="saveCSV()">
+下载价格预测结果
+</button>
+
+<button onclick="saveTXT()">
+下载机理分析结果
+</button>
+
+
+</div>
+
+
+<div
+    id="status"
+    class="status">
+</div>
+
+
+</div>
+
+
+</div>
+
+<!-- 当前样本机理分析：独占整行并居中展示 -->
+<div class="mechanism-section" style="width:100%;margin:28px 0 0;">
+<div class="mechanism-title">机理分析</div>
+<div id="mechanismLoading" class="loading-text">请先进行价格预测。</div>
+<div id="mechanismAnalysis"></div>
+</div>
+</div>
+
+
+<div id="sensitivity-analysis" class="panel sensitivity-panel">
+  <div class="sensitivity-head">
+    <h3>敏感性分析</h3>
+    <div class="sensitivity-controls">
+      <button id="singleSensitivityBtn" type="button" class="active">单参数分析</button>
+      <button id="top10SensitivityBtn" type="button" class="secondary">Top10 对比</button>
+      <label id="sensitivitySelector">分析参数：<select id="sensitivityFeature"></select></label>
+    </div>
+  </div>
+  <div id="sensitivityChart" class="sensitivity-chart" aria-label="敏感性分析图"></div>
+</div>
+</div>
+
+
+<script>
+let featureRadar=null,priceComparison=null;
+let productRecords=[],selectedProductPrice=null,selectedProductName="",lastPredictedPrice=null;
+const RADAR_RANGES={
+    "压力_bar":[0,350],"出力_kN":[0,100],"行程_mm":[0,500],
+    "速度_mm_s":[0,250],"MTBF_小时":[0,30000],"重量_kg":[0,100],
+    "功率_kW":[0,20],"泄漏_mL_min":[0,50],"响应时间_ms":[0,500]
+};
+const RADAR_FEATURES=["压力_bar","出力_kN","行程_mm","速度_mm_s","MTBF_小时","重量_kg"];
+function normalizeRadarValue(name,value){
+    const range=RADAR_RANGES[name]||[0,Math.max(Math.abs(Number(value))*2,1)];
+    return Math.max(0,Math.min(100,(Number(value)-range[0])/(range[1]-range[0])*100));
+}
+function renderResultCharts(price,features){
+    if(typeof echarts==="undefined")return;
+    if(price!==null&&price!==undefined&&Number.isFinite(Number(price)))lastPredictedPrice=Number(price);
+    const entries=RADAR_FEATURES.filter(name=>features&&Number.isFinite(Number(features[name]))).map(name=>({name,raw:Number(features[name]),score:normalizeRadarValue(name,features[name])}));
+    if(!featureRadar)featureRadar=echarts.init(document.getElementById("featureRadar"));
+    if(entries.length){
+        featureRadar.setOption({title:{text:"关键特征雷达图",subtext:"",left:"center",top:10,textStyle:{fontSize:15,color:"#27466c"},subtextStyle:{fontSize:10,color:"#7890aa"}},tooltip:{formatter:()=>entries.map(item=>`${item.name}：<b>${item.raw}</b>`).join("<br>")},radar:{center:["50%","60%"],radius:"57%",indicator:entries.map(item=>({name:item.name,max:100})),splitNumber:5,splitArea:{areaStyle:{color:["#f8faff","#eef3fb"]}},splitLine:{lineStyle:{color:"#cbd9ee"}},axisLine:{lineStyle:{color:"#cbd9ee"}},axisName:{fontSize:10,color:"#526b7f"}},series:[{type:"radar",data:[{value:entries.map(item=>Number(item.score.toFixed(2))),name:"当前产品",areaStyle:{color:"rgba(37,99,235,.25)"},lineStyle:{color:"#1d4ed8",width:2.5},itemStyle:{color:"#1e3a8a"},symbolSize:6}]}]},true);
+    }
+    renderPriceComparison(lastPredictedPrice);
+}
+function renderPriceComparison(predictedPrice){
+    const element=document.getElementById("priceComparison");
+    if(!priceComparison)priceComparison=echarts.init(element);
+    const predicted=predictedPrice===null||predictedPrice===undefined?NaN:Number(predictedPrice),reference=Number(selectedProductPrice);
+    if(!Number.isFinite(reference)){
+        priceComparison.clear();
+        priceComparison.setOption({title:{text:"价格对比",subtext:"请先选择一个参考产品",left:"center",top:"38%",textStyle:{fontSize:15,color:"#27466c"},subtextStyle:{color:"#7890aa"}}});
+        return;
+    }
+    if(!Number.isFinite(predicted)){
+        priceComparison.clear();
+        priceComparison.setOption({title:{text:"价格对比",subtext:"参考价格已载入，完成预测后显示对比",left:"center",top:"38%",textStyle:{fontSize:15,color:"#27466c"},subtextStyle:{color:"#7890aa"}}});
+        return;
+    }
+    const lower=Math.min(reference,predicted),upper=Math.max(reference,predicted),difference=upper-lower;
+    const axisMin=Math.max(0,Math.floor((lower-Math.max(upper*0.25,difference*2))*10)/10);
+    const axisMax=Math.ceil((upper+Math.max(upper*0.06,difference*0.5))*10)/10;
+    priceComparison.setOption({title:{text:"参考价格与预测价格对比",subtext:selectedProductName,left:"center",top:10,textStyle:{fontSize:15,color:"#27466c"},subtextStyle:{fontSize:10,color:"#7890aa"}},tooltip:{trigger:"axis",valueFormatter:value=>Number(value).toFixed(2)+" 万元"},grid:{left:62,right:25,top:70,bottom:42},xAxis:{type:"category",data:["参考产品价格","预测价格"],axisTick:{show:false}},yAxis:{type:"value",name:"万元",min:axisMin,max:axisMax,splitNumber:5,splitLine:{lineStyle:{type:"dashed",color:"#dbe5f1"}}},series:[{type:"bar",barWidth:"42%",data:[{value:reference,itemStyle:{color:"#94a3b8",borderRadius:[6,6,0,0]}},{value:predicted,itemStyle:{color:"#2563eb",borderRadius:[6,6,0,0]}}],label:{show:true,position:"top",formatter:p=>Number(p.value).toFixed(2)+" 万元",color:"#294766"}}]},true);
+}
+window.addEventListener("resize",()=>{if(featureRadar)featureRadar.resize();if(priceComparison)priceComparison.resize()});
+
+function applySelectedProduct(){
+    const id=document.getElementById("productSelector").value;
+    const product=productRecords.find(item=>String(item.id)===String(id));
+    if(!product){selectedProductPrice=null;selectedProductName="";return;}
+    selectedProductPrice=Number(product.price);
+    selectedProductName=product.name;
+    sessionStorage.setItem("selectedProductId",String(product.id));
+    restoreInputValues(product.features);
+    document.getElementById("productPickerNote").textContent=`已载入 ${product.name}，参考价格 ${selectedProductPrice.toFixed(2)} 万元；可继续修改下方参数。`;
+    renderPriceComparison(lastPredictedPrice);
+    if(sensitivityChart)initSensitivity();
+}
+async function loadProducts(){
+    const select=document.getElementById("productSelector");
+    try{
+        const response=await fetch("/api/products"),result=await response.json();
+        if(!response.ok||result.error)throw new Error(result.error||"产品列表加载失败");
+        productRecords=result.products||[];
+        select.innerHTML='<option value="">请选择一个参考产品</option>';
+        productRecords.forEach(product=>{const option=document.createElement("option");option.value=product.id;option.textContent=`${product.name} · ${Number(product.price).toFixed(2)} 万元`;select.appendChild(option);});
+        if(productRecords.length){
+            const savedId=sessionStorage.getItem("selectedProductId");
+            if(productRecords.some(item=>String(item.id)===savedId)){
+                select.value=savedId;
+                applySelectedProduct();
+            }
+        }
+    }catch(error){select.innerHTML='<option value="">产品列表加载失败</option>';document.getElementById("productPickerNote").textContent=error.message;}
+}
+document.getElementById("productSelector").addEventListener("change",applySelectedProduct);
+loadProducts();
+
+
+// =====================================================
+// 可不存在的数值属性：页面显示“无”，模型仍接收 -1
+// =====================================================
+
+function setOptionalAttributeState(inputId, unavailable){
+    const input=document.getElementById(inputId);
+    const selector=document.getElementById(inputId+"_availability");
+    if(!input||!selector)return;
+
+    if(unavailable){
+        if(input.value!==""&&input.value!=="-1"){
+            input.dataset.previousValue=input.value;
+        }
+        selector.value="none";
+        selector.classList.remove("is-placeholder");
+        input.value="";
+        input.disabled=true;
+        input.placeholder="该属性不存在";
+    }else{
+        selector.value="";
+        selector.classList.add("is-placeholder");
+        input.disabled=false;
+        input.placeholder="请输入属性数值";
+        if(input.value===""&&input.dataset.previousValue){
+            input.value=input.dataset.previousValue;
+        }
+    }
+}
+
+document.querySelectorAll(".attribute-availability").forEach(selector=>{
+    selector.addEventListener("change",()=>{
+        selector.classList.toggle("is-placeholder",selector.value==="");
+        setOptionalAttributeState(
+            selector.dataset.inputId,
+            selector.value==="none"
+        );
+    });
+});
+
+
+// =====================================================
+// 选项卡
+// =====================================================
+
+function switchTab(
+    tabName,
+    evt
+) {
+
+    document
+        .querySelectorAll(
+            ".tab-btn"
+        )
+        .forEach(
+            btn =>
+                btn.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .querySelectorAll(
+            ".tab-content"
+        )
+        .forEach(
+            content =>
+                content.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .getElementById(
+            "tab-" + tabName
+        )
+        .classList.add(
+            "active"
+        );
+
+
+    evt.target.classList.add(
+        "active"
+    );
+}
+
+
+
+let task_id = null;
+let streamingTimer = null;
+
+function savePage1State(state){
+    let oldState = {};
+    try{
+        oldState = JSON.parse(
+            sessionStorage.getItem("page1PredictionState") || "{}"
+        );
+    }catch(e){
+        oldState = {};
+    }
+
+    sessionStorage.setItem(
+        "page1PredictionState",
+        JSON.stringify({
+            ...oldState,
+            ...state
+        })
+    );
+}
+
+function restoreInputValues(features){
+    if(!features)return;
+
+    Object.keys(features).forEach(id=>{
+        const el = document.getElementById(id);
+        if(el){
+            const value = String(features[id] ?? "");
+            if(el.tagName === "SELECT" &&
+               !Array.from(el.options).some(option=>option.value === value)){
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = value;
+                el.appendChild(option);
+            }
+            el.value = value;
+
+            const availability=document.getElementById(id+"_availability");
+            if(availability){
+                if(value==="-1"){
+                    setOptionalAttributeState(id,true);
+                }else{
+                    el.disabled=false;
+                    availability.value="";
+                    availability.classList.add("is-placeholder");
+                    el.placeholder="请输入属性数值";
+                }
+            }
+        }
+    });
+}
+
+function restorePage1State(){
+    let state = null;
+
+    try{
+        const text = sessionStorage.getItem("page1PredictionState");
+        if(!text)return;
+        state = JSON.parse(text);
+    }catch(e){
+        console.log("恢复页面1状态失败：", e);
+        return;
+    }
+
+    if(state.features){
+        restoreInputValues(state.features);
+        sessionStorage.setItem(
+            "currentProductFeatures",
+            JSON.stringify(state.features)
+        );
+    }
+
+    if(state.task_id){
+        task_id = state.task_id;
+    }
+
+    if(state.pred_price !== undefined && state.pred_price !== null){
+        document.getElementById("price").innerHTML =
+            Number(state.pred_price).toFixed(2) + " 万元";
+        renderResultCharts(state.pred_price,state.features);
+    }
+
+    if(state.explain_status === "finished" && state.mechanism){
+        document.getElementById("mechanismLoading").style.display = "none";
+        renderMechanismInstant(state.mechanism);
+        document.getElementById("status").innerHTML = "机理分析完成";
+        return;
+    }
+
+    if(state.explain_status === "running" && task_id){
+        document.getElementById("mechanismLoading").style.display = "block";
+        document.getElementById("mechanismLoading").innerHTML =
+            "正在生成关键参数影响机理分析...";
+        document.getElementById("status").innerHTML =
+            "价格预测完成，正在生成机理分析...";
+        checkExplain();
+    }
+}
+
+function renderMechanismInstant(items){
+    const box = document.getElementById("mechanismAnalysis");
+    box.innerHTML = "";
+
+    if(!items || items.length === 0){
+        box.innerHTML =
+            '<div class="loading-text">暂无机理分析结果。</div>';
+        return;
+    }
+
+    if(typeof items === "string"){
+        items = [items];
+    }
+
+    items.forEach((text,index)=>{
+        const item = document.createElement("div");
+        item.className = "mechanism-item";
+
+        const number = document.createElement("div");
+        number.className = "mechanism-number";
+        number.textContent = index + 1;
+
+        const content = document.createElement("div");
+        content.className = "mechanism-text";
+        content.textContent = text;
+
+        item.appendChild(number);
+        item.appendChild(content);
+        box.appendChild(item);
+    });
+}
+
+function streamMechanism(items){
+    if(streamingTimer){
+        clearTimeout(streamingTimer);
+        streamingTimer = null;
+    }
+
+    if(typeof items === "string"){
+        items = [items];
+    }
+
+    const box = document.getElementById("mechanismAnalysis");
+    box.innerHTML = "";
+
+    if(!items || items.length === 0){
+        box.innerHTML =
+            '<div class="loading-text">暂无机理分析结果。</div>';
+        return;
+    }
+
+    let itemIndex = 0;
+    let charIndex = 0;
+    let currentContent = null;
+
+    function createItem(){
+        const item = document.createElement("div");
+        item.className = "mechanism-item";
+
+        const number = document.createElement("div");
+        number.className = "mechanism-number";
+        number.textContent = itemIndex + 1;
+
+        currentContent = document.createElement("div");
+        currentContent.className = "mechanism-text";
+        currentContent.textContent = "";
+
+        item.appendChild(number);
+        item.appendChild(currentContent);
+        box.appendChild(item);
+    }
+
+    function step(){
+        if(itemIndex >= items.length){
+            streamingTimer = null;
+            savePage1State({
+                task_id: task_id,
+                mechanism: items,
+                explain_status: "finished"
+            });
+            document.getElementById("status").innerHTML = "机理分析完成";
+            return;
+        }
+
+        const fullText = String(items[itemIndex] || "");
+
+        if(currentContent === null){
+            createItem();
+        }
+
+        if(charIndex < fullText.length){
+            const chunkSize = 2;
+            currentContent.textContent +=
+                fullText.slice(charIndex, charIndex + chunkSize);
+            charIndex += chunkSize;
+
+            streamingTimer = setTimeout(step, 18);
+        }else{
+            itemIndex++;
+            charIndex = 0;
+            currentContent = null;
+            streamingTimer = setTimeout(step, 120);
+        }
+    }
+
+    step();
+}
+
+
+
+// =====================================================
+// 获取输入数据
+// =====================================================
+
+function collectData() {
+
+
+    let ids = [
+
+        "压力_bar",
+        "出力_kN",
+        "行程_mm",
+        "速度_mm_s",
+        "MTBF_小时",
+        "重量_kg",
+        "功率_kW",
+        "泄漏_mL_min",
+        "响应时间_ms",
+        "流量_L_min",
+        "固有频率_Hz",
+        "阻尼系数",
+        "冗余配置",
+        "维护周期_小时",
+        "故障率_10e6_FH",
+        "温度_min_°C",
+        "温度_max_°C",
+        "控制方式",
+        "适用机型",
+        "材料类型",
+        "密封等级",
+        "液压油类型",
+        "安装方式",
+        "接口类型",
+        "认证等级"
+
+    ];
+
+
+    let data = {};
+
+
+    ids.forEach(
+        function(id) {
+
+            const availability=document.getElementById(id+"_availability");
+            data[id]=availability&&availability.value==="none"
+                ?-1
+                :document.getElementById(id).value;
+
+        }
+    );
+
+
+    return data;
+}
+
+
+// =====================================================
+// 开始预测
+// =====================================================
+
+function startPredict() {
+    const statusBox = document.getElementById("status");
+    const priceBox = document.getElementById("price");
+    const loadingBox = document.getElementById("mechanismLoading");
+    const mechanismBox = document.getElementById("mechanismAnalysis");
+
+    statusBox.innerHTML = "正在预测...";
+    loadingBox.innerHTML = "正在等待价格预测...";
+    loadingBox.style.display = "block";
+    mechanismBox.innerHTML = "";
+
+    const currentFeatures = collectData();
+
+    if(streamingTimer){
+        clearTimeout(streamingTimer);
+        streamingTimer = null;
+    }
+
+    savePage1State({
+        features: currentFeatures,
+        explain_status: "predicting",
+        mechanism: []
+    });
+
+    fetch("/predict", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(currentFeatures)
+    })
+    .then(async res => {
+        let data;
+        try {
+            data = await res.json();
+        } catch (e) {
+            throw new Error("服务器返回内容不是有效JSON");
+        }
+
+        if (!res.ok || data.error) {
+            throw new Error(data.error || "价格预测请求失败");
+        }
+
+        return data;
+    })
+    .then(data => {
+        task_id = data.task_id;
+
+        // 保存当前产品输入，供页面2/3使用
+        sessionStorage.setItem(
+            "currentProductFeatures",
+            JSON.stringify(currentFeatures)
+        );
+
+        // 保存页面1状态，切换页面后回来无需重新预测
+        savePage1State({
+            task_id: task_id,
+            features: currentFeatures,
+            pred_price: data.pred_price,
+            explain_status: "running",
+            mechanism: []
+        });
+
+        priceBox.innerHTML =
+            Number(data.pred_price).toFixed(2) + " 万元";
+        renderResultCharts(data.pred_price,currentFeatures);
+
+        statusBox.innerHTML =
+            "价格预测完成，正在生成机理分析...";
+
+        loadingBox.innerHTML =
+            "正在生成关键参数影响机理分析...";
+
+        checkExplain();
+    })
+    .catch(err => {
+        task_id = null;
+        priceBox.innerHTML = "预测失败";
+        statusBox.innerHTML = "预测失败：" + err.message;
+        loadingBox.innerHTML = err.message;
+        loadingBox.style.display = "block";
+    });
+}
+
+
+// =====================================================
+// 时间批量校正
+// =====================================================
+
+function priceAdjust() {
+    const data = {
+        price: document.getElementById("adjust_price").value,
+        quantity: document.getElementById("adjust_quantity").value,
+        year: document.getElementById("adjust_year").value
+    };
+
+    fetch("/price_adjust", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    })
+    .then(async res => {
+        const result = await res.json();
+
+        if (!res.ok || !result.success) {
+            throw new Error(result.error || "价格校正失败");
+        }
+
+        return result;
+    })
+    .then(data => {
+        document.getElementById("adjust_result").innerHTML =
+            Number(data.final_adjust_price).toFixed(2) + " 万元";
+    })
+    .catch(err => {
+        document.getElementById("adjust_result").innerHTML = "计算失败";
+        alert("价格校正失败：" + err.message);
+    });
+}
+
+
+// =====================================================
+// 查询LLM实时机理分析
+// =====================================================
+
+function checkExplain() {
+
+
+    if (
+        !task_id
+    ) {
+
+        return;
+
+    }
+
+
+    fetch(
+        "/explain_status/"
+        + task_id
+    )
+
+
+    .then(
+        res =>
+            res.json()
+    )
+
+
+    .then(
+        data => {
+
+
+            if (
+                data.status ===
+                "finished"
+            ) {
+
+
+                let d =
+                    data.data;
+
+
+                let explanation =
+                    d.explanation
+                    || {};
+
+
+                let mechanism =
+                    explanation
+                    .mechanism_analysis
+                    || [];
+
+
+                if (
+                    typeof mechanism
+                    === "string"
+                ) {
+
+
+                    mechanism = [
+                        mechanism
+                    ];
+
+
+                }
+
+
+                document
+                    .getElementById(
+                        "mechanismLoading"
+                    )
+                    .style.display =
+                        "none";
+
+
+                savePage1State({
+                    task_id: task_id,
+                    mechanism: mechanism,
+                    explain_status: "streaming"
+                });
+
+                streamMechanism(mechanism);
+
+
+                document
+                    .getElementById(
+                        "status"
+                    )
+                    .innerHTML =
+                        "机理分析已生成，正在流式展示...";
+
+
+            }
+
+
+            else if (
+                data.status ===
+                "error"
+            ) {
+
+
+                document
+                    .getElementById(
+                        "mechanismLoading"
+                    )
+                    .innerHTML =
+                        "机理分析生成失败："
+                        + (
+                            data.error
+                            || "未知错误"
+                        );
+
+
+                document
+                    .getElementById(
+                        "status"
+                    )
+                    .innerHTML =
+                        "机理分析失败";
+
+
+            }
+
+
+            else if (
+                data.status ===
+                "not_found"
+            ) {
+
+
+                document
+                    .getElementById(
+                        "mechanismLoading"
+                    )
+                    .innerHTML =
+                        "未找到机理分析任务。";
+
+
+                document
+                    .getElementById(
+                        "status"
+                    )
+                    .innerHTML =
+                        "任务不存在";
+
+
+            }
+
+
+            else {
+
+
+                setTimeout(
+                    checkExplain,
+                    2000
+                );
+
+
+            }
+
+
+        }
+    )
+
+
+    .catch(
+        err => {
+
+
+            document
+                .getElementById(
+                    "mechanismLoading"
+                )
+                .innerHTML =
+                    "查询机理分析失败："
+                    + err;
+
+
+            document
+                .getElementById(
+                    "status"
+                )
+                .innerHTML =
+                    "机理分析查询失败";
+
+
+        }
+    );
+}
+
+
+// =====================================================
+// 保存
+// =====================================================
+
+function saveCSV() {
+
+
+    if (
+        task_id
+    ) {
+
+
+        window.location.href =
+            "/save_csv/"
+            + task_id;
+
+
+    }
+
+}
+
+
+async function saveTXT() {
+    if(!task_id){
+        alert("请先完成价格预测和机理分析");
+        return;
+    }
+
+    try{
+        const response=await fetch("/save_txt/"+task_id);
+        if(!response.ok){
+            throw new Error(await response.text()||"机理分析结果尚未生成");
+        }
+        const blob=await response.blob();
+        const url=URL.createObjectURL(blob);
+        const link=document.createElement("a");
+        link.href=url;
+        link.download="机理分析结果_"+task_id+".txt";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }catch(error){
+        alert(error.message);
+    }
+}
+
+
+
+window.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        // 判断是否是浏览器刷新（F5 / Ctrl+R / 刷新按钮）
+        const navEntries =
+            performance.getEntriesByType("navigation");
+
+        const isReload =
+            navEntries.length > 0
+            && navEntries[0].type === "reload";
+
+        if(isReload){
+
+            // 刷新页面1时清除预测状态，
+            // 页面恢复为“等待预测 / 请先进行价格预测”
+            sessionStorage.removeItem(
+                "page1PredictionState"
+            );
+
+            sessionStorage.removeItem(
+                "currentProductFeatures"
+            );
+
+            task_id = null;
+
+            return;
+        }
+
+        // 正常从页面2/3切换回来时恢复原预测结果
+        restorePage1State();
+    }
+);
+
+
+let sensitivityChart=null;
+const EXPERT_IMPORTANCE={
+    "压力_bar":5,"出力_kN":5,"行程_mm":4,"速度_mm_s":4,
+    "温度_min_°C":2,"温度_max_°C":2,"MTBF_小时":4,"重量_kg":3,
+    "功率_kW":4,"泄漏_mL_min":2,"响应时间_ms":4,"控制方式":3,
+    "适用机型":2,"材料类型":4,"密封等级":4,"液压油类型":2,
+    "流量_L_min":4,"固有频率_Hz":3,"阻尼系数":2,"冗余配置":3,
+    "认证等级":3,"维护周期_小时":2,"故障率_10e6_FH":3,
+    "安装方式":1,"接口类型":1
+};
+// 将专家评分 1～5 线性映射到 2～4 倍，所有参数的变化率都只放大、不缩小。
+const EXPERT_SENSITIVITY_SCALE={1:2,2:2.5,3:3,4:3.5,5:4};
+function expertSensitivityScale(feature){
+    return EXPERT_SENSITIVITY_SCALE[EXPERT_IMPORTANCE[feature]]||1;
+}
+function sensitivityFeatures(){return collectData();}
+function showSensitivityMessage(message){
+    sensitivityChart.clear();
+    sensitivityChart.setOption({title:{text:message,left:"center",top:"45%",textStyle:{fontSize:14,fontWeight:"normal",color:"#7890aa"}}});
+}
+async function runSingleSensitivity(){
+    const select=document.getElementById("sensitivityFeature");
+    if(!select.value)return showSensitivityMessage("暂无可分析特征");
+    sensitivityChart.showLoading();
+    try{
+        const response=await fetch("/api/sensitivity_single",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({features:sensitivityFeatures(),feature:select.value})});
+        const result=await response.json();
+        if(!response.ok||result.error)throw new Error(result.error||"敏感性分析失败");
+        const numeric=result.type==="numeric";
+        sensitivityChart.setOption({
+            title:{text:result.feature+" 单参数敏感性分析",left:"center"},
+            tooltip:{
+                show:true,
+                trigger:numeric?"axis":"item",
+                formatter:function(params){
+                    const item=Array.isArray(params)?params[0]:params;
+                    const value=item.value;
+                    const featureValue=numeric?item.axisValue:item.name;
+                    const price=value;
+                    return result.feature+"："+featureValue+"<br>预测价格："+price+" 万元";
+                }
+            },
+            grid:{top:70,left:90,right:55,bottom:85},
+            xAxis:numeric
+                ?{type:"category",name:result.feature,boundaryGap:false,data:result.data.map(item=>item.feature_value),axisLabel:{interval:0,rotate:result.data.length>12?30:0}}
+                :{type:"category",name:"参数类别",data:result.data.map(item=>item.label),axisLabel:{interval:0,rotate:25}},
+            yAxis:{type:"value",name:"预测价格（万元）",scale:true,splitLine:{lineStyle:{type:"dashed"}}},
+            series:[{
+                name:result.feature,
+                type:"line",
+                smooth:numeric,
+                symbol:"circle",
+                symbolSize:8,
+                data:numeric
+                    ?result.data.map(item=>item.price)
+                    :result.data.map(item=>item.price)
+            }]
+        },true);
+    }catch(error){showSensitivityMessage("敏感性分析失败："+error.message);}finally{sensitivityChart.hideLoading();}
+}
+async function runTop10Sensitivity(){
+    sensitivityChart.showLoading();
+    try{
+        const response=await fetch("/api/sensitivity_top10",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({features:sensitivityFeatures()})});
+        const result=await response.json();
+        if(!response.ok||result.error)throw new Error(result.error||"Top10敏感性分析失败");
+        sensitivityChart.setOption({title:{text:"Top10关键参数敏感性对比",left:"center"},legend:{top:35,type:"scroll"},tooltip:{show:false},grid:{top:100,left:90,right:45,bottom:70},xAxis:{type:"category",name:"参数相对当前值变化率（%）",data:result.change_rates.map(value=>value+"%")},yAxis:{type:"value",name:"专家重要度加权变化率（%）",scale:true,splitLine:{lineStyle:{type:"dashed"}}},series:result.series.map(item=>{const scale=expertSensitivityScale(item.feature);return {name:item.feature,type:"line",smooth:true,symbol:"circle",data:item.values.map(value=>Number((value*scale).toFixed(4)))};})},true);
+    }catch(error){showSensitivityMessage("Top10敏感性分析失败："+error.message);}finally{sensitivityChart.hideLoading();}
+}
+async function initSensitivity(){
+    if(!sensitivityChart)sensitivityChart=echarts.init(document.getElementById("sensitivityChart"));
+    showSensitivityMessage("正在加载敏感性分析参数...");
+    try{
+        const response=await fetch("/api/sensitivity_features",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({features:sensitivityFeatures()})}),result=await response.json();
+        if(!response.ok||result.error)throw new Error(result.error||"字段读取失败");
+        const select=document.getElementById("sensitivityFeature");
+        select.innerHTML="";
+        result.features.forEach(item=>{const option=document.createElement("option");option.value=item.feature;option.textContent=item.feature;select.appendChild(option);});
+        if(result.features.length)runSingleSensitivity();else showSensitivityMessage("没有可用于敏感性分析的特征");
+    }catch(error){showSensitivityMessage("敏感性字段加载失败："+error.message);}
+}
+document.getElementById("singleSensitivityBtn").addEventListener("click",()=>{document.getElementById("singleSensitivityBtn").className="active";document.getElementById("top10SensitivityBtn").className="secondary";document.getElementById("sensitivitySelector").style.display="inline";runSingleSensitivity();});
+document.getElementById("top10SensitivityBtn").addEventListener("click",()=>{document.getElementById("top10SensitivityBtn").className="active";document.getElementById("singleSensitivityBtn").className="secondary";document.getElementById("sensitivitySelector").style.display="none";runTop10Sensitivity();});
+document.getElementById("sensitivityFeature").addEventListener("change",runSingleSensitivity);
+window.addEventListener("resize",()=>{if(sensitivityChart)sensitivityChart.resize();});
+initSensitivity();
+
+
+</script>
+
+</body>
+
+</html>

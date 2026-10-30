@@ -1,0 +1,11 @@
+{
+  "status": "FAIL",
+  "tests": 18,
+  "failures": 1,
+  "errors": 1,
+  "python": "3.12.8",
+  "passed": 16,
+  "reason": "optuna is absent in audit Python 3.12 environment; import test failed, spawned worker exited and queue timed out",
+  "target_win7_validation": false,
+  "business_code_modified": false
+}

@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>敏感性分析与情景模拟</title>
+<script src="/static/js/echarts.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:#f5f6f8;font-family:"Microsoft YaHei",Arial,sans-serif;color:#333}
+.container{max-width:1600px;margin:auto}
+.title{text-align:center;font-size:28px;font-weight:bold;background:#163A5F;color:white;padding:26px 0 18px;border-radius:10px 10px 0 0}
+.main-nav{display:flex;justify-content:center;gap:36px;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 10px 10px;margin-bottom:25px;padding:0 20px}
+.main-nav a{text-decoration:none;color:#666;font-size:15px;padding:16px 6px 13px;border-bottom:3px solid transparent}
+.main-nav a:hover{color:#2563eb}
+.main-nav a.active{color:#2563eb;font-weight:bold;border-bottom-color:#2563eb}
+.panel{background:white;border:1px solid #ddd;border-radius:10px;padding:20px;margin-bottom:20px}
+.panel-title{font-size:19px;font-weight:bold;color:#163A5F;margin-bottom:18px}
+.analysis-tabs{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+.analysis-btn{padding:10px 25px;border:1px solid #d1d5db;background:white;color:#555;cursor:pointer;margin:0;border-radius:0}
+.analysis-btn:first-child{border-radius:6px 0 0 6px}
+.analysis-btn:nth-child(2){border-radius:0 6px 6px 0}
+.analysis-btn.active{background:#2563eb;color:white;border-color:#2563eb}
+.selector{margin-left:28px;display:flex;align-items:center;gap:10px}
+.selector select{width:220px;padding:9px;border:1px solid #ccc;border-radius:5px}
+.tip{margin-left:20px;color:#777;font-size:13px}
+#sensitivityChart{width:100%;height:500px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#f3f4f6}
+th,td{padding:12px 10px;text-align:center;border-bottom:1px solid #e5e7eb}
+tbody tr:hover{background:#f8fafc}
+.scenario-table input,.scenario-table select{width:180px;padding:8px;border:1px solid #ccc;border-radius:5px}
+.status-normal{color:#888}
+.status-changed{color:#2563eb;font-weight:bold}
+.btn-area{text-align:center;margin-top:20px}
+.main-btn{padding:11px 35px;border:none;border-radius:6px;background:#2563eb;color:white;font-size:15px;cursor:pointer}
+.main-btn:hover{background:#1d4ed8}
+.main-btn:disabled{background:#93c5fd;cursor:not-allowed}
+.result-area{display:none;margin-top:25px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:25px}
+.price-compare{display:flex;justify-content:center;align-items:center;gap:55px}
+.price-box{text-align:center}
+.price-label{color:#666;margin-bottom:8px}
+.price-number{font-size:32px;font-weight:bold;color:#163A5F}
+.arrow{font-size:30px;color:#777}
+.change-info{text-align:center;margin-top:22px;font-size:18px}
+.change-positive{color:#dc2626}
+.change-negative{color:#059669}
+.changed-list{margin-top:25px}
+.info-box{margin-top:15px;padding:12px 16px;background:#f8fafc;border-left:4px solid #2563eb;color:#555;font-size:14px;line-height:1.8}
+.notice{text-align:center;color:#888;padding:45px 20px}
+@media(max-width:950px){
+    .selector{margin-left:0;margin-top:12px}
+    .tip{margin-left:10px;margin-top:12px}
+}
+body{padding:0 20px 38px;background:radial-gradient(circle at 8% 0,#dbeafe 0,transparent 30%),#f3f7fb;color:#172033}.container{max-width:1480px}.title{margin:0 -20px;padding:30px 24px 24px;border-radius:0;background:linear-gradient(120deg,#092b4b,#173f75 62%,#1e40af);letter-spacing:2px;box-shadow:0 8px 28px rgba(15,45,75,.2)}.title:after{content:"SENSITIVITY · SCENARIO SIMULATION";display:block;margin-top:8px;font-size:11px;font-weight:500;letter-spacing:3px;color:#bfdbfe}.main-nav{position:sticky;top:0;z-index:20;margin:0 -20px 26px;border:0;border-radius:0;box-shadow:0 6px 18px rgba(22,58,95,.08)}.panel{border:0;border-radius:16px;padding:26px;box-shadow:0 10px 35px rgba(30,64,100,.09)}.panel-title{font-size:21px}.panel-title:before{content:"";display:inline-block;width:5px;height:20px;margin-right:10px;vertical-align:-3px;border-radius:4px;background:linear-gradient(#3b82f6,#2563eb)}.analysis-btn.active,.main-btn{background:linear-gradient(135deg,#1e40af,#2563eb)}#sensitivityChart{background:#f8fbfe;border:1px solid #e5edf5;border-radius:12px}.info-box{border:0;border-radius:9px;background:#eef8fb;color:#466274}.result-area{background:#f8fbfe}.price-box{min-width:260px;padding:20px;border-radius:12px;background:#fff;box-shadow:0 6px 20px rgba(30,64,100,.08)}#scenarioChart{height:220px;margin:8px auto 4px;max-width:760px}.changed-list{margin-top:10px}.price-number{color:#1e40af}#impactBubbleChart{height:430px;margin-top:10px;background:#f8fbfe;border:1px solid #e5edf5;border-radius:12px}.bubble-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;color:#64748b;font-size:12px}.bubble-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}</style>
+</head>
+<body>
+<div class="container">
+
+<div class="title">液压元件价格预测与机理解释系统</div>
+
+<div class="main-nav">
+<a href="/">价格预测与机理解释</a>
+<a href="/factor_analysis">价格影响因素分析</a>
+<a href="/scenario_analysis" class="active">敏感性分析与情景模拟</a>
+</div>
+
+<div class="panel">
+<div class="panel-title">敏感性分析</div>
+
+<div class="analysis-tabs">
+<button id="singleBtn" class="analysis-btn active">单参数分析</button>
+<button id="top5Btn" class="analysis-btn">Top5对比</button>
+
+<div id="featureSelector" class="selector">
+<span>分析参数：</span>
+<select id="sensitivityFeature"></select>
+</div>
+
+<span id="analysisTip" class="tip">其他参数保持不变</span>
+</div>
+
+<div id="sensitivityChart"></div>
+
+<div class="info-box">
+单参数分析用于观察某一个参数变化时预测价格如何响应；连续数值变量采用相对当前值的扰动分析，分类变量则依次替换为历史数据中已有类别。Top5对比自动选择重要度最高的5个连续数值特征，并比较相同变化幅度下的价格响应。
+</div>
+</div>
+
+<div id="impactBubblePanel" class="panel" style="display:none">
+<div class="panel-title">参数影响风险气泡图</div>
+<div id="impactBubbleChart" aria-label="参数重要度与价格敏感度气泡图"></div>
+<div class="bubble-legend">
+<span><i class="bubble-dot" style="background:#dc2626"></i>参数增大主要推动价格上涨</span>
+<span><i class="bubble-dot" style="background:#2563eb"></i>参数增大主要导致价格下降</span>
+<span>气泡越大表示价格波动范围越大</span>
+</div>
+<div class="info-box">横坐标为特征重要度占比，纵坐标为价格最大敏感度。右上区域表示该参数既重要又敏感，需要重点关注。点击上方“Top5对比”后生成气泡图。</div>
+</div>
+<div class="panel">
+<div class="panel-title">多参数情景模拟</div>
+
+<div class="info-box" style="margin-top:0;margin-bottom:18px;">
+仅展示特征重要度最高的前10个属性。可以同时修改一个或多个参数；连续数值参数可直接输入新的数值，分类参数通过下拉框选择新的类别，未修改参数保持当前产品值不变。
+</div>
+
+<div id="scenarioInputs"></div>
+
+<div class="btn-area">
+<button id="scenarioBtn" class="main-btn">开始情景模拟</button>
+</div>
+
+<div id="scenarioResult" class="result-area">
+<div class="price-compare">
+
+<div class="price-box">
+<div class="price-label">原方案预测价格</div>
+<div id="oldPrice" class="price-number">-</div>
+</div>
+
+<div class="arrow">→</div>
+
+<div class="price-box">
+<div class="price-label">情景方案预测价格</div>
+<div id="newPrice" class="price-number">-</div>
+</div>
+
+</div>
+
+<div id="changeInfo" class="change-info"></div>
+<div id="scenarioChart" aria-label="方案价格对比图"></div>
+<div id="changedList" class="changed-list"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+let scenarioChart=null;
+function renderScenarioChart(a,b){if(!scenarioChart){scenarioChart=echarts.init(document.getElementById("scenarioChart"));}else{scenarioChart.resize();}scenarioChart.setOption({tooltip:{trigger:"axis",valueFormatter:v=>Number(v).toFixed(2)+" 万元"},grid:{left:80,right:35,top:30,bottom:48},xAxis:{type:"category",data:["原方案","情景方案"]},yAxis:{type:"value",name:"价格（万元）",splitLine:{lineStyle:{type:"dashed"}}},series:[{type:"bar",barWidth:"42%",data:[{value:a,itemStyle:{color:"#94a3b8"}},{value:b,itemStyle:{color:"#2563eb"}}],label:{show:true,position:"top",formatter:p=>Number(p.value).toFixed(2)+" 万元"}}]})}
+const currentFeatures=getCurrentFeatures();
+let scenarioMeta={};
+
+const sensitivityChart=echarts.init(
+    document.getElementById("sensitivityChart")
+);
+let impactBubbleChart=null;
+function ensureImpactBubbleChart(){if(!impactBubbleChart)impactBubbleChart=echarts.init(document.getElementById("impactBubbleChart"));return impactBubbleChart;}
+function showBubbleMessage(text){const chart=ensureImpactBubbleChart();chart.clear();chart.setOption({title:{text,left:"center",top:"45%",textStyle:{fontSize:14,fontWeight:"normal",color:"#7890aa"}}});}
+async function renderImpactBubble(sensitivityResult){
+ try{
+  const response=await fetch("/api/feature_importance"),importanceResult=await response.json();
+  if(!response.ok||importanceResult.error)throw new Error(importanceResult.error||"特征重要度读取失败");
+  const importanceMap={};(importanceResult.top10||[]).forEach(item=>importanceMap[item.feature]=Number(item.ratio));
+  const points=(sensitivityResult.series||[]).map(item=>{
+   const values=(item.values||[]).map(Number).filter(Number.isFinite),maxValue=Math.max(...values),minValue=Math.min(...values);
+   const sensitivity=Math.max(Math.abs(maxValue),Math.abs(minValue)),range=maxValue-minValue,direction=values.length>1?values[values.length-1]-values[0]:0;
+   return {name:item.feature,value:[importanceMap[item.feature]||0,sensitivity,range,direction],itemStyle:{color:direction>0?"#dc2626":direction<0?"#2563eb":"#94a3b8"}};
+  });
+  const maxRange=Math.max(...points.map(p=>p.value[2]),1);
+  const chart=ensureImpactBubbleChart();chart.resize();
+  chart.setOption({title:{text:"Top5 参数重要度—价格敏感度矩阵",left:"center",top:15,textStyle:{fontSize:16,color:"#294766"}},tooltip:{formatter:p=>`${p.data.name}<br>重要度占比：<b>${p.value[0].toFixed(2)}%</b><br>最大价格敏感度：<b>${p.value[1].toFixed(2)}%</b><br>价格波动范围：${p.value[2].toFixed(2)}%`},grid:{left:85,right:55,top:65,bottom:65},xAxis:{type:"value",name:"特征重要度占比（%）",nameLocation:"middle",nameGap:38,splitLine:{lineStyle:{type:"dashed",color:"#dbe5f1"}}},yAxis:{type:"value",name:"最大价格敏感度（%）",nameLocation:"middle",nameGap:58,splitLine:{lineStyle:{type:"dashed",color:"#dbe5f1"}}},series:[{type:"scatter",data:points,symbolSize:value=>18+Math.min(42,value[2]/maxRange*42),label:{show:true,position:"top",formatter:p=>p.data.name,color:"#294766",fontSize:11},emphasis:{scale:1.15}}]},true);
+ }catch(err){showBubbleMessage("气泡图生成失败："+err.message);}
+}
+
+
+function getCurrentFeatures(){
+    const text=localStorage.getItem("currentProductFeatures");
+    if(!text)return null;
+    try{
+        return JSON.parse(text);
+    }catch(e){
+        return null;
+    }
+}
+
+function showSensitivityMessage(text){
+    sensitivityChart.clear();
+    sensitivityChart.setOption({
+        title:{
+            text:text,
+            left:"center",
+            top:"45%"
+        }
+    });
+}
+
+async function loadSensitivityFeatures(){
+    if(!currentFeatures){
+        showSensitivityMessage(
+            "请先在“价格预测与机理解释”页面完成一次价格预测"
+        );
+        return;
+    }
+
+    try{
+        const response=await fetch("/api/sensitivity_features");
+        const result=await response.json();
+
+        if(!response.ok||result.error){
+            throw new Error(
+                result.error||"敏感性字段读取失败"
+            );
+        }
+
+        const select=document.getElementById(
+            "sensitivityFeature"
+        );
+
+        select.innerHTML="";
+
+        result.features.forEach(item=>{
+            const option=document.createElement("option");
+            option.value=item.feature;
+            option.dataset.type=item.type;
+            option.textContent=item.feature;
+            select.appendChild(option);
+        });
+
+        if(result.features.length>0){
+            runSingleSensitivity();
+        }else{
+            showSensitivityMessage(
+                "没有可用于敏感性分析的特征"
+            );
+        }
+
+    }catch(err){
+        showSensitivityMessage(
+            "敏感性字段加载失败："+err.message
+        );
+    }
+}
+
+async function runSingleSensitivity(){
+    if(!currentFeatures){
+        showSensitivityMessage(
+            "请先在“价格预测与机理解释”页面完成一次价格预测"
+        );
+        return;
+    }
+
+    const select=document.getElementById(
+        "sensitivityFeature"
+    );
+
+    if(!select.value){
+        showSensitivityMessage(
+            "暂无可分析特征"
+        );
+        return;
+    }
+
+    const feature=select.value;
+    const selected=select.options[
+        select.selectedIndex
+    ];
+
+    const type=selected
+        ?selected.dataset.type
+        :"";
+
+    document.getElementById(
+        "analysisTip"
+    ).textContent=
+        type==="categorical"
+        ?"分类变量：依次替换历史类别，其他参数保持不变"
+        :"连续变量：按当前值±20%扰动，其他参数保持不变";
+
+    sensitivityChart.showLoading();
+
+    try{
+        const response=await fetch(
+            "/api/sensitivity_single",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                    features:currentFeatures,
+                    feature:feature
+                })
+            }
+        );
+
+        const result=await response.json();
+
+        if(!response.ok||result.error){
+            throw new Error(
+                result.error||
+                "敏感性分析失败"
+            );
+        }
+
+        const labels=result.data.map(
+            item=>item.label
+        );
+
+        const prices=result.data.map(
+            item=>item.price
+        );
+
+        sensitivityChart.setOption({
+            title:{
+                text:
+                    result.feature+
+                    " 单参数敏感性分析",
+                left:"center"
+            },
+            tooltip:{
+                trigger:"axis",
+                formatter:function(params){
+                    const item=
+                        result.data[
+                            params[0].dataIndex
+                        ];
+
+                    let text=
+                        `${result.feature}：${item.feature_value}<br>`;
+
+                    text+=
+                        `预测价格：${Number(item.price).toFixed(4)} 万元<br>`;
+
+                    text+=
+                        `相对基准价格变化：${Number(item.price_change_rate).toFixed(2)}%`;
+
+                    return text;
+                }
+            },
+            grid:{
+                top:70,
+                left:90,
+                right:45,
+                bottom:95
+            },
+            xAxis:{
+                type:"category",
+                name:
+                    result.type==="numeric"
+                    ?"参数相对当前值变化率（%）"
+                    :"参数类别",
+                data:labels,
+                axisLabel:{
+                    interval:0,
+                    rotate:
+                        result.type==="categorical"
+                        ?25
+                        :0
+                }
+            },
+            yAxis:{
+                type:"value",
+                name:"预测价格（万元）",
+                scale:true,
+                splitLine:{
+                    lineStyle:{
+                        type:"dashed"
+                    }
+                }
+            },
+            series:[{
+                name:result.feature,
+                type:"line",
+                smooth:
+                    result.type==="numeric",
+                symbol:"circle",
+                symbolSize:9,
+                data:prices
+            }]
+        },true);
+
+    }catch(err){
+        showSensitivityMessage(
+            "敏感性分析失败："+err.message
+        );
+    }finally{
+        sensitivityChart.hideLoading();
+    }
+}
+
+async function runTop5Sensitivity(){
+    if(!currentFeatures){
+        showSensitivityMessage(
+            "请先在“价格预测与机理解释”页面完成一次价格预测"
+        );
+        return;
+    }
+
+    const bubblePanel=document.getElementById("impactBubblePanel");
+    bubblePanel.style.display="block";
+    requestAnimationFrame(()=>{
+        showBubbleMessage("正在生成参数影响风险气泡图...");
+        if(impactBubbleChart)impactBubbleChart.resize();
+    });
+    document.getElementById(
+        "analysisTip"
+    ).textContent=
+        "自动选择重要度最高的5个连续数值特征进行对比";
+
+    sensitivityChart.showLoading();
+
+    try{
+        const response=await fetch(
+            "/api/sensitivity_top5",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                    features:currentFeatures
+                })
+            }
+        );
+
+        const result=await response.json();
+
+        if(!response.ok||result.error){
+            throw new Error(
+                result.error||
+                "Top5敏感性分析失败"
+            );
+        }
+
+        const series=result.series.map(
+            item=>({
+                name:item.feature,
+                type:"line",
+                smooth:true,
+                symbol:"circle",
+                symbolSize:7,
+                data:item.values
+            })
+        );
+
+        sensitivityChart.setOption({
+            title:{
+                text:
+                    "Top5关键参数敏感性对比",
+                left:"center"
+            },
+            legend:{
+                top:35,
+                type:"scroll"
+            },
+            tooltip:{
+                trigger:"axis",
+                valueFormatter:value=>{
+                    if(
+                        value===null||
+                        value===undefined
+                    ){
+                        return "-";
+                    }
+                    return Number(value)
+                        .toFixed(2)+"%";
+                }
+            },
+            grid:{
+                top:100,
+                left:90,
+                right:45,
+                bottom:75
+            },
+            xAxis:{
+                type:"category",
+                name:
+                    "参数相对当前值变化率（%）",
+                data:
+                    result.change_rates.map(
+                        x=>x+"%"
+                    )
+            },
+            yAxis:{
+                type:"value",
+                name:
+                    "预测价格变化率（%）",
+                splitLine:{
+                    lineStyle:{
+                        type:"dashed"
+                    }
+                }
+            },
+            series:series
+        },true);
+
+        renderImpactBubble(result);
+
+    }catch(err){
+        showSensitivityMessage(
+            "Top5敏感性分析失败："+err.message
+        );
+    }finally{
+        sensitivityChart.hideLoading();
+    }
+}
+
+async function loadScenarioMeta(){
+    try{
+        const response=await fetch(
+            "/api/scenario_features"
+        );
+
+        const result=await response.json();
+
+        if(!response.ok||result.error){
+            throw new Error(
+                result.error||
+                "情景字段读取失败"
+            );
+        }
+
+        scenarioMeta={};
+
+        result.features.forEach(item=>{
+            scenarioMeta[item.feature]=item;
+        });
+
+        buildScenarioInputs();
+
+    }catch(err){
+        document.getElementById(
+            "scenarioInputs"
+        ).innerHTML=`
+            <div class="notice">
+                情景模拟字段读取失败：${err.message}
+            </div>
+        `;
+
+        document.getElementById(
+            "scenarioBtn"
+        ).disabled=true;
+    }
+}
+
+function buildScenarioInputs(){
+    const container=document.getElementById(
+        "scenarioInputs"
+    );
+
+    if(!currentFeatures){
+        container.innerHTML=`
+            <div class="notice">
+                请先在“价格预测与机理解释”页面完成一次价格预测。
+            </div>
+        `;
+
+        document.getElementById(
+            "scenarioBtn"
+        ).disabled=true;
+
+        return;
+    }
+
+    let html=`
+        <table class="scenario-table">
+        <thead>
+        <tr>
+            <th>参数</th>
+            <th>当前值</th>
+            <th>情景值</th>
+            <th>变量类型</th>
+            <th>状态</th>
+        </tr>
+        </thead>
+        <tbody>
+    `;
+
+    Object.keys(scenarioMeta).forEach(feature=>{
+        if(
+            currentFeatures[feature]===
+            undefined
+        ){
+            return;
+        }
+
+        const value=
+            currentFeatures[feature];
+
+        const meta=
+            scenarioMeta[feature];
+
+        let inputHtml="";
+
+        if(meta.type==="categorical"){
+            let options=[
+                ...(meta.options||[])
+            ];
+
+            if(
+                !options.map(String)
+                .includes(String(value))
+            ){
+                options.unshift(
+                    String(value)
+                );
+            }
+
+            inputHtml=`
+                <select
+                    class="scenario-input"
+                    data-feature="${feature}">
+                    ${options.map(option=>`
+                        <option
+                            value="${option}"
+                            ${
+                                String(option)===
+                                String(value)
+                                ?"selected"
+                                :""
+                            }>
+                            ${option}
+                        </option>
+                    `).join("")}
+                </select>
+            `;
+
+        }else{
+            inputHtml=`
+                <input
+                    type="number"
+                    step="any"
+                    class="scenario-input"
+                    data-feature="${feature}"
+                    value="${value}">
+            `;
+        }
+
+        html+=`
+            <tr>
+                <td>${feature}</td>
+                <td>${value}</td>
+                <td>${inputHtml}</td>
+                <td>
+                    ${
+                        meta.type==="numeric"
+                        ?"连续数值"
+                        :"分类变量"
+                    }
+                </td>
+                <td
+                    class="status-normal"
+                    data-status="${feature}">
+                    未调整
+                </td>
+            </tr>
+        `;
+    });
+
+    html+="</tbody></table>";
+    container.innerHTML=html;
+
+    document
+        .querySelectorAll(
+            ".scenario-input"
+        )
+        .forEach(input=>{
+            input.addEventListener(
+                "change",
+                updateStatus
+            );
+            input.addEventListener(
+                "input",
+                updateStatus
+            );
+        });
+}
+
+function updateStatus(){
+    const feature=this.dataset.feature;
+
+    const oldValue=
+        String(
+            currentFeatures[feature]
+        );
+
+    const newValue=
+        String(this.value);
+
+    const status=
+        document.querySelector(
+            `[data-status="${feature}"]`
+        );
+
+    if(oldValue!==newValue){
+        status.textContent="已调整";
+        status.className=
+            "status-changed";
+    }else{
+        status.textContent="未调整";
+        status.className=
+            "status-normal";
+    }
+}
+
+async function runScenario(){
+    if(!currentFeatures){
+        alert(
+            "请先完成一次价格预测"
+        );
+        return;
+    }
+
+    const scenarioFeatures={};
+
+    document
+        .querySelectorAll(
+            ".scenario-input"
+        )
+        .forEach(input=>{
+            const feature=
+                input.dataset.feature;
+
+            const oldValue=
+                String(
+                    currentFeatures[feature]
+                );
+
+            const newValue=
+                String(input.value);
+
+            if(oldValue!==newValue){
+                scenarioFeatures[
+                    feature
+                ]=input.value;
+            }
+        });
+
+    if(
+        Object.keys(
+            scenarioFeatures
+        ).length===0
+    ){
+        alert(
+            "请至少修改一个参数"
+        );
+        return;
+    }
+
+    const button=
+        document.getElementById(
+            "scenarioBtn"
+        );
+
+    button.disabled=true;
+    button.textContent="正在计算...";
+
+    try{
+        const response=await fetch(
+            "/api/scenario_predict",
+            {
+                method:"POST",
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                    original_features:
+                        currentFeatures,
+                    scenario_features:
+                        scenarioFeatures
+                })
+            }
+        );
+
+        const result=
+            await response.json();
+
+        if(
+            !response.ok||
+            result.error
+        ){
+            throw new Error(
+                result.error||
+                "情景模拟失败"
+            );
+        }
+
+        document.getElementById(
+            "scenarioResult"
+        ).style.display="block";
+
+        document.getElementById(
+            "oldPrice"
+        ).textContent=
+            Number(
+                result.old_price
+            ).toFixed(2)+" 万元";
+
+        document.getElementById(
+            "newPrice"
+        ).textContent=
+            Number(
+                result.new_price
+            ).toFixed(2)+" 万元";
+        renderScenarioChart(Number(result.old_price),Number(result.new_price));
+
+        const sign=
+            result.price_difference>=0
+            ?"+"
+            :"";
+
+        const changeInfo=
+            document.getElementById(
+                "changeInfo"
+            );
+
+        changeInfo.innerHTML=`
+            价格变化：
+            <strong>
+                ${sign}${Number(result.price_difference).toFixed(2)} 万元
+            </strong>
+            &nbsp;&nbsp;&nbsp;
+            变化幅度：
+            <strong>
+                ${sign}${Number(result.change_rate).toFixed(2)}%
+            </strong>
+        `;
+
+        changeInfo.className=
+            "change-info "+
+            (
+                result.price_difference>=0
+                ?"change-positive"
+                :"change-negative"
+            );
+
+        let html=`
+            <strong>
+                本次共调整 ${result.changed_count} 个参数：
+            </strong>
+
+            <table style="margin-top:15px;">
+            <thead>
+            <tr>
+                <th>参数</th>
+                <th>原值</th>
+                <th>情景值</th>
+            </tr>
+            </thead>
+            <tbody>
+        `;
+
+        result.changed_features
+            .forEach(item=>{
+                html+=`
+                    <tr>
+                        <td>${item.feature}</td>
+                        <td>${item.old_value}</td>
+                        <td>${item.new_value}</td>
+                    </tr>
+                `;
+            });
+
+        html+="</tbody></table>";
+
+        document.getElementById(
+            "changedList"
+        ).innerHTML=html;
+
+        document.getElementById(
+            "scenarioResult"
+        ).scrollIntoView({
+            behavior:"smooth",
+            block:"center"
+        });
+
+    }catch(err){
+        alert(
+            "情景模拟失败："+err.message
+        );
+    }finally{
+        button.disabled=false;
+        button.textContent=
+            "开始情景模拟";
+    }
+}
+
+document.getElementById(
+    "singleBtn"
+).addEventListener(
+    "click",
+    ()=>{
+        document.getElementById(
+            "singleBtn"
+        ).classList.add(
+            "active"
+        );
+
+        document.getElementById(
+            "top5Btn"
+        ).classList.remove(
+            "active"
+        );
+
+        document.getElementById(
+            "featureSelector"
+        ).style.display="flex";
+
+        runSingleSensitivity();
+    }
+);
+
+document.getElementById(
+    "top5Btn"
+).addEventListener(
+    "click",
+    ()=>{
+        document.getElementById(
+            "top5Btn"
+        ).classList.add(
+            "active"
+        );
+
+        document.getElementById(
+            "singleBtn"
+        ).classList.remove(
+            "active"
+        );
+
+        document.getElementById(
+            "featureSelector"
+        ).style.display="none";
+
+        runTop5Sensitivity();
+    }
+);
+
+document.getElementById(
+    "sensitivityFeature"
+).addEventListener(
+    "change",
+    runSingleSensitivity
+);
+
+document.getElementById(
+    "scenarioBtn"
+).addEventListener(
+    "click",
+    runScenario
+);
+
+window.addEventListener(
+    "resize",
+    ()=>{
+        sensitivityChart.resize();
+        if(scenarioChart)scenarioChart.resize();
+        if(impactBubbleChart)impactBubbleChart.resize();
+    }
+);
+
+loadSensitivityFeatures();
+loadScenarioMeta();
+</script>
+
+</body>
+</html>

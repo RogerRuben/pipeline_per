@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>价格影响因素分析</title>
+<script src="/static/js/echarts.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:#f5f6f8;font-family:"Microsoft YaHei",Arial,sans-serif;color:#333}
+.container{max-width:1600px;margin:auto}
+.title{text-align:center;font-size:28px;font-weight:bold;background:#163A5F;color:white;padding:26px 0 18px;border-radius:10px 10px 0 0}
+.main-nav{display:flex;justify-content:center;gap:36px;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 10px 10px;margin-bottom:25px;padding:0 20px}
+.main-nav a{text-decoration:none;color:#666;font-size:15px;padding:16px 6px 13px;border-bottom:3px solid transparent}
+.main-nav a:hover{color:#2563eb}
+.main-nav a.active{color:#2563eb;font-weight:bold;border-bottom-color:#2563eb}
+.panel{background:white;border:1px solid #ddd;border-radius:10px;padding:20px;margin-bottom:20px}
+.panel-title{font-size:19px;font-weight:bold;color:#163A5F;margin-bottom:18px}
+.importance-layout{display:grid;grid-template-columns:1.25fr .95fr;gap:25px}
+#importanceChart{width:100%;height:450px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#f3f4f6;color:#333}
+th,td{padding:12px 10px;text-align:center;border-bottom:1px solid #e5e7eb}
+tbody tr:hover{background:#f8fafc}
+.info-box{margin-top:12px;padding:12px 16px;background:#f8fafc;border-left:4px solid #2563eb;color:#555;font-size:14px;line-height:1.8}
+
+.model-mechanism-box{
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:20px 24px;
+    line-height:1.9;
+    font-size:14px;
+    color:#444;
+    white-space:pre-wrap;
+    max-height:560px;
+    overflow-y:auto;
+    min-height:180px;
+}
+.model-mechanism-note{
+    margin-top:12px;
+    color:#777;
+    font-size:13px;
+}
+.empty{text-align:center;color:#888;padding:80px 20px}
+@media(max-width:950px){
+    .importance-layout{grid-template-columns:1fr}
+}
+body{padding:0 20px 38px;background:radial-gradient(circle at 8% 0,#dbeafe 0,transparent 30%),#f3f7fb;color:#172033}.container{max-width:1480px}.title{margin:0 -20px;padding:30px 24px 24px;border-radius:0;background:linear-gradient(120deg,#092b4b,#173f75 62%,#1e40af);letter-spacing:2px;box-shadow:0 8px 28px rgba(15,45,75,.2)}.title:after{content:"FEATURE INSIGHT · MODEL INTERPRETABILITY";display:block;margin-top:8px;font-size:11px;font-weight:500;letter-spacing:3px;color:#bfdbfe}.main-nav{position:sticky;top:0;z-index:20;margin:0 -20px 26px;border:0;border-radius:0;box-shadow:0 6px 18px rgba(22,58,95,.08)}.panel{border:0;border-radius:16px;padding:26px;box-shadow:0 10px 35px rgba(30,64,100,.09)}.panel-title{font-size:21px}.panel-title:before{content:"";display:inline-block;width:5px;height:20px;margin-right:10px;vertical-align:-3px;border-radius:4px;background:linear-gradient(#3b82f6,#2563eb)}.importance-layout>div{background:#f8fbfe;border:1px solid #e5edf5;border-radius:12px;padding:14px}th{background:#eaf3f8;color:#16405f}.info-box{border:0;border-radius:9px;background:#eef8fb;color:#466274}.model-mechanism-box{background:#f8fbfe;border-color:#e5edf5}#contributionChart{height:300px;margin-top:20px;background:#f8fbfe;border:1px solid #e5edf5;border-radius:12px}</style>
+</head>
+<body>
+<div class="container">
+
+<div class="title">液压元件价格预测与机理解释系统</div>
+
+<div class="main-nav">
+<a href="/">价格预测与机理解释</a>
+<a href="/factor_analysis" class="active">价格影响因素分析</a>
+<a href="/model_evaluation">模型评价指标</a>
+</div>
+
+<div class="panel">
+<div class="panel-title">特征重要度分析</div>
+
+<div class="importance-layout">
+<div>
+<div id="importanceChart"></div>
+</div>
+
+<div>
+<table>
+<thead>
+<tr>
+<th>排名</th>
+<th>特征名称</th>
+<th>重要度</th>
+<th>占全部的比例</th>
+</tr>
+</thead>
+<tbody id="importanceTable"></tbody>
+</table>
+</div>
+</div>
+
+<div id="contributionChart" aria-label="累计贡献率图表"></div>
+<div class="info-box">
+特征重要度反映模型在整体预测过程中对各特征的依赖程度，数值越高表示该参数对模型价格预测的总体贡献越大。
+</div>
+</div>
+
+<div class="panel">
+<div class="panel-title">模型机理分析</div>
+
+<div id="modelMechanism" class="model-mechanism-box">
+正在加载模型机理分析...
+</div>
+
+</div>
+
+</div>
+
+<script>
+const contributionChart=echarts.init(document.getElementById("contributionChart"));
+const importanceChart = echarts.init(
+    document.getElementById("importanceChart")
+);
+
+async function loadImportance(){
+    try{
+        const response = await fetch("/api/feature_importance");
+        const result = await response.json();
+
+        if(!response.ok || result.error){
+            throw new Error(
+                result.error || "特征重要度读取失败"
+            );
+        }
+
+        const data = result.top10 || [];
+
+        importanceChart.setOption({
+            title:{
+                text:"Top 10 特征重要度",
+                left:"center"
+            },
+            tooltip:{
+                trigger:"axis",
+                axisPointer:{type:"shadow"},
+                formatter:function(params){
+                    const p = params[0];
+                    return `${p.name}<br>重要度：${Number(p.value).toFixed(6)}`;
+                }
+            },
+            grid:{
+                left:"25%",
+                right:"15%",
+                top:60,
+                bottom:45
+            },
+            xAxis:{
+                type:"value",
+                name:"特征重要度",
+                splitLine:{
+                    lineStyle:{type:"dashed"}
+                }
+            },
+            yAxis:{
+                type:"category",
+                data:data.map(x=>x.feature).reverse()
+            },
+            series:[{
+                type:"bar",
+                data:data.map(x=>x.importance).reverse(),
+                barWidth:20,
+                label:{
+                    show:true,
+                    position:"right",
+                    formatter:p=>Number(p.value).toFixed(4)
+                },
+                itemStyle:{
+                    borderRadius:[0,7,7,0],color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:"#1e40af"},{offset:1,color:"#93c5fd"}])
+                }
+            }]
+        });
+
+        let cumulative=0;const ratios=data.map(x=>{cumulative+=Number(x.ratio);return Number(cumulative.toFixed(2))});contributionChart.setOption({title:{text:"Top 10 特征累计贡献率",left:"center",top:14},tooltip:{trigger:"axis",valueFormatter:v=>Number(v).toFixed(2)+"%"},grid:{left:55,right:35,top:60,bottom:70},xAxis:{type:"category",data:data.map(x=>x.feature),axisLabel:{rotate:28}},yAxis:{type:"value",name:"累计贡献率（%）",max:100},series:[{type:"line",smooth:true,data:ratios,symbolSize:8,lineStyle:{width:3,color:"#2563eb"},areaStyle:{color:"rgba(37,99,235,.18)"}}]});
+
+        const tbody = document.getElementById(
+            "importanceTable"
+        );
+
+        tbody.innerHTML = "";
+
+        data.forEach(item=>{
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td>${item.rank}</td>
+                <td>${item.feature}</td>
+                <td>${Number(item.importance).toFixed(6)}</td>
+                <td>${Number(item.ratio).toFixed(2)}%</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+    }catch(err){
+        importanceChart.clear();
+
+        importanceChart.setOption({
+            title:{
+                text:"特征重要度加载失败："+err.message,
+                left:"center",
+                top:"45%"
+            }
+        });
+    }
+}
+
+async function loadModelMechanism(){
+    const box = document.getElementById(
+        "modelMechanism"
+    );
+
+    box.textContent = "正在加载模型机理分析...";
+
+    try{
+        const response = await fetch(
+            "/static/model_mechanism.txt"
+        );
+
+        if(!response.ok){
+            throw new Error(
+                "model_mechanism.txt读取失败"
+            );
+        }
+
+        const text = await response.text();
+
+        if(!text || !text.trim()){
+            box.textContent =
+                "模型机理分析文件内容为空。";
+            return;
+        }
+
+        box.textContent = text;
+
+    }catch(err){
+        box.textContent =
+            "模型机理分析加载失败：" +
+            err.message +
+            "\n\n请确认文件位于 static/model_mechanism.txt";
+    }
+}
+
+window.addEventListener("resize",()=>{
+    importanceChart.resize();
+    contributionChart.resize();
+});
+
+loadImportance();
+loadModelMechanism();
+</script>
+</body>
+</html>

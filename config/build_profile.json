@@ -1,0 +1,16 @@
+{
+  "schema_version": "pipeline-build-profile-1.0",
+  "stage": "P0",
+  "price_engine": "optuna_v3",
+  "input": "input/products.xlsx",
+  "runtime_prediction": "http_price_service_only",
+  "price_unit": "万元",
+  "deep_price_enabled": false,
+  "effectiveness_backend": "trial_snapshot",
+  "pump_v13_enabled": false,
+  "llm_enabled": false,
+  "mixed_adjustment": "unsupported",
+  "packaging": "onedir",
+  "userdata_policy": "external_persistent",
+  "source_commit": "e6bd67b8efb415af6a5faea1f7bc1af977a25021"
+}

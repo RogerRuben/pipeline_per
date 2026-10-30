@@ -58,3 +58,8 @@ desktop.ini
 !.env.example
 *.pem
 *.key
+
+# pipeline_per persistent/private local assets
+/userdata/
+/private_assets/
+/.pipeline_audit/

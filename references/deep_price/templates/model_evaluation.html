@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>价格预测模型库</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:0 20px 40px;background:radial-gradient(circle at 8% 0,#dbeafe 0,transparent 30%),#f3f7fb;font-family:"Microsoft YaHei",Arial,sans-serif;color:#172033}
+.container{max-width:1480px;margin:auto}
+.title{margin:0 -20px;padding:30px 24px 24px;text-align:center;font-size:28px;font-weight:bold;color:#fff;background:linear-gradient(120deg,#092b4b,#173f75 62%,#1e40af);letter-spacing:2px;box-shadow:0 8px 28px rgba(15,45,75,.2)}
+.title:after{content:"MODEL PERFORMANCE · EVALUATION METRICS";display:block;margin-top:8px;font-size:11px;font-weight:500;letter-spacing:3px;color:#bfdbfe}
+.main-nav{position:sticky;top:0;z-index:20;display:flex;justify-content:center;gap:36px;margin:0 -20px 26px;padding:0 20px;background:#fff;box-shadow:0 6px 18px rgba(22,58,95,.08)}
+.main-nav a{padding:18px 10px 15px;color:#64748b;text-decoration:none;border-bottom:3px solid transparent}
+.main-nav a:hover{color:#2563eb}
+.main-nav a.active{color:#2563eb;font-weight:bold;border-bottom-color:#2563eb}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px;padding:16px 20px;background:rgba(255,255,255,.86);border:1px solid #e3ebf4;border-radius:13px}
+.toolbar-title{font-size:18px;font-weight:bold;color:#173f75}
+.toolbar-note{margin-top:5px;font-size:12px;color:#7890aa}
+.toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.model-name-input{width:180px;height:36px;padding:0 11px;border:1px solid #d7e1eb;border-radius:8px;background:#fff;color:#172033}
+.upload-btn,.activate-btn{border:0;border-radius:8px;padding:9px 16px;background:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+.upload-btn:hover,.activate-btn:hover{background:#1d4ed8}
+.upload-btn:disabled,.activate-btn:disabled{background:#cbd5e1;cursor:not-allowed}
+.upload-tip{width:100%;text-align:right;font-size:12px;color:#7890aa}
+.status{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:20px;background:#e9f9ed;color:#16a34a;font-size:13px;font-weight:bold;white-space:nowrap}
+.status:before{content:"";width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.12)}
+.workspace{min-height:610px;padding:26px;background:#eaf1f8;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(188,205,224,.35);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}
+.model-card{width:100%;overflow:hidden;background:#fff;border:1px solid #dfe9f5;border-top:4px solid #94a3b8;border-radius:17px;box-shadow:0 12px 32px rgba(28,65,105,.1)}
+.model-card.active{border-top-color:#3b82f6}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:22px 24px 18px;border-bottom:1px solid #edf2f7}
+.model-name{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:bold;color:#173f75}
+.model-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#e8f1ff;color:#2563eb}
+.model-subtitle{margin:7px 0 0 45px;color:#8496aa;font-size:12px}
+.enabled,.disabled,.invalid{padding:5px 10px;border-radius:15px;font-size:12px;font-weight:bold;white-space:nowrap}
+.enabled{background:#dcfce7;color:#16a34a}
+.disabled{background:#eef2f7;color:#64748b}
+.invalid{background:#fee2e2;color:#dc2626}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e8eef5}
+.metric{min-height:145px;padding:23px 25px;background:#fff}
+.metric-label{font-size:13px;color:#718096}
+.metric-value{margin-top:13px;font-size:30px;font-weight:800;color:#2563eb}
+.metric-unit{margin-left:3px;font-size:13px;font-weight:normal;color:#7890aa}
+.metric-desc{margin-top:8px;font-size:12px;color:#91a0b2}
+.track{height:5px;margin-top:16px;overflow:hidden;border-radius:5px;background:#edf2f7}
+.track span{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#2563eb,#60a5fa)}
+.card-meta{display:grid;grid-template-columns:1fr 1fr;padding:17px 24px;border-top:1px solid #edf2f7;color:#718096;font-size:13px}
+.card-meta span:last-child{text-align:right}
+.model-tags{display:flex;gap:7px;flex-wrap:wrap;padding:0 24px 16px}
+.tag{padding:5px 9px;border-radius:6px;background:#edf4ff;color:#2563eb;font-size:11px}
+.card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 24px 22px}
+.missing{font-size:12px;color:#dc2626}
+.empty{grid-column:1/-1;padding:70px 20px;text-align:center;color:#7890aa}
+@media(max-width:1000px){.workspace{grid-template-columns:1fr}.toolbar{align-items:flex-start;flex-direction:column}.toolbar-actions{justify-content:flex-start}.upload-tip{text-align:left}}
+@media(max-width:600px){body{padding:0 12px 25px}.title,.main-nav{margin-left:-12px;margin-right:-12px}.workspace{padding:14px}.metrics,.card-meta{grid-template-columns:1fr}.card-meta span:last-child{text-align:left;margin-top:8px}.model-name-input{width:100%}.toolbar-actions{width:100%}.upload-btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="title">液压元件价格预测与机理解释系统</div>
+<nav class="main-nav"><a href="/">价格预测与机理解释</a><a href="/factor_analysis">价格影响因素分析</a><a href="/model_evaluation" class="active">模型库</a></nav>
+<section class="toolbar">
+  <div>
+    <div class="toolbar-title">价格预测模型选择</div>
+    <div class="toolbar-note">启用后，第一页后续预测和敏感性分析将使用该模型目录</div>
+  </div>
+  <div class="toolbar-actions">
+    <input id="newModelName" class="model-name-input" placeholder="模型名称，可不填">
+    <button id="uploadModelBtn" class="upload-btn" type="button">加入模型</button>
+    <input id="modelFileInput" type="file" multiple hidden accept=".pkl,.npy,.json,.xlsx,.xls,.csv">
+    <span id="activeStatus" class="status">正在读取</span>
+    <div id="uploadTip" class="upload-tip">一次选择模型目录里的全部文件，包括 pkl、权重、特征名和归一化文件。</div>
+  </div>
+</section>
+<main id="modelWorkspace" class="workspace"><div class="empty">正在读取模型目录...</div></main>
+</div>
+<script>
+const metricDefinitions=[
+ {key:"r2",label:"决定系数 R²",unit:"",desc:"越接近 1，模型对价格差异的解释能力越强"},
+ {key:"mae",label:"平均绝对误差 MAE",unit:"",desc:"预测值与实际值之间绝对误差的平均水平"},
+ {key:"rmse",label:"均方根误差 RMSE",unit:"",desc:"对较大预测偏差更敏感，用于观察异常误差"},
+ {key:"mape",label:"平均绝对百分比误差 MAPE",unit:"%",desc:"以百分比衡量模型整体预测偏差"}
+];
+function metricValue(metrics,key){const aliases={r2:["r2","R2","r_squared"],mae:["mae","MAE"],rmse:["rmse","RMSE"],mape:["mape","MAPE"]};for(const name of aliases[key])if(metrics&&metrics[name]!==undefined)return metrics[name];return null;}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));}
+function renderModelSets(result){
+ const workspace=document.getElementById("modelWorkspace"),status=document.getElementById("activeStatus");
+ status.textContent="当前启用："+(result.active_model_set||"无");
+ if(!result.model_sets||!result.model_sets.length){workspace.innerHTML='<div class="empty">没有找到名称以 model 开头的模型文件夹</div>';return;}
+ workspace.innerHTML=result.model_sets.map(item=>{
+  const badge=item.active?'<span class="enabled">运行中</span>':item.valid?'<span class="disabled">未运行</span>':'<span class="invalid">不可用</span>';
+  const metrics=metricDefinitions.map(def=>{const value=metricValue(item.metrics,def.key);return `<div class="metric"><div class="metric-label">${def.label}</div><div class="metric-value">${value===null?"—":escapeHtml(value)}<span class="metric-unit">${def.unit}</span></div><div class="metric-desc">${def.desc}</div><div class="track"><span style="width:${value===null?0:Math.min(100,Math.abs(Number(value)))}%"></span></div></div>`;}).join("");
+  const tags=item.model_names.map(name=>`<span class="tag">${escapeHtml(name)}</span>`).join("");
+  const missing=item.missing.length?`<span class="missing">缺少：${escapeHtml(item.missing.join("、"))}</span>`:"<span></span>";
+  return `<article class="model-card ${item.active?"active":""}"><header class="card-head"><div><div class="model-name"><span class="model-icon">▣</span>${escapeHtml(item.name)}</div><div class="model-subtitle">Model directory · ${item.model_count} models</div></div>${badge}</header><div class="metrics">${metrics}</div><div class="card-meta"><span>模型目录：${escapeHtml(item.name)}</span><span>基础模型：${item.model_count} 个</span></div><div class="model-tags">${tags}</div><div class="card-actions">${missing}<button class="activate-btn" data-model-set="${escapeHtml(item.name)}" ${item.active||!item.valid?"disabled":""}>${item.active?"已启用":"启用此模型"}</button></div></article>`;
+ }).join("");
+ document.querySelectorAll(".activate-btn[data-model-set]").forEach(button=>button.addEventListener("click",()=>activateModel(button)));
+}
+async function loadModelSets(){try{const response=await fetch("/api/model_sets"),result=await response.json();if(!response.ok||result.error)throw new Error(result.error||"模型目录读取失败");renderModelSets(result);}catch(error){document.getElementById("modelWorkspace").innerHTML=`<div class="empty">${escapeHtml(error.message)}</div>`;}}
+async function activateModel(button){const modelSet=button.dataset.modelSet;button.disabled=true;button.textContent="正在加载...";try{const response=await fetch("/api/active_model",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model_set:modelSet})}),result=await response.json();if(!response.ok||result.error)throw new Error(result.error||"模型切换失败");await loadModelSets();}catch(error){alert(error.message);button.disabled=false;button.textContent="启用此模型";}}
+async function uploadModelFiles(files){
+ const button=document.getElementById("uploadModelBtn"),tip=document.getElementById("uploadTip"),name=document.getElementById("newModelName").value.trim();
+ if(!files.length)return;
+ const formData=new FormData();
+ Array.from(files).forEach(file=>formData.append("files",file,file.name));
+ formData.append("model_name",name);
+ button.disabled=true;
+ button.textContent="正在上传...";
+ tip.textContent=`正在上传 ${files.length} 个文件...`;
+ try{
+  const response=await fetch("/api/upload_model",{method:"POST",body:formData});
+  const result=await response.json();
+  if(!response.ok||result.error)throw new Error(result.error||"模型加入失败");
+  tip.textContent=`已加入 ${result.model_set}，包含 ${result.model_count} 个基础模型，可点击卡片启用。`;
+  document.getElementById("newModelName").value="";
+  await loadModelSets();
+ }catch(error){
+  tip.textContent=error.message;
+  alert(error.message);
+ }finally{
+  button.disabled=false;
+  button.textContent="加入模型";
+  document.getElementById("modelFileInput").value="";
+ }
+}
+document.getElementById("uploadModelBtn").addEventListener("click",()=>document.getElementById("modelFileInput").click());
+document.getElementById("modelFileInput").addEventListener("change",event=>uploadModelFiles(event.target.files));
+loadModelSets();
+</script>
+</body>
+</html>

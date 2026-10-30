@@ -1,154 +1,27 @@
-# 工业技术协议智能推荐系统与 AutoML 快速构建流水线
+# pipeline_per · 工业产品统一流水线
 
-当前源码基准：**推荐系统 V21.6 + AutoML V7 / V3+**，更新于 **2026-10-30**。V21.6取自真实开发分支提交`3439c7d`，保留已有表格、控制台、原生模型兼容修复；效费分析台使用独立只读服务。来源见[版本记录](docs/RECOMMENDATION_SOURCE_PROVENANCE_V21_6.json)。
+当前交付：**P0 工程基线与接口草案**。已复用 recommend_prototype 源码；深度分析集成、真实 EXE 和 Win7 验收尚未完成。
 
-当前交付及操作见[V7/V3+使用说明](docs/OPTUNA_V7_PIPELINE.md)。V7保留原V3联合搜索及模型对照，只对少量候选做共同开发复核、训练种子平均和收缩融合；专家1—5分五档错分率可选，默认关闭。所有开发分数参与选择，不称为独立测试。V2/V3/V4/V5/V5.1/V6继续保留切换。
-
-本仓库包含两个相互配合的部分：推荐系统负责使用已有模型和成品数据完成推荐、方案生成与显式重算；AutoML流水线负责从处理好的成品表训练价格模型、建立效能试用快照，并导出推荐系统可用的成品草稿。
-
-## 源码分区
-
-| 目录 / 入口 | 用途 |
-| --- | --- |
-| [`app/`](app/README.md)、`run_app.py` | **推荐系统源码**：HTTP后端、中文前台、数据中心、历史方案推荐、候选生成和业务草稿管理 |
-| [`automl_pipeline/`](automl_pipeline/README.md) | **快速建立流水线源码**：成品表接入、V2—V7价格训练适配、效能组件、推荐草稿构建与版本切换 |
-| `cost_effectiveness_analysis/` | 独立只读效费分析服务：数据库方案、两个模型HTTP调用、价格效能对比及帕累托前沿 |
-| `services/price_service/` | 独立价格推理服务、原生bundle导出和可复用价格模型实现；`optuna_v2/`保留原V2核心及V3搜索，`optuna_v4/`为V4搜索与复核，`optuna_v5/`为V5预测库融合、条件搜索与检查点 |
-| `services/effectiveness_service/` | 独立效能服务及已有专家工程产物接入 |
-| `tools/` | 离线环境、打包、验证和历史入口；迁移到流水线目录的旧命令保留兼容转发 |
-| `tests/`、`docs/` | 自动化验证、输入规范、部署说明与历史方案记录 |
-| `config/` | 推荐系统运行配置；流水线的默认训练配置位于`automl_pipeline/configs/` |
-
-详细边界和兼容关系见[源码目录与产物边界](docs/CODEBASE_LAYOUT.md)。推荐系统启动不调用AutoML训练；流水线在新的输出目录构建产物，随后由推荐系统消费。
-
-`BUILD_SOURCE_DEPLOYMENT_NO_WHEELS.bat`生成的是推荐系统及HTTP模型服务的操作端源码部署包，不包含AutoML训练区；需要开发快速建模流程时使用完整Git源码。
-
-## 使用推荐系统
-
-推荐系统的业务后端使用Python标准库；价格和效能模型分别使用与其产物匹配的环境。Windows现场安装及三服务部署见[当前部署说明](docs/CLEAN_WIN7_DEPLOYMENT_V19_6_13.md)。
-
-在已配置环境中启动三个服务：
-
-```bat
-START_ALL_SERVICES_WIN7.bat
+```text
+input/products.xlsx → 既有 Optuna V3 构建 → 已发布价格模型 → 统一价格服务
+                                                        ├─ 推荐系统 + SQLite
+                                                        └─ 深度价格分析（P1/P2）
+试用效能 → EffectivenessProvider → 未来泵 V13 整包适配（P5）
+product.exe（P4）→ 服务监督 / 浏览器 / 独立持久化用户数据
 ```
 
-只启动推荐系统后端：
+- [架构与决策](docs/P0_architecture.md)
+- [当前源码核查与阶段状态](docs/P0_source_audit.md)
+- [字段与 API 契约](docs/deep_price_api_contract.md) / [OpenAPI 草案](docs/contracts/deep_price.openapi.json)
+- [旧页面功能映射和验收](docs/deep_price_feature_matrix.md)
+- [发行 manifest 与用户数据](docs/release_manifest_contract.md)
+- [依赖风险与实机门槛](docs/dependency_risks.md)
+- [P1 拟改文件和回归范围](docs/P1_implementation_plan.md)
+- [原始任务书（参考资料）](docs/TASK_BOOK.original.md)
+- [原仓库运行说明](docs/UPSTREAM_README.md) / [附件参考](references/README.md)
 
-```bat
-python run_app.py --no-browser
-```
+核对 P0 资产：`python tools/validate_pipeline_baseline.py`。本命令不训练、不启动服务、不修改 SQLite。
 
-默认地址：
+`config/build_profile.json` 是新项目的声明性约束，尚未连接执行器。原 CLI 默认 V7，手工构建必须显式传 `--price-engine optuna_v3`。本次未运行 build/serve 或切换模型。原仓库示例模型仅为虚拟验收资产，不等于已选定的正式 V3 模型。
 
-| 服务 | 地址 |
-| --- | --- |
-| 推荐系统 / 数据中心 | `http://127.0.0.1:17891/` / `http://127.0.0.1:17891/admin` |
-| 价格服务 | `http://127.0.0.1:18101/docs` |
-| 效能服务 | `http://127.0.0.1:18102/docs` |
-
-服务地址由`config/model_services.json`配置。推荐系统依据两个模型的schema建立字段目录，并发送完整方案JSON；各模型负责自己的字段选择和预处理。修改属性后需显式点击“重新计算价格与效能”，保存专家方案时会校验本次计算与当前参数一致。
-
-数据中心支持成品草稿维护、校验、离线业务发布、备份及切换。业务数据、价格模型和效能模型的发布操作分别管理，详见[统一交付](docs/PRODUCT_DELIVERY_WIN7.md)和[操作人员手册](docs/操作人员手册_测试数据运行与成品更换.md)。
-
-## 从一张表快速建立成品
-
-### 源码运行
-
-V2—V7主线使用 **Python 3.8.10 x64、scikit-learn 0.24.2、Optuna 3.6.0**，依赖见[`automl_pipeline/requirements.txt`](automl_pipeline/requirements.txt)。请使用独立训练环境；已有正式模型仍按自己的依赖清单运行。TabPFN使用独立Win11环境，见[实验方案说明](docs/TABPFN_WIN11_WIN7_DELIVERY.md)。
-
-```bat
-python -m pip install -r automl_pipeline/requirements.txt
-python -m automl_pipeline --help
-```
-
-下面以仓库中的**虚拟16条、36属性样本**验证流程，快速配置与构建结果均写入新目录：
-
-```bat
-python -m automl_pipeline config --profile quick --output outputs/my_first_product/price.json
-python -m automl_pipeline inspect automl_pipeline/examples/virtual_v7_16x36.xlsx --price-config outputs/my_first_product/price.json
-python -m automl_pipeline build automl_pipeline/examples/virtual_v7_16x36.xlsx --price-config outputs/my_first_product/price.json --output outputs/my_first_product/build --virtual-data
-python -m automl_pipeline serve --output outputs/my_first_product/build --activate-draft --no-browser
-```
-
-新入口默认使用V7/V3+。正式训练时将示例路径换成自己的CSV/XLSX，去掉`--virtual-data`。V7含噪声、无关属性及相关属性的虚拟样本为`automl_pipeline/examples/virtual_v7_16x36.xlsx`，含1—5、80、7200量级的数值及配置类型。`config`生成配置，`inspect`只检查，`build`才训练，`serve`只运行指定的保存结果；已有输出目录不会被覆盖。默认配置可在[`automl_pipeline/configs/`](automl_pipeline/configs/)中查看，`--price-engine optuna_v2`到`optuna_v7`可切换引擎。
-
-### 输入表约定
-
-第一行填写中文名称，第二行填写**唯一英文属性代号**，第三行起填写成品记录。价格建议采用`price_wan`（万元）；前台属性统一显示中文。
-
-属性只有**数值**与**配置类型**两种。1—5、80、7200这样的不同量级可直接作为数值，训练内部按当前训练子集缩放；配置使用训练子集独热编码。数字形式的配置代号也应明确声明为配置类型，才能保留`001`等原始取值。
-
-专家提供的是**价格属性重要性1—5分**，内部转换为模型倍率，并与学习得到的融合份额分开记录。可以关闭专家评分做纯数据对照。只要求填写成品数据；效能偏好、专家评分与耦合表可选，没有耦合时不自动编造。
-
-主线最低支持4条有效正价格记录。V6对4—7条默认内外层按组留一，单样本验证不报告R²，合并留出预测后计算总体R²；实际训练不少于2条。V2/V3的单划分仍保证训练与验证各至少2条。固定独立留出模式需要足够独立组，并需声明全部属性类型。
-
-### 价格模型版本
-
-| 版本 | 当前实现 |
-| --- | --- |
-| V2 | 保留提供版本的六模型核心，联合搜索划分种子、超参数及非负融合权重 |
-| V3 | 在同一核心上采用NSGA-II及多锚点TPE搜索，提供缓存、历史参数复用及异常候选隔离 |
-| V4 | 可切换随机划分、全划分统一搜索、逐划分搜索、混合复核；增加训练门槛、实际全量重拟合检查、跨划分复核与参数组合融合 |
-| V5.1（optuna_v5入口） | 保留V3单划分对照，新增阶段冻结权重并在固定CV中替换模型族；完整日志与心跳；旧V5协议可选 |
-| V6 | 独立目标优先搜索，外层封存、内层调参及收缩融合，逐fit预算、缓存和完整追溯；小样本按组留一；可切固定独立留出，直接导出同一个已验收模型 |
-| **V7 / V3+（默认）** | 原V3对照保留，少量候选共同开发复核、训练种子平均、受约束融合；可选专家五档错分率≤10%，默认关闭 |
-
-V4原混合复核作为可选路线保留。V5.1默认`fixed_cv`协议及`baseline_fixed`权重：V3先提供300轮起点和对照，新增候选固定全部CV划分、替换单个模型族并复用其他族预测，不再针对评分标签求权重或选择容易的划分。标准新增预算为60次实际成员fit；默认训练与固定CV开发目标为MAPE≤10%、R²≥0.9，未达标明确标记试用草稿。原V3单划分与当前CV分数分别显示，详见[V5.1说明](docs/OPTUNA_V5_1_PIPELINE.md)。
-
-**开发成绩参与了参数及融合权重选择，不能作为独立测试成绩。** V4分别记录划分训练、最终部署训练、跨划分开发及可选固定外层留出成绩；默认“全划分”受64个划分上限约束，需要穷举时显式配置。更多预算不保证达标。配置、评估口径与报告字段见[V4完整说明](docs/OPTUNA_V4_PIPELINE.md)。
-
-### 已交付的完整离线包
-
-离线包与源码仓库分别管理，ZIP、Python环境和新训练产物不放入Git。仓库中保留的基线虚拟模型用于演示和回归。当前交付文件为`ProductAutoML_V7_Offline_20261030.zip`及`ProductAutoML_V7_PATCH_20261030.zip`；本地副本位于被Git忽略的`deliverables/`，Git克隆不会附带这些文件。旧包覆盖PATCH后执行`APPLY_V7.bat`；旧模型与输入保留，新协议模型单独登记。完整包包含同一套环境及18个已保存模式。
-
-在完整离线包根目录使用：
-
-| 操作 | 入口 |
-| --- | --- |
-| 选择V2—V7及对应模式 | `MODE_MENU.bat`、`SELECT_V2.bat`至`SELECT_V7.bat`、`V7_BALANCED.bat` / `V7_GOAL_FIRST.bat` / `V7_BASELINE_ONLY.bat` |
-| 更换数据后检查 / 训练 | 替换`input/products.xlsx`，运行`CHECK_INPUT.bat` / `RETRAIN.bat` |
-| 直接使用所选模式保存模型 | `START.bat`，不会自动重训 |
-| 导出当前模型和环境 | `EXPORT.bat`，导出包不需要原训练表 |
-| 只替换专家效能组件 | 先关闭START，执行`IMPORT_EFFECTIVENESS.bat --source "专家组件路径"`，不重新训练价格 |
-
-这些操作BAT由打包工具生成，**不等同于源码根目录的入口**。不同模式的保存模型分别登记，切换到未训练模式会提示先训练，不借用其他模式结果。打包脚本位于`tools/build_product_v7.py`，完整离线重打包还需另外准备固定环境及演示产物，见[流水线源码说明](automl_pipeline/README.md)。
-
-## V5.1历史对照
-
-旧V5的新增日志把单模型名称与重新求权重后的集成成绩放在一起，小开发集可被融合权重精确插值。V5.1默认冻结权重，每个候选在相同、覆盖全部样本的固定CV中比较，接纳后替换一个模型族。主成绩使用固定CV，原V3高分只作对照；约束最差折及尾部误差，导出前再次核对实际部署训练成绩。
-
-日志包含参数、行号、各折、单模型/集成/优胜、权重、接纳原因、缓存及耗时，并对长拟合默认每10秒输出心跳。MAPE/R²使用足够有效数字，不把小误差统一显示为0.000%。固定CV仍参与选参，不是独立测试成绩；固定外层留出继续可选。配置及预算见[V5.1说明](docs/OPTUNA_V5_1_PIPELINE.md)，旧[V5.0说明](docs/OPTUNA_V5_PIPELINE.md)作为历史对照保留。
-
-## 验证
-
-V7本轮通过298项不同名称的源码/前台检查及实际完整包/PATCH验收，覆盖18种保存模式、原V3对照、4—7条、专家五档与发布保护、带环境迁移启动。算法冻结后的5组新随机种子虚拟评测中，4组MAPE改善、1组持平，但仍有多项未达10%/0.9目标，不能作为真实业务精度保证。全部结果及计算费用见[V7验证记录](docs/VALIDATION_V7_20261030.md)。
-
-V6历史交付通过276项源码检查和实际离线包验收，覆盖15种保存模式、4—7条×40属性、恢复训练、严格目标保护、专家效能替换、无输入迁移启动及四端口强制退出。虚拟16条×36属性默认训练MAPE为0.224264%、R²为0.999837915，封存流程验收MAPE为0.302347%、R²为0.999728182。完整口径、包摘要及限制见[V6验证记录](docs/VALIDATION_V6_20261027.md)。
-
-在上述Python3.8训练环境中，从仓库根目录运行：
-
-```bat
-python tools/verify_product_optuna_v2_tests.py --report outputs/verification/legacy.json
-python tools/verify_product_v4_tests.py --report outputs/verification/v4.json
-python tools/verify_product_v5_tests.py --report outputs/verification/v5.json
-python tools/verify_product_v51_tests.py --report outputs/verification/v51.json
-python tools/verify_product_v6_tests.py --report outputs/verification/v6.json
-python tools/verify_product_v7_tests.py --report outputs/verification/v7.json
-python -m unittest discover -s tests -p source_layout_test.py -v
-```
-
-推荐系统的完整HTTP及数据生命周期验证：
-
-```bat
-python tests/full_pipeline_test.py
-python tests/complete_parameter_payload_and_admin_save_test.py
-```
-
-2026-10-27的V5.1交付通过223项源码检查，覆盖旧权重插值复现、固定CV、冻结权重、完整日志和恢复；实际离线包验收包括12种保存模式、10组新协议BAT训练、V2/V3日志、九套旧模型保留及无输入的带环境导出，见[V5.1验证记录](docs/VALIDATION_V5_1_20261027.md)。虚拟演示未达R²目标时如实标记试用草稿。涉及旧交付ZIP的验收需要对应离线资产；源码克隆缺少旧ZIP时会跳过该资产专用测试。虚拟样本只用于验证软件链路，不能证明真实业务精度；当前固定环境已在Windows开发机验证，实体Win7未复测。
-
-## 版本管理边界
-
-Git保存源码、配置模板、虚拟测试样本、文档和测试。运行数据库、真实输入、专家现场配置、训练输出、日志、依赖wheel、环境及交付ZIP保留在本机或单独交付。首次运行时，可由仓库中的虚拟CSV初始化本机数据库。
-
-历史V1/R4、原始Notebook及TabPFN代码保留作对照，当前快速建模主线以`automl_pipeline/`和[V7说明](docs/OPTUNA_V7_PIPELINE.md)为准，V2/V3/V4/V5/V5.1仍可切换。推荐系统原有多类型指标与DataMaster格式继续使用自己的业务规范；流水线的双行表头及两种属性类型是快速建模的输入约定。
+附件内容是待核验输入；用户最新明确决定优先。不要将原任务书中对旧轮次的“只分析”描述当作永久禁止实施，也不要将其勾选项当作本项目已经通过的验收。

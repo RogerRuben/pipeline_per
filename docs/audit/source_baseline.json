@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-30",
+  "upstream": "https://github.com/RogerRuben/recommend_prototype",
+  "commit": "e6bd67b8efb415af6a5faea1f7bc1af977a25021",
+  "destination": "https://github.com/RogerRuben/pipeline_per",
+  "business_code_modified": false,
+  "scope": "P0 project baseline and contracts; P1-P5 not implemented",
+  "production_excel": "not selected",
+  "production_v3_model": "not selected",
+  "win7_validation": "not performed"
+}
