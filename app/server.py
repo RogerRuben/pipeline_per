@@ -40,7 +40,7 @@ from .requirement_versions import RequirementVersionService, demand_fingerprint
 from .generation_profiles import public_profiles
 from .ranking_explanation import annotate_ranking_explanations
 from .relaxation_advisor import build_relaxation_suggestions
-from .deep_price.http import handle_http as handle_deep_price_http
+from .deep_price.http import handle_http as handle_deep_price_http, invalidate_session as invalidate_deep_price_session
 
 
 class GeneratedSessions(object):
@@ -2504,6 +2504,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._set_auth_cookie(token, self.app.auth_ttl_seconds)
                 self.end_headers(); self.wfile.write(data); return
             if path == "/api/auth/logout":
+                invalidate_deep_price_session(self)
                 data = json.dumps({"authenticated":False,"redirect":"/login"}, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")

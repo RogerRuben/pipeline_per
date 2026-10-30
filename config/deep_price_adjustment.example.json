@@ -1,0 +1,13 @@
+{
+  "confirmed": false,
+  "version": "REPLACE_WITH_APPROVED_VERSION",
+  "source": "填写经确认的指数来源及适用价格基准",
+  "approved_by": "",
+  "approved_at": "",
+  "price_unit": "万元",
+  "time_direction": "base_to_target",
+  "base_year": 2026,
+  "ppi": {},
+  "reference_quantity": null,
+  "quantity_elasticity": null
+}
