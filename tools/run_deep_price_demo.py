@@ -7,6 +7,7 @@ import shutil
 import sys
 import subprocess
 import threading
+import time
 from http.server import ThreadingHTTPServer
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -21,7 +22,10 @@ def main():
     parser=argparse.ArgumentParser(description='仅本机虚拟数据验收环境；不修改生产库、不训练')
     parser.add_argument('--port',type=int,default=18891)
     parser.add_argument('--data-dir',default=str(ROOT/'outputs/deep_price_demo'))
+    parser.add_argument('--test-predict-delay',type=float,default=0,help='仅虚拟浏览器竞态验收：单预测响应延时0至10秒')
     args=parser.parse_args()
+    if not 0<=args.test_predict_delay<=10:
+        parser.error('测试延时必须在0至10秒')
     data=Path(args.data_dir).resolve()
     if data==ROOT or ROOT not in data.parents:
         raise SystemExit('演示数据目录必须为工程内的独立子目录')
@@ -34,7 +38,12 @@ def main():
     (data/'config').mkdir(exist_ok=True)
     servers=[]
     try:
-        for service in (PriceService(None,data/'models/price_bundle.json'),
+        class DemoPriceService(PriceService):
+            def handle_post(self,path,payload):
+                if path=='/api/v1/predict' and args.test_predict_delay:
+                    time.sleep(args.test_predict_delay)
+                return super().handle_post(path,payload)
+        for service in (DemoPriceService(None,data/'models/price_bundle.json'),
                         EffectivenessService(SnapshotBackend(data/'models/effectiveness_bundle.json'))):
             server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(service))
             server.daemon_threads=True
@@ -63,6 +72,7 @@ def main():
               'deep_url':'http://127.0.0.1:%d/price/deep'%portal.server_address[1],
               'virtual_fixture':True,'price_url':config['price_service_url'],'effectiveness_url':config['effectiveness_service_url'],
               'pid':os.getpid(),'data_dir':str(data),
+              'test_predict_delay_seconds':args.test_predict_delay,
               'source_sha':subprocess.check_output(['git','rev-parse','HEAD'],cwd=str(ROOT),text=True).strip()}
         (data/'demo_running.json').write_text(json.dumps(info,ensure_ascii=False,indent=2),encoding='utf-8')
         print(json.dumps(info,ensure_ascii=True),flush=True)

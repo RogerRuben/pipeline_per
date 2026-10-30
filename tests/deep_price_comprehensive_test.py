@@ -98,6 +98,8 @@ class ComprehensiveTests(unittest.TestCase):
         rule={'confirmed':True,'version':'TEST-ONLY','source':'synthetic test indices, not a production rule',
               'approved_by':'fixture','approved_at':'2026-10-30','price_unit':'万元','time_direction':'base_to_target',
               'base_year':2025,'ppi':{'2025':100,'2026':110},'reference_quantity':10,'quantity_elasticity':-.1}
+        rule['applicability']={key:result[key] for key in ('product_code','model_version','price_model_sha256','price_output_signature')}
+        rule['price_basis']={'kind':'model_unit_price','base_year':2025,'reference_quantity':10,'description':'TEST ONLY model unit price basis'}
         (self.root/'config').mkdir(exist_ok=True)
         (self.root/'config/deep_price_adjustment.json').write_text(json.dumps(rule),encoding='utf-8')
         status,adjusted=self.call('/price-adjust',payload)

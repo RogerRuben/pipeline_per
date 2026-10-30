@@ -45,7 +45,7 @@ def main():
               'source_tree_sha256':source_fingerprint(), 'environment':json.loads(env.stdout),
               'model':'trusted generated LinearFixture + existing virtual portable JSON, not formal V3',
               'win7_validated':False, 'checks':[]}
-    for name in ('deep_price_comprehensive_test.py','portable_compatibility_test.py','price_dynamic_model_hotfix_test.py',
+    for name in ('deep_price_review_test.py','deep_price_comprehensive_test.py','portable_compatibility_test.py','price_dynamic_model_hotfix_test.py',
                  'v21_workflow_portal_workbench_test.py','full_pipeline_test.py'):
         program = 'import tempfile,runpy;tempfile.tempdir='+repr(str(temp))+';runpy.run_path('+repr(str(ROOT/'tests'/name))+",run_name='__main__')"
         result = subprocess.run([args.python,'-X','utf8','-c',program],cwd=str(ROOT),capture_output=True,text=True,encoding='utf-8',errors='replace')

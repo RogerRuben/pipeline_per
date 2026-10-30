@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Deep Price integrated web API",
-    "version": "1.1.0-p1.2",
+    "version": "1.1.1-p1.2.1",
     "description": "Implemented web workflow: prediction, sensitivity, scenarios, real metadata, confirmed rules and session exports. Virtual development acceptance only; formal V3/Win7 not certified."
   },
   "servers": [
@@ -917,7 +917,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Samples all eligible fields in chunks of at most99 points plus one repeated baseline, shared30s budget and whole-operation business/model guards. At most10000 sample points. Any failed/changed chunk invalidates the entire analysis."
       }
     },
     "/scenario": {
@@ -2848,8 +2849,7 @@
               "type": "string",
               "minLength": 1
             },
-            "minItems": 1,
-            "maxItems": 49
+            "minItems": 1
           }
         },
         "required": [
@@ -2988,6 +2988,14 @@
           "note": {
             "type": "string",
             "minLength": 1
+          },
+          "sample_count": {
+            "type": "integer",
+            "maximum": 10000
+          },
+          "batch_count": {
+            "type": "integer",
+            "minimum": 1
           }
         },
         "required": [
@@ -3005,7 +3013,9 @@
           "result_ttl_seconds",
           "base_price_wan",
           "series",
-          "compared_field_count"
+          "compared_field_count",
+          "sample_count",
+          "batch_count"
         ],
         "additionalProperties": false
       },
@@ -3199,7 +3209,8 @@
           "rule",
           "message"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Confirmed rules must match product_code, model_version, model SHA and price-output signature. Mismatches return not_configured; unscoped legacy confirmed rules fail closed."
       },
       "AdjustmentRequest": {
         "type": "object",
@@ -3221,6 +3232,10 @@
           "rule_version": {
             "type": "string",
             "minLength": 1
+          },
+          "rule_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
           }
         },
         "required": [

@@ -100,7 +100,7 @@ def handle_http(handler, method):
             send(handler,200,data,sid,ctype)
             return True
         if method=='GET' and path=='/adjustment/status':
-            status,body=200,adjustment_status(getattr(handler.app,'root','.'))
+            status,body=200,adjustment_status(getattr(handler.app,'root','.'),service)
         elif method=='POST' and path=='/price-adjust':
             status,body=adjust(service,getattr(handler.app,'root','.'),cache,sid,payload)
         else:

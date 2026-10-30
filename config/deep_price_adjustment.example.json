@@ -9,5 +9,17 @@
   "base_year": 2026,
   "ppi": {},
   "reference_quantity": null,
-  "quantity_elasticity": null
+  "quantity_elasticity": null,
+  "applicability": {
+    "product_code": "",
+    "model_version": "",
+    "price_model_sha256": "",
+    "price_output_signature": ""
+  },
+  "price_basis": {
+    "kind": "model_unit_price",
+    "base_year": 2026,
+    "reference_quantity": null,
+    "description": "填写该模型输出单价的业务基准与适用范围，需重新审批确认"
+  }
 }
