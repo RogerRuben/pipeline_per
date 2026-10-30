@@ -1,0 +1,8 @@
+{
+  "source_sha": "af1c2a0744eadb9adefc15793c3b700090c8f9cf",
+  "tracked_text_files_scanned": 756,
+  "known_credential_pattern_findings": [],
+  "limits": "Known token/private-key patterns only; not proof of absence of all secrets. Historical reference credential fallback was removed in P0.",
+  "license_review": "Reference ECharts license notice exists in bundled JS; complete third-party runtime redistribution inventory is still deferred to packaging.",
+  "readme_user_edit": "Preserved uncommitted; excluded from release commits."
+}

@@ -1,0 +1,18 @@
+test_authentication_origin_content_type_and_json_errors (__main__.DeepPriceContractTests) ... ok
+test_concurrent_business_write_is_rejected_after_http (__main__.DeepPriceContractTests) ... ok
+test_invalid_batch_atomic_limits_and_inputs (__main__.DeepPriceContractTests) ... ok
+test_missing_value_is_owned_by_model_and_bad_model_input_is_400 (__main__.DeepPriceContractTests) ... ok
+test_model_change_during_prediction_rejected (__main__.DeepPriceContractTests) ... ok
+test_no_active_release_and_missing_original_excel (__main__.DeepPriceContractTests) ... ok
+test_no_local_fallback_or_effectiveness_dependency (__main__.DeepPriceContractTests) ... ok
+test_normalization_change_and_unverifiable_model_fail_closed (__main__.DeepPriceContractTests) ... ok
+test_read_queries_and_predictions_do_not_change_database_or_model (__main__.DeepPriceContractTests) ... ok
+test_real_application_published_product_and_existing_service (__main__.DeepPriceContractTests) ... ok
+test_response_order_corruption_rejected_and_deadline_shared (__main__.DeepPriceContractTests) ... ok
+test_same_price_workbench_recommendation_wire_single_batch_and_mapping_once (__main__.DeepPriceContractTests) ... ok
+test_stale_token_and_model_restart_or_change_rejected (__main__.DeepPriceContractTests) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 15.442s
+
+OK
