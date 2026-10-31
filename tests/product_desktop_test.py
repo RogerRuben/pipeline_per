@@ -224,7 +224,9 @@ class DesktopTests(unittest.TestCase):
                 self.assertEqual(failure.exception.code,403)
                 self.assertFalse(supervisor.stopping.is_set())
             fetch(supervisor.url+'/api/stop',{},supervisor.token)
-            self.assertTrue(supervisor.stopping.is_set())
+            # The HTTP thread sends its acknowledgement before setting the
+            # shutdown event; wait for completion instead of racing that thread.
+            self.assertTrue(supervisor.stopping.wait(timeout=2))
         finally:
             supervisor.server.shutdown();supervisor.server.server_close();worker.join();supervisor.job.close()
 
