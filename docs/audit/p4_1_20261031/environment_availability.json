@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-31",
+  "actual_host": "Windows 11 Home x64 build 26200",
+  "win7_target_available": false,
+  "win7_validated": false,
+  "tools_found_on_PATH": [],
+  "known_virtualbox_vmware_qemu_executables_found": [],
+  "status": "Win7 target-machine access pending; collector supplied and exercised only on the actual Windows 11 host"
+}

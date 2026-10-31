@@ -1,0 +1,33 @@
+{
+  "integrity": "ok",
+  "tables": {
+    "products": {
+      "rows": 1,
+      "sha256": "4aa890246aefc2759da4cd7430d59ea96bde52ff318b072aa60d2824b03d3254"
+    },
+    "parameter_definitions": {
+      "rows": 60,
+      "sha256": "d8bae80c117a6d4955632d04b069bc73c1891751343050bd81a9b86cfe6b8b96"
+    },
+    "agreements": {
+      "rows": 160,
+      "sha256": "a6da9022e871491f924cb3a7c95dbabc44a88de28f6db7a907a7402d5ad8587b"
+    },
+    "saved_schemes": {
+      "rows": 1,
+      "sha256": "feaf7164aaed0a972573ef9357d5b15c03dc93225d3714281af41f17e026af68"
+    },
+    "product_releases": {
+      "rows": 1,
+      "sha256": "b971d668e7bd322abffac1dfdc84b6ecd1a7bef762ff87d903178f1414bcb9e8"
+    }
+  },
+  "saved_schemes": [
+    {
+      "id": 1,
+      "scheme_name": "目标机备份恢复验收方案",
+      "params_json": "{\"numeric_00\": 37.51855, \"numeric_01\": 78.74258, \"numeric_02\": 43.80864, \"numeric_03\": 56.12668, \"numeric_04\": 28.78643, \"numeric_05\": 52.82598, \"numeric_06\": 66.8188, \"numeric_07\": 19.7109, \"numeric_08\": 79.99511, \"numeric_09\": 88.53581, \"numeric_10\": 78.76162, \"numeric_11\": 62.81355, \"numeric_12\": 34.34826, \"numeric_13\": 17.11798, \"numeric_14\": 60.69364, \"numeric_15\": 26.43932, \"numeric_16\": 96.41614, \"numeric_17\": 88.57971, \"numeric_18\": 42.36859, \"numeric_19\": 65.23853, \"numeric_20\": 19.54472, \"numeric_21\": 48.11137, \"numeric_22\": 66.94707, \"numeric_23\": 54.03417, \"integer_00\": 9, \"integer_01\": 6, \"integer_02\": 8, \"integer_03\": 6, \"integer_04\": 7, \"integer_05\": 6, \"integer_06\": 7, \"integer_07\": 6, \"integer_08\": 2, \"integer_09\": 9, \"integer_10\": 5, \"integer_11\": 3, \"flag_00\": \"有\", \"flag_01\": \"无\", \"flag_02\": \"有\", \"flag_03\": \"无\", \"flag_04\": \"无\", \"flag_05\": \"有\", \"flag_06\": \"有\", \"flag_07\": \"有\", \"flag_08\": \"有\", \"flag_09\": \"有\", \"category_00\": \"高配\", \"category_01\": \"基础\", \"category_02\": \"基础\", \"category_03\": \"基础\", \"category_04\": \"高配\", \"category_05\": \"基础\", \"category_06\": \"基础\", \"category_07\": \"高配\", \"optional_00\": 1.35448, \"optional_01\": 17.03748, \"optional_02\": 8.04923, \"optional_03\": 11.04394, \"optional_04\": 5.23898, \"optional_05\": 7.2549}"
+    }
+  ],
+  "rule_sha256": "a71871941b6f0e5588a806e78b7c0120bc40eb9910ffab59e6c3c257b1e7f1c5"
+}

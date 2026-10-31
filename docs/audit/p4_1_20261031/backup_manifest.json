@@ -1,0 +1,13 @@
+{
+  "format": "pipeline-user-backup-1.0",
+  "files": {
+    "data/protocol_demo.db": "e0fd77d1aff771b3101975f1b4754988b1713d00022586f7ff849e0c6587bbff",
+    "config/deep_price_adjustment.json": "a71871941b6f0e5588a806e78b7c0120bc40eb9910ffab59e6c3c257b1e7f1c5",
+    "config/model_services.json": "4f2966501c297a8b9e3c7e8756b8c5a06a7c8f692cb5583faeb2dcdec96904fe",
+    "config/scenario_config.json": "da46eb9e57527cfc24c5577140f5847c7ad04ea406a80574af86fab47a515091",
+    "installed.json": "af049549fe1fdb07f6c75b4bc9983d31fedcbd06e48833d35c6e076ee9e982d9",
+    "delivery_state.json": "77a0f8615e6fd1abc530d70424bddd066c9d4af43441c1a05d0fe3fc7afbf619",
+    "runtime/initialized.json": "de06d017e7a8374af1a25421b7da93bc4cf965154fc8b079e7ee82ec7768c344"
+  },
+  "scope": "SQLite, JSON config, installation and accepted contract state; no control tokens, logs or exports"
+}

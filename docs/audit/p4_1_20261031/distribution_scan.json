@@ -1,0 +1,9 @@
+{
+  "text_files_scanned": 1298,
+  "known_credential_pattern_hits": [],
+  "forbidden_paths": [],
+  "archive_sha256": "0f58b113fc4c40412f548ed2d4c457c53eb3109650d817ec21500ca462b12fe4",
+  "archive_bytes": 72251184,
+  "status": "pass",
+  "scope": "Known credential patterns and forbidden file paths; not a complete security audit"
+}
