@@ -1,0 +1,12 @@
+{
+  "status": "built",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_P4_1_20261031_model_update_v2",
+  "archive": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_P4_1_20261031_model_update_v2.zip",
+  "archive_sha256": "ec8b468c4ae2a89d1afe12ad06eb2d71b23031d9f26156e4dec03568244e6da9",
+  "archive_bytes": 72316910,
+  "files": 2529,
+  "model_sha256": "37df47be3e870494a3b6cb342b5b49c7446dd886cb23706e15a41ded243da472",
+  "bootstrap": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_P4_1_20261031_v2_build\\dist\\product",
+  "source_sha": "e6e9b1af3ba8e6d01ecba4ad8312fee5a90f2762",
+  "win7_validated": false
+}

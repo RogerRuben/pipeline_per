@@ -1,0 +1,14 @@
+{
+  "user_tables_equal": true,
+  "tables": [
+    "products",
+    "parameter_definitions",
+    "agreements",
+    "saved_schemes",
+    "product_releases"
+  ],
+  "saved_ids": [
+    1
+  ],
+  "scope": "Full records of five user business tables, SQLite integrity and separate config byte comparison"
+}

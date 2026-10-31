@@ -74,12 +74,14 @@ def verify(package,upgrade,output):
     def check(name,value):
         report['checks'][name]=bool(value);save()
         if not value:raise AssertionError(name)
-    def command(exe,*args):
+    def command(exe,*args,expected_failure=False):
         destination=output/('command-'+str(time.time_ns())+'.json')
         result=subprocess.run([str(exe),'--no-browser','--report',str(destination)]+list(args),
                               env=env,cwd=str(output),creationflags=subprocess.CREATE_NO_WINDOW,timeout=100)
         value=read_json(destination) if destination.exists() else {'missing_report':True}
-        if result.returncode:raise RuntimeError(str(value))
+        if expected_failure:
+            if not result.returncode or value.get('status')!='failed':raise AssertionError('Expected explicit startup rejection')
+        elif result.returncode:raise RuntimeError(str(value))
         return value
     def launch(exe):
         started=time.monotonic()
@@ -189,8 +191,37 @@ def verify(package,upgrade,output):
         before_backups=set((data/'backups').glob('backup-*.zip'))
         parent,(control,status)=launch(upgrade_copy/'product.exe')
         check('repack_update_preserves_user_data',preserved() and status['version']==new['version'])
+        upgraded_schema=fetch(status['services']['web']['url']+'/api/deep-price/v1/schema')
+        upgraded_identity={key:upgraded_schema[key] for key in identity}
+        upgraded_prediction=fetch(status['services']['web']['url']+'/api/deep-price/v1/predict',dict(upgraded_identity,parameters=parameters))
+        report['upgraded_model_sha256']=upgraded_schema['price_model_sha256']
+        check('new_model_identity_and_prediction',upgraded_schema['price_model_sha256']==new['files'][new['release']['price_model']]
+              and isinstance(upgraded_prediction['predicted_price_wan'],(float,int)))
+        upgraded_web=status['services']['web']['url']
+        simple_updated=fetch(upgraded_web+'/api/price-workbench/predict',{'parameters':parameters})
+        recommendation_updated=fetch(upgraded_web+'/api/evaluate',{'parameters':parameters})
+        report['upgraded_prediction_values']={'deep':upgraded_prediction['predicted_price_wan'],
+               'simple':simple_updated['prediction']['predicted_price_wan'],
+               'recommendation':recommendation_updated['predicted_price_wan']}
+        check('upgraded_three_entry_consistency',
+              max(report['upgraded_prediction_values'].values())-min(report['upgraded_prediction_values'].values())<1e-8)
         check('update_takes_preload_backup',bool(set((data/'backups').glob('backup-*.zip'))-before_backups))
         command(upgrade_copy/'product.exe','--stop');parent.wait(timeout=20);parent=None
+        if 'delivery_contract' in new['release']:
+            price_config=data/'config/model_services.json';original_config=price_config.read_bytes()
+            wrong=read_json(price_config);wrong['price_output']={'unit':'yuan','scale':1.0}
+            write_json(price_config,wrong);before=sha(database),sha(data/'delivery_state.json')
+            command(upgrade_copy/'product.exe',expected_failure=True)
+            check('price_basis_change_rejected_without_db_write',before==(sha(database),sha(data/'delivery_state.json')))
+            price_config.write_bytes(original_config)
+            with closing(sqlite3.connect(str(database))) as connection:
+                old_id=connection.execute("SELECT release_id FROM product_releases WHERE status='active'").fetchone()[0]
+                connection.execute("UPDATE product_releases SET release_id='TEST-DIFFERENT-RELEASE' WHERE status='active'");connection.commit()
+            before=sha(database)
+            command(upgrade_copy/'product.exe',expected_failure=True)
+            check('same_product_changed_release_rejected',sha(database)==before)
+            with closing(sqlite3.connect(str(database))) as connection:
+                connection.execute("UPDATE product_releases SET release_id=? WHERE status='active'",(old_id,));connection.commit()
         check('packages_immutable_during_execution',verify_package(relocated,True) and verify_package(upgrade_copy,True))
         report['status']='pass';save()
         return report

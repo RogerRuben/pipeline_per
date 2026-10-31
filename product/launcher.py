@@ -1,7 +1,6 @@
 """Frozen, windowless desktop supervisor; workers use a private model runtime."""
 import argparse
 from collections import deque
-from contextlib import closing
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 import json
 import logging
@@ -9,7 +8,6 @@ from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 import secrets
-import sqlite3
 import subprocess
 import sys
 import threading
@@ -17,10 +15,11 @@ import time
 from urllib.parse import urlparse
 from urllib.request import Request,build_opener,ProxyHandler
 import webbrowser
-import zipfile
 
 from product.common import InstanceLock,data_directory,read_json,verify_package,write_json
 from product.windows import WorkerJob
+from product.compatibility import validate_data,check_data_root
+from product.recovery import backup_data,restore_backup
 
 HTTP = build_opener(ProxyHandler({}))  # Loopback never goes through a system proxy.
 
@@ -46,31 +45,6 @@ def running(data):
     except (OSError,ValueError,KeyError):
         pass
     return None
-
-
-def backup_data(data):
-    """Consistent SQLite snapshot plus persistent config; excludes control secrets."""
-    import tempfile
-    data = Path(data)
-    (data/'backups').mkdir(parents=True,exist_ok=True)
-    fd,name = tempfile.mkstemp(prefix='backup-',suffix='.db',dir=str(data/'backups'))
-    os.close(fd)
-    temporary = Path(name)
-    target = temporary.with_suffix('.zip')
-    try:
-        database = data/'data/protocol_demo.db'
-        if not database.is_file():
-            raise ValueError('No initialized database to back up')
-        with closing(sqlite3.connect('file:'+database.as_posix()+'?mode=ro',uri=True)) as source:
-            with closing(sqlite3.connect(str(temporary))) as destination:
-                source.backup(destination)
-        with zipfile.ZipFile(str(target),'x',zipfile.ZIP_DEFLATED) as archive:
-            archive.write(str(temporary),'data/protocol_demo.db')
-            for path in sorted((data/'config').glob('*.json')):
-                archive.write(str(path),'config/'+path.name)
-    finally:
-        temporary.unlink()
-    return target
 
 
 class Supervisor:
@@ -331,6 +305,7 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group()
     for command in ('stop','status','restart','backup','verify'):
         group.add_argument('--'+command,action='store_true')
+    group.add_argument('--restore',metavar='BACKUP_ZIP',help='Offline restore into a new --data-dir; never overwrite userdata')
     args = parser.parse_args(argv)
     package = Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1]
     data = data_directory(package,args.data_dir)
@@ -340,6 +315,10 @@ def main(argv=None):
     if args.verify:
         manifest = verify_package(package,full=True)
         report({'status':'pass','files_verified':len(manifest['files']),'version':manifest['version']})
+        return 0
+    if args.restore:
+        manifest=verify_package(package,full=True)
+        report(restore_backup(package,data,manifest,args.restore))
         return 0
     existing = running(data)
     if any((args.stop,args.status,args.restart,args.backup)):
@@ -371,6 +350,9 @@ def main(argv=None):
         handler = RotatingFileHandler(str(data/'logs/launcher.log'),maxBytes=2*1024*1024,backupCount=3,encoding='utf-8')
         logging.basicConfig(level=logging.INFO,handlers=[handler],format='%(asctime)s %(levelname)s %(message)s')
         manifest = verify_package(package,full=True)
+        check_data_root(data)
+        if (data/'data/protocol_demo.db').exists():
+            validate_data(package,data,manifest)
         supervisor = Supervisor(package,data,manifest,args.no_browser)
         supervisor.run()
         report({'status':'stopped'})

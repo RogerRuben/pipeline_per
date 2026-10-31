@@ -1,0 +1,1718 @@
+{
+  "format": "pipeline-delivery-contract-1.0",
+  "product_code": "SYNTHETIC_V3_ACCEPTANCE",
+  "model_sha256": "260f18f43e82dbf3b3670e486a4ba6fa3884713015c517f279930ea5c7ea3dab",
+  "model_version": "user-optuna-v3-joint-pareto-2.0",
+  "model_schema": {
+    "feature_order": [
+      "numeric_00",
+      "numeric_01",
+      "numeric_02",
+      "numeric_03",
+      "numeric_04",
+      "numeric_05",
+      "numeric_06",
+      "numeric_07",
+      "numeric_08",
+      "numeric_09",
+      "numeric_10",
+      "numeric_11",
+      "numeric_12",
+      "numeric_13",
+      "numeric_14",
+      "numeric_15",
+      "numeric_16",
+      "numeric_17",
+      "numeric_18",
+      "numeric_19",
+      "numeric_20",
+      "numeric_21",
+      "numeric_22",
+      "numeric_23",
+      "integer_00",
+      "integer_01",
+      "integer_02",
+      "integer_03",
+      "integer_04",
+      "integer_05",
+      "integer_06",
+      "integer_07",
+      "integer_08",
+      "integer_09",
+      "integer_10",
+      "integer_11",
+      "flag_00",
+      "flag_01",
+      "flag_02",
+      "flag_03",
+      "flag_04",
+      "flag_05",
+      "flag_06",
+      "flag_07",
+      "flag_08",
+      "flag_09",
+      "category_00",
+      "category_01",
+      "category_02",
+      "category_03",
+      "category_04",
+      "category_05",
+      "category_06",
+      "category_07",
+      "optional_00",
+      "optional_01",
+      "optional_02",
+      "optional_03",
+      "optional_04",
+      "optional_05"
+    ],
+    "fields": [
+      {
+        "field_name": "category_00",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_01",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_02",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_03",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_04",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_05",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_06",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "category_07",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "基础",
+          "增强",
+          "高配"
+        ],
+        "category_mapping": {
+          "基础": 0.0,
+          "增强": 1.0,
+          "高配": 2.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_00",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_01",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_02",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_03",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_04",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_05",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_06",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_07",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_08",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "flag_09",
+        "dtype": "enum",
+        "unit": "",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": [
+          "无",
+          "有"
+        ],
+        "category_mapping": {
+          "无": 0.0,
+          "有": 1.0
+        },
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_00",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_01",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_02",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_03",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_04",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_05",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_06",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_07",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_08",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_09",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_10",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "integer_11",
+        "dtype": "number",
+        "unit": "个",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_00",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_01",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_02",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_03",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_04",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_05",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_06",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_07",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_08",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_09",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_10",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_11",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_12",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_13",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_14",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_15",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_16",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_17",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_18",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_19",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_20",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_21",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_22",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "numeric_23",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "optional_00",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "optional_01",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "optional_02",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "optional_03",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "optional_04",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      },
+      {
+        "field_name": "optional_05",
+        "dtype": "number",
+        "unit": "单位",
+        "required": true,
+        "missing_policy": "reject",
+        "allowed_values": null,
+        "category_mapping": null,
+        "source": "product_parameter",
+        "parser": null
+      }
+    ]
+  },
+  "model_schema_sha256": "600bc0954430391bee38ca9b3e9319850629c7fbffa4f7833ae58d804eb42ee3",
+  "business_schema_sha256": "e0b001272917a0efb86b4f62e7e58b89e0776e8d92d7d54b0a266b99bcc1cb1c",
+  "business_schema": [
+    {
+      "parameter_id": "category_00",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_01",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_02",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_03",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_04",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_05",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_06",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "category_07",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "基础",
+        "增强",
+        "高配"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_00",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_01",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_02",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_03",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_04",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_05",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_06",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_07",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_08",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "flag_09",
+      "unit": "",
+      "search_type": "unordered_enum",
+      "min_value": null,
+      "max_value": null,
+      "value_type": "enum",
+      "required": true,
+      "allowed_values": [
+        "无",
+        "有"
+      ],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_00",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_01",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_02",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_03",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_04",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_05",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_06",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_07",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_08",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_09",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_10",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "integer_11",
+      "unit": "个",
+      "search_type": "integer",
+      "min_value": 1.0,
+      "max_value": 10.0,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_00",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.45739,
+      "max_value": 99.09599,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_01",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 11.01302,
+      "max_value": 99.28956,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_02",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.1268,
+      "max_value": 99.75002,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_03",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.26547,
+      "max_value": 99.8714,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_04",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 12.31984,
+      "max_value": 99.94585,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_05",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.18978,
+      "max_value": 99.10861,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_06",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.15382,
+      "max_value": 99.57874,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_07",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.03484,
+      "max_value": 99.11111,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_08",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.42966,
+      "max_value": 99.58481,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_09",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.77806,
+      "max_value": 99.87412,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_10",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.32178,
+      "max_value": 98.96948,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_11",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.64007,
+      "max_value": 99.71797,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_12",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.49166,
+      "max_value": 99.93537,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_13",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.85485,
+      "max_value": 99.19018,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_14",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.22403,
+      "max_value": 99.95763,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_15",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.11372,
+      "max_value": 99.80399,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_16",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.99435,
+      "max_value": 99.61342,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_17",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.34504,
+      "max_value": 99.18441,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_18",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.14229,
+      "max_value": 98.25106,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_19",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.0589,
+      "max_value": 98.93576,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_20",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.45256,
+      "max_value": 99.73022,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_21",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.65305,
+      "max_value": 99.70871,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_22",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.4618,
+      "max_value": 99.90992,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "numeric_23",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 10.12102,
+      "max_value": 99.80969,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "optional_00",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 1.04288,
+      "max_value": 19.98396,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "optional_01",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 1.06751,
+      "max_value": 19.89131,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "optional_02",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 1.33954,
+      "max_value": 19.98805,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "optional_03",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 1.00194,
+      "max_value": 19.95683,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "optional_04",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 1.08433,
+      "max_value": 19.92486,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    },
+    {
+      "parameter_id": "optional_05",
+      "unit": "单位",
+      "search_type": "continuous",
+      "min_value": 1.04493,
+      "max_value": 19.81891,
+      "value_type": "number",
+      "required": true,
+      "allowed_values": [],
+      "special_value_keys": [],
+      "model_value_mapping": {},
+      "display_value_mapping": {}
+    }
+  ],
+  "business_source_release_id": "REL-595DBCAE12",
+  "business_package_payload_sha256": "f01ba835012458e520bb78af8de8d09d7e2363551be4d33f8543db66bb3ef07f",
+  "price_basis": {
+    "kind": "model_unit_price",
+    "raw_output": {
+      "unit": "wan_yuan",
+      "scale": 1.0
+    },
+    "normalized_unit": "wan_yuan"
+  },
+  "compatible_legacy": [
+    {
+      "version": "p4-20261031.2",
+      "business_package_sha256": "d1212bbbf85545d8726611042ad4802fd3105ec61af7d072ca9b610e19151841"
+    }
+  ]
+}

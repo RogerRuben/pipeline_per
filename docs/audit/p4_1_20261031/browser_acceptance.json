@@ -1,0 +1,18 @@
+{
+  "package_version": "p4.1-20261031.2",
+  "host_scope": "Windows 11; restored isolated userdata",
+  "checks": {
+    "restored_saved_scheme_visible": true,
+    "restored_scheme_detail_opened": true,
+    "saved_scheme_name": "目标机备份恢复验收方案",
+    "saved_scheme_count": 1,
+    "runtime_management_ready": true,
+    "runtime_data_directory_ends_with": "restored-userdata"
+  },
+  "screenshots": [
+    "01_restored_saved_scheme.jpg",
+    "02_restored_scheme_detail.jpg",
+    "03_restored_runtime.jpg"
+  ],
+  "win7_browser_validated": false
+}

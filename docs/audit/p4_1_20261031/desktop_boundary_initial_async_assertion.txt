@@ -1,0 +1,29 @@
+test_compatible_retrained_model_accepts_new_sha_without_writing_database (__main__.DesktopTests) ... ok
+test_control_rejects_missing_token_cross_origin_and_rebinding_host (__main__.DesktopTests) ... FAIL
+test_data_path_is_independent_and_override_is_explicit (__main__.DesktopTests) ... ok
+test_equivalent_price_output_configuration_is_canonicalized (__main__.DesktopTests) ... ok
+test_existing_data_and_confirmed_config_never_reseeded (__main__.DesktopTests) ... ok
+test_instance_lock_is_exclusive_and_os_released (__main__.DesktopTests) ... ok
+test_legacy_requires_explicit_verified_predecessor_approval (__main__.DesktopTests) ... ok
+test_live_backup_is_consistent_and_excludes_runtime_secrets (__main__.DesktopTests) ... ok
+test_live_field_mapping_drift_from_published_release_is_rejected (__main__.DesktopTests) ... ok
+test_manifest_cannot_escape_or_accept_changed_model (__main__.DesktopTests) ... ok
+test_missing_database_or_interrupted_restore_never_reseeds (__main__.DesktopTests) ... ok
+test_price_unit_and_release_identity_changes_are_not_silently_accepted (__main__.DesktopTests) ... ok
+test_restore_checks_real_database_config_and_can_be_validated_again (__main__.DesktopTests) ... ok
+test_restore_rejects_traversal_and_tampering_before_publishing_database (__main__.DesktopTests) ... ok
+test_same_product_changed_model_schema_is_rejected_before_database_write (__main__.DesktopTests) ... ok
+test_wrong_product_and_corrupt_existing_db_fail_without_replacement (__main__.DesktopTests) ... ok
+
+======================================================================
+FAIL: test_control_rejects_missing_token_cross_origin_and_rebinding_host (__main__.DesktopTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tests\product_desktop_test.py", line 227, in test_control_rejects_missing_token_cross_origin_and_rebinding_host
+    self.assertTrue(supervisor.stopping.is_set())
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 16 tests in 2.949s
+
+FAILED (failures=1)

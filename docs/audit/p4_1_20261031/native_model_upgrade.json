@@ -1,0 +1,94 @@
+{
+  "checks": {
+    "real_windowed_x64_pe": true,
+    "frozen_package_integrity": true,
+    "default_external_userdata": true,
+    "three_healthy_owned_processes": true,
+    "double_launch_reuses_instance": true,
+    "native_v3_http_consistency": true,
+    "native_sixty_fields": true,
+    "top10_under_budget": true,
+    "csv_contains_service_price": true,
+    "unconfigured_correction_honest": true,
+    "portal_links_include_control": true,
+    "online_backup": true,
+    "automatic_worker_recovery": true,
+    "manual_restart_preserves_data": true,
+    "supervisor_crash_leaves_no_workers": true,
+    "stale_control_recovers_without_reset": true,
+    "clean_stop_removes_control": true,
+    "repack_update_preserves_user_data": true,
+    "new_model_identity_and_prediction": true,
+    "upgraded_three_entry_consistency": true,
+    "update_takes_preload_backup": true,
+    "price_basis_change_rejected_without_db_write": true,
+    "same_product_changed_release_rejected": true,
+    "packages_immutable_during_execution": true
+  },
+  "timings": {
+    "cold_start_seconds": [
+      30.422,
+      10.828,
+      34.407
+    ],
+    "top10_seconds": 4.766,
+    "worker_recovery_seconds": 7.516
+  },
+  "python_on_path": false,
+  "classification": "synthetic",
+  "win7_validated": false,
+  "source_sha": "97e903de6eb2d404ec9194a268b41233488b52b2",
+  "package_versions": [
+    "p4.1-20261031.2",
+    "p4.1-model-update-final"
+  ],
+  "model_sha256": "260f18f43e82dbf3b3670e486a4ba6fa3884713015c517f279930ea5c7ea3dab",
+  "initial_status": {
+    "status": "ready",
+    "error": null,
+    "instance_id": "8023979752f4eeb9a44f78a8083aa117",
+    "pid": 3084,
+    "version": "p4.1-20261031.2",
+    "package_dir": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_1_native_model_consistency_final_20261031\\中文 空格路径\\软件第一版",
+    "data_dir": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_1_native_model_consistency_final_20261031\\local_app_data\\PipelinePer",
+    "classification": "synthetic",
+    "win7_validated": false,
+    "generation": "c29c96b48ee47d1a",
+    "restart_count": 0,
+    "portal_url": "http://127.0.0.1:57163/portal",
+    "services": {
+      "price": {
+        "pid": 28096,
+        "url": "http://127.0.0.1:56450",
+        "alive": true
+      },
+      "effectiveness": {
+        "pid": 17412,
+        "url": "http://127.0.0.1:49682",
+        "alive": true
+      },
+      "web": {
+        "pid": 23660,
+        "url": "http://127.0.0.1:57163",
+        "alive": true
+      }
+    }
+  },
+  "prediction_values": {
+    "deep": 16.489382,
+    "simple": 16.489382,
+    "recommendation": 16.489382
+  },
+  "top10": {
+    "sample_count": 350,
+    "batch_count": 4,
+    "compared_field_count": 60
+  },
+  "upgraded_model_sha256": "37df47be3e870494a3b6cb342b5b49c7446dd886cb23706e15a41ded243da472",
+  "upgraded_prediction_values": {
+    "deep": 16.388382,
+    "simple": 16.388382,
+    "recommendation": 16.388382
+  },
+  "status": "pass"
+}

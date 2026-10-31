@@ -10,6 +10,7 @@ sys.path.insert(0,str(ROOT))
 
 from product.common import contained, read_json, write_json, verify_package
 from product.windows import watch_parent
+from product.compatibility import load_contract,validate_data,accept_initial,fingerprint,check_data_root
 
 
 def initialize_data(package, data, manifest):
@@ -17,6 +18,12 @@ def initialize_data(package, data, manifest):
     import shutil
     import sqlite3
     import uuid
+    check_data_root(data)
+    contract=load_contract(package,manifest)
+    database=data/'data/protocol_demo.db'
+    if database.exists():
+        validate_data(package,data,manifest,contract)
+        return False
     for name in ('data','config','backups','exports','uploads','logs','runtime','models'):
         (data/name).mkdir(parents=True,exist_ok=True)
     defaults = package/'defaults'
@@ -25,16 +32,6 @@ def initialize_data(package, data, manifest):
             target = data/'config'/path.name
             if not target.exists():
                 shutil.copy2(str(path),str(target))
-    database = data/'data/protocol_demo.db'
-    if database.exists():
-        with closing(sqlite3.connect('file:'+database.as_posix()+'?mode=ro',uri=True)) as connection:
-            if connection.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
-                raise ValueError('Existing user database failed integrity check; restore a backup')
-            codes = [row[0] for row in connection.execute('SELECT product_code FROM products WHERE enabled=1')]
-            if codes != [manifest['release']['product_code']]:
-                raise ValueError('Package model does not match the active user-data product; use its matching release')
-        # No import/activation/reset on restart or repack.
-        return
     from app.store import Store
     from app.product_releases import ProductReleaseService
     from app.model_service_client import DegradedServiceRuntime
@@ -52,10 +49,12 @@ def initialize_data(package, data, manifest):
             source.backup(destination)
         os.replace(str(snapshot),str(database))
         write_json(data/'runtime/initialized.json',{'package_version':manifest['version'],
-                   'business_package_sha256':manifest['files'][release['business_package']]})
+                   'business_package_sha256':manifest['files'][release['business_package']],
+                   'delivery_contract_sha256':fingerprint(contract)})
     finally:
         if temporary.exists():
             temporary.unlink()
+    return True
 
 
 def main():
@@ -82,6 +81,8 @@ def main():
         from app.server import Application,Handler
         app = Application(data)
         app.static_dir = ROOT/'app/static'
+        # Capture the post-sync binding state only after a successful startup.
+        write_json(data/'delivery_state.json',accept_initial(data,manifest,load_contract(package,manifest)))
         # Runtime-only links: persisted configuration and prices remain untouched.
         app.portal_config['services']['cost_effectiveness_analysis'].update(visible=False,enabled=False)
         app.portal_config['services']['desktop_control'] = {

@@ -2,6 +2,8 @@
 
 本包使用虚拟产品数据训练的真实 Optuna V3 模型，以及试用效能快照。它用于软件交付链路验证，不代表真实业务准确率。Windows 7 尚待实机验收，EXE 尚未代码签名。
 
+P4.1 新增已封存的交付契约与离线备份恢复。换模型时检查模型字段、顺序、类型、单位、枚举编码、缺失策略、业务字段及已激活发布身份、输入绑定和价格单位／尺度。匹配契约的重训模型可复用数据；不匹配则拒绝启动，等待单独迁移。P4 老数据首次升级仅接受构建时明确核验过的同模型、同业务包前版；不会仅凭产品编码推断兼容性。
+
 ## 启动与退出
 
 1. 将整个 ZIP 解压到新的本地目录，保留目录结构；不要只复制 product.exe。
@@ -41,6 +43,19 @@
 .\product.exe --stop
 ```
 
+恢复时先停止软件并选择**新的空目录**，执行：
+
+```powershell
+.\product.exe --restore "D:\Backups\backup-xxx.zip" --data-dir "D:\PipelinePerRecovered" --report "$env:TEMP\restore-report.json"
+.\product.exe --data-dir "D:\PipelinePerRecovered"
+```
+
+恢复过程验证 ZIP 文件清单及 SHA256、SQLite 完整性和交付契约后再写入，不覆盖已有数据库或配置。P4.1 新备份附带安装与契约状态，运行控制令牌不进入备份。恢复范围为 SQLite 与 JSON 配置，导出文件、日志和外置模型须另外保管。旧 P4 未带清单的备份 ZIP 不会被当作新版备份静默接受，应先保留原包，另行核验迁移。
+
+恢复发布期间有中断标记；进程意外结束后，软件会拒绝启动该未完成目录，请重新恢复到另一新目录。已初始化安装若丢失 SQLite，也会拒绝重新导入示例，要求从备份恢复。
+
+整目录回退也必须满足交付契约；涉及业务字段、编码、价格单位或数据 Schema 的变更需要单独迁移。不要删除 `delivery_state.json` 来绕过检查。
+
 如启动失败，查看用户目录 `logs\launcher.log`、`price.log`、`effectiveness.log`、`web.log`。后台进程由启动器持有的 Windows Job 管理；强制结束启动器会清理其子进程，不会按进程名称批量结束其他软件。无法建立 Job 时拒绝启动并记录错误。
 
 ## Windows 7 验收门槛
@@ -48,3 +63,5 @@
 构建运行时为 CPython 3.8.10 x64，价格依赖沿用 V3 验收环境。但 PyInstaller 5.13.2 官方要求 Windows 8 或更新版本，因此当前包不能标记为 Win7 可交付。必须在目标 Win7 SP1 x64、实际补丁和 VC 运行库环境上验证引导器、所有 DLL、模型加载、浏览器功能、停止与重启、独立数据持久化和重新打包保留数据；未通过时应调整构建工具链再验收。
 
 参考：[PyInstaller 5.13.2 要求](https://pyinstaller.org/en/v5.13.2/requirements.html)、[Windows Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)。Win7 不支持嵌套 Job，因此尤其需要在实际启动环境验证进程管理。
+
+包内 `TARGET_CHECK.bat` 与“目标机验收说明.md”可收集目标机执行证据；Windows 11 上通过该脚本仍不会标记 Win7 已通过。
