@@ -1,0 +1,56 @@
+{
+  "actual_package": "p4-20261031.1 and p4-20261031.2",
+  "native_model_sha256": "260f18f43e82dbf3b3670e486a4ba6fa3884713015c517f279930ea5c7ea3dab",
+  "checks": {
+    "exe_portal_to_deep": true,
+    "dynamic_fields_and_product_backfill": true,
+    "edited_numeric_00_to_50_prediction_display_wan": 17.5357,
+    "top10_curves_visible": true,
+    "management_live_process_table": true,
+    "management_backup_success_message": true,
+    "management_restart_changed_portal_url": true,
+    "management_stop_success_message": true,
+    "final_v2_ready": true
+  },
+  "screenshots": [
+    {
+      "name": "01_exe_portal.jpg",
+      "sha256": "059694c454d80399555fc5d1287e576de3f9dd810c63f29e617fbf19cc6acd38"
+    },
+    {
+      "name": "02_exe_prediction.jpg",
+      "sha256": "9fa6abc0a2529ac5c34c6e817fefe39d77dc96263c798ca0b417cd9daa541dce"
+    },
+    {
+      "name": "03_exe_top10.jpg",
+      "sha256": "0a6deb2075b4b7f7c37c3b2bb35b768982a4ef6b369b1a43f9e990e49bfb2ba1"
+    },
+    {
+      "name": "04_exe_control_ready.jpg",
+      "sha256": "d051d8c3ab5bda442d98b62b9c9e87b693377fcbb2387a38db68c9433b5a844a"
+    },
+    {
+      "name": "05_exe_control_backup.jpg",
+      "sha256": "0466d24dd640e34f6d99201cc4d372e838118a226610e3f2d501ed410b72cb0a"
+    },
+    {
+      "name": "06_exe_control_restart.jpg",
+      "sha256": "9cf75dc84682e8a81cd8c376260fc7a2d5488be0602e0dd43ca2508902742c1f"
+    },
+    {
+      "name": "07_exe_control_restarted.jpg",
+      "sha256": "d0c86c4206ae194d0285b33309f9c96879497d29b8850f90c754421815bd339a"
+    },
+    {
+      "name": "08_exe_control_stopping.jpg",
+      "sha256": "0d7e91e57c628e2e41f7d678eaab6e11a86185c234f4d2c3f837f8709a46a027"
+    },
+    {
+      "name": "09_final_v2_control.jpg",
+      "sha256": "e06cd00fcea5d3c53686c38c638648ba5119b6a97a14d1a95437c038a7ee8c59"
+    }
+  ],
+  "export_via_browser_retested": false,
+  "export_scope": "Real frozen HTTP export tested separately in frozen_exe_acceptance.json",
+  "scope": "Manual automation through actual browser UI; no generated or composited screenshots"
+}

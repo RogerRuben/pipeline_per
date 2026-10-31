@@ -1,0 +1,285 @@
+PASS - DataMaster可初始化参考方案库
+PASS - SQLite数据库完整
+PASS - 价格与效能模型契约有效
+PASS - 当前DataMaster可导出并重新校验
+PASS - 防护等级按整数合法域统一维护，不再被旧离散列表吸附
+PASS - 前端可获得统一的混合属性搜索类型
+PASS - 页面初始加载不启动生成
+PASS - 开始智能推荐后立即返回已有参考方案
+PASS - 智能推荐点击后静默启动生成任务
+PASS - 静默生成完成并形成稳定批次
+PASS - 生成方案具有批次和候选稳定标识
+PASS - 再次生成创建新批次而不覆盖旧批次
+PASS - 新批次完成后旧生成方案仍可打开编辑
+PASS - 智能生成方案可独立查看
+PASS - 全部推荐方案同时包含参考与生成结果
+PASS - 价格不高于10万元会主动引导搜索并得到相应方案
+PASS - 生成轨迹记录模型输出目标
+PASS - 整数等级合法邻域包含历史样本未覆盖的IP64
+PASS - 人工单步可达的离散/整数降价路径必须被生成器发现
+PASS - 编辑属性后价格评估随当前值变化
+PASS - 编辑后返回完整需求、标签、轮廓与风险重评估
+PASS - 右侧提示数据不再固定使用初始生成状态
+PASS - 标签条件可以生成候选方案
+PASS - 每份生成方案保存标签判定依据
+PASS - 标签规则组被编译成生成目标并重新判定
+PASS - 无严格解时仍返回明确标注的探索方案
+PASS - 属性变化后不能使用旧计算结果保存
+PASS - 专家方案可保存并重新打开
+PASS - 智能生成状态不再阻塞整个页面
+PASS - 生成期间页面保持可操作
+PASS - 普通用户页面采用智能推荐产品表达
+PASS - 推荐结果支持三种查看范围
+PASS - 方案详情展示生成与标签依据
+PASS - 浏览器刷新后保持生成会话标识
+PASS - 方案参数变化只标记结果过期，点击按钮后才计算
+PASS - 保存方案必须绑定用户已查看的最新显式计算结果
+PASS - 右侧提示使用当前评估而非初始静态提示
+PASS - 前端统一支持连续、整数、有序离散、无序枚举和布尔属性
+PASS - 价格专用属性默认折叠并可由用户展开
+PASS - 方案编辑区标识共享、效能专用和价格专用属性
+PASS - Bootstrap返回当前双模型字段角色与服务模型契约（不依赖已退役的绑定表）
+[31/Oct/2026 11:28:31] "GET /api/health HTTP/1.1" 200 -
+PASS - 单端口HTTP健康检查通过（UI/API版本与模型发行号独立）
+[31/Oct/2026 11:28:31] "POST /api/generation/request HTTP/1.1" 200 -
+[31/Oct/2026 11:28:31] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:31] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:31] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:31] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:31] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:31] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:32] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:33] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:34] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:35] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:36] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:37] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:37] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:37] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:37] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:37] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:37] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:38] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:38] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:38] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:38] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:39] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:40] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:41] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:42] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:43] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:44] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:45] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:46] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:47] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:48] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:49] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:50] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:51] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:51] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:51] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:51] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:52] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:52] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:52] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:52] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:53] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:53] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:53] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:54] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:54] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+[31/Oct/2026 11:28:54] "GET /api/generation-tasks/GENTASK-CD4D26FE5EC7 HTTP/1.1" 200 -
+PASS - HTTP生成任务返回稳定批次
+[31/Oct/2026 11:28:56] "POST /api/recommend HTTP/1.1" 200 -
+PASS - HTTP可读取指定智能生成批次
+[31/Oct/2026 11:28:56] "GET /api/agreements/HIST-EA-014?session_id=http-session HTTP/1.1" 200 -
+PASS - HTTP生成方案详情可稳定打开
+{
+  "version": "V19.6.14",
+  "status": "PASS",
+  "checks": [
+    "DataMaster可初始化参考方案库",
+    "SQLite数据库完整",
+    "价格与效能模型契约有效",
+    "当前DataMaster可导出并重新校验",
+    "防护等级按整数合法域统一维护，不再被旧离散列表吸附",
+    "前端可获得统一的混合属性搜索类型",
+    "页面初始加载不启动生成",
+    "开始智能推荐后立即返回已有参考方案",
+    "智能推荐点击后静默启动生成任务",
+    "静默生成完成并形成稳定批次",
+    "生成方案具有批次和候选稳定标识",
+    "再次生成创建新批次而不覆盖旧批次",
+    "新批次完成后旧生成方案仍可打开编辑",
+    "智能生成方案可独立查看",
+    "全部推荐方案同时包含参考与生成结果",
+    "价格不高于10万元会主动引导搜索并得到相应方案",
+    "生成轨迹记录模型输出目标",
+    "整数等级合法邻域包含历史样本未覆盖的IP64",
+    "人工单步可达的离散/整数降价路径必须被生成器发现",
+    "编辑属性后价格评估随当前值变化",
+    "编辑后返回完整需求、标签、轮廓与风险重评估",
+    "右侧提示数据不再固定使用初始生成状态",
+    "标签条件可以生成候选方案",
+    "每份生成方案保存标签判定依据",
+    "标签规则组被编译成生成目标并重新判定",
+    "无严格解时仍返回明确标注的探索方案",
+    "属性变化后不能使用旧计算结果保存",
+    "专家方案可保存并重新打开",
+    "智能生成状态不再阻塞整个页面",
+    "生成期间页面保持可操作",
+    "普通用户页面采用智能推荐产品表达",
+    "推荐结果支持三种查看范围",
+    "方案详情展示生成与标签依据",
+    "浏览器刷新后保持生成会话标识",
+    "方案参数变化只标记结果过期，点击按钮后才计算",
+    "保存方案必须绑定用户已查看的最新显式计算结果",
+    "右侧提示使用当前评估而非初始静态提示",
+    "前端统一支持连续、整数、有序离散、无序枚举和布尔属性",
+    "价格专用属性默认折叠并可由用户展开",
+    "方案编辑区标识共享、效能专用和价格专用属性",
+    "Bootstrap返回当前双模型字段角色与服务模型契约（不依赖已退役的绑定表）",
+    "单端口HTTP健康检查通过（UI/API版本与模型发行号独立）",
+    "HTTP生成任务返回稳定批次",
+    "HTTP可读取指定智能生成批次",
+    "HTTP生成方案详情可稳定打开"
+  ],
+  "started_at": "2026-10-31 11:26:05",
+  "finished_at": "2026-10-31 11:28:57"
+}

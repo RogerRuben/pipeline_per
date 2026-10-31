@@ -1,0 +1,9 @@
+{
+  "text_files_scanned": 1293,
+  "known_credential_pattern_hits": [],
+  "excluded_private_files_found": [],
+  "archive_sha256": "51551b41c832a7e237f61069ffd4fad1aaa568714c0273cb46550de215f809b5",
+  "archive_bytes": 72216593,
+  "scope": "Known credential patterns and forbidden archive paths only; not an exhaustive security audit",
+  "status": "pass"
+}

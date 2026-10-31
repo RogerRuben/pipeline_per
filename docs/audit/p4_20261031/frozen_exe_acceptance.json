@@ -1,0 +1,84 @@
+{
+  "checks": {
+    "real_windowed_x64_pe": true,
+    "frozen_package_integrity": true,
+    "default_external_userdata": true,
+    "three_healthy_owned_processes": true,
+    "double_launch_reuses_instance": true,
+    "native_v3_http_consistency": true,
+    "native_sixty_fields": true,
+    "top10_under_budget": true,
+    "csv_contains_service_price": true,
+    "unconfigured_correction_honest": true,
+    "portal_links_include_control": true,
+    "online_backup": true,
+    "automatic_worker_recovery": true,
+    "manual_restart_preserves_data": true,
+    "supervisor_crash_leaves_no_workers": true,
+    "stale_control_recovers_without_reset": true,
+    "clean_stop_removes_control": true,
+    "repack_update_preserves_user_data": true,
+    "update_takes_preload_backup": true,
+    "packages_immutable_during_execution": true
+  },
+  "timings": {
+    "cold_start_seconds": [
+      29.812,
+      15.343,
+      28.546
+    ],
+    "top10_seconds": 10.422,
+    "worker_recovery_seconds": 12.5
+  },
+  "python_on_path": false,
+  "classification": "synthetic",
+  "win7_validated": false,
+  "source_sha": "31edafeb14682fa7224f709fdc6809e8654d328b",
+  "package_versions": [
+    "p4-20261031.1",
+    "p4-20261031.2"
+  ],
+  "model_sha256": "260f18f43e82dbf3b3670e486a4ba6fa3884713015c517f279930ea5c7ea3dab",
+  "initial_status": {
+    "status": "ready",
+    "error": null,
+    "instance_id": "30662450af756de5da4fa676ff6b5a33",
+    "pid": 9616,
+    "version": "p4-20261031.1",
+    "package_dir": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_exe_acceptance_20261031\\中文 空格路径\\软件第一版",
+    "data_dir": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_exe_acceptance_20261031\\local_app_data\\PipelinePer",
+    "classification": "synthetic",
+    "win7_validated": false,
+    "generation": "ebf229e8194ed5b1",
+    "restart_count": 0,
+    "portal_url": "http://127.0.0.1:54568/portal",
+    "services": {
+      "price": {
+        "pid": 19936,
+        "url": "http://127.0.0.1:54533",
+        "alive": true
+      },
+      "effectiveness": {
+        "pid": 27920,
+        "url": "http://127.0.0.1:54540",
+        "alive": true
+      },
+      "web": {
+        "pid": 7736,
+        "url": "http://127.0.0.1:54568",
+        "alive": true
+      }
+    }
+  },
+  "prediction_values": {
+    "deep": 16.489382,
+    "simple": 16.489382,
+    "recommendation": 16.489382
+  },
+  "top10": {
+    "sample_count": 350,
+    "batch_count": 4,
+    "compared_field_count": 60
+  },
+  "status": "pass"
+}
