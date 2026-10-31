@@ -1,0 +1,28 @@
+{
+  "status": "pass",
+  "purpose": "Positive customer workflow branch with simulated test CSV; not actual customer data",
+  "rows": 90,
+  "attributes": 6,
+  "classification_in_product": "unconfirmed",
+  "engine": "optuna_v3",
+  "smoke": {
+    "configured_ports": {
+      "control": 56650,
+      "web": 56651,
+      "price": 56652,
+      "effectiveness": 56653
+    },
+    "status": "pass",
+    "startup_seconds": 11.546,
+    "prices_wan": [
+      10.509138,
+      10.509138,
+      10.509138
+    ],
+    "field_count": 6,
+    "model_sha256": "1673738a3a34a7eb4cb09995e51e8ce448bd0026ef75da4e972175d3f1985bcf",
+    "portal_url": "http://127.0.0.1:56651/portal"
+  },
+  "delivery_zip": "C:\\Users\\HP\\AppData\\Local\\Temp\\甲方 开发包_tutdjor1\\ClientBuilder_V3_Win7x64_20261031_R2\\deliverables\\client-v3-20261031_171342-a8c6.zip",
+  "win7_validated": false
+}

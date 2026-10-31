@@ -1,0 +1,851 @@
+{
+  "status": "PASS",
+  "engine": "optuna_v3",
+  "records": 160,
+  "attributes": 60,
+  "validation_split": {
+    "min_samples": 4,
+    "records": 160,
+    "requested_test_size": 0.2,
+    "effective_test_size": 0.2,
+    "requested_test_rows": 32,
+    "validation_rows": 32,
+    "training_rows": 128,
+    "adjusted": false,
+    "auto_adjust_test_size": true,
+    "tiny_sample_mode": false
+  },
+  "attribute_types": {
+    "numeric_00": "数值",
+    "numeric_01": "数值",
+    "numeric_02": "数值",
+    "numeric_03": "数值",
+    "numeric_04": "数值",
+    "numeric_05": "数值",
+    "numeric_06": "数值",
+    "numeric_07": "数值",
+    "numeric_08": "数值",
+    "numeric_09": "数值",
+    "numeric_10": "数值",
+    "numeric_11": "数值",
+    "numeric_12": "数值",
+    "numeric_13": "数值",
+    "numeric_14": "数值",
+    "numeric_15": "数值",
+    "numeric_16": "数值",
+    "numeric_17": "数值",
+    "numeric_18": "数值",
+    "numeric_19": "数值",
+    "numeric_20": "数值",
+    "numeric_21": "数值",
+    "numeric_22": "数值",
+    "numeric_23": "数值",
+    "integer_00": "数值",
+    "integer_01": "数值",
+    "integer_02": "数值",
+    "integer_03": "数值",
+    "integer_04": "数值",
+    "integer_05": "数值",
+    "integer_06": "数值",
+    "integer_07": "数值",
+    "integer_08": "数值",
+    "integer_09": "数值",
+    "integer_10": "数值",
+    "integer_11": "数值",
+    "flag_00": "数值",
+    "flag_01": "数值",
+    "flag_02": "数值",
+    "flag_03": "数值",
+    "flag_04": "数值",
+    "flag_05": "数值",
+    "flag_06": "数值",
+    "flag_07": "数值",
+    "flag_08": "数值",
+    "flag_09": "数值",
+    "category_00": "配置类型",
+    "category_01": "配置类型",
+    "category_02": "配置类型",
+    "category_03": "配置类型",
+    "category_04": "配置类型",
+    "category_05": "配置类型",
+    "category_06": "配置类型",
+    "category_07": "配置类型",
+    "optional_00": "数值",
+    "optional_01": "数值",
+    "optional_02": "数值",
+    "optional_03": "数值",
+    "optional_04": "数值",
+    "optional_05": "数值"
+  },
+  "diagnostics": {
+    "filename": "products.xlsx",
+    "sheet_name": "成品数据",
+    "header_cells": [
+      {
+        "cell": "A1",
+        "raw": "成品编号",
+        "parsed": "成品编号",
+        "normalized": false
+      },
+      {
+        "cell": "B1",
+        "raw": "成品名称",
+        "parsed": "成品名称",
+        "normalized": false
+      },
+      {
+        "cell": "C1",
+        "raw": "价格(万元)",
+        "parsed": "价格(万元)",
+        "normalized": false
+      },
+      {
+        "cell": "D1",
+        "raw": "连续参数00(单位)",
+        "parsed": "连续参数00(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "E1",
+        "raw": "连续参数01(单位)",
+        "parsed": "连续参数01(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "F1",
+        "raw": "连续参数02(单位)",
+        "parsed": "连续参数02(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "G1",
+        "raw": "连续参数03(单位)",
+        "parsed": "连续参数03(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "H1",
+        "raw": "连续参数04(单位)",
+        "parsed": "连续参数04(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "I1",
+        "raw": "连续参数05(单位)",
+        "parsed": "连续参数05(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "J1",
+        "raw": "连续参数06(单位)",
+        "parsed": "连续参数06(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "K1",
+        "raw": "连续参数07(单位)",
+        "parsed": "连续参数07(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "L1",
+        "raw": "连续参数08(单位)",
+        "parsed": "连续参数08(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "M1",
+        "raw": "连续参数09(单位)",
+        "parsed": "连续参数09(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "N1",
+        "raw": "连续参数10(单位)",
+        "parsed": "连续参数10(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "O1",
+        "raw": "连续参数11(单位)",
+        "parsed": "连续参数11(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "P1",
+        "raw": "连续参数12(单位)",
+        "parsed": "连续参数12(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "Q1",
+        "raw": "连续参数13(单位)",
+        "parsed": "连续参数13(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "R1",
+        "raw": "连续参数14(单位)",
+        "parsed": "连续参数14(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "S1",
+        "raw": "连续参数15(单位)",
+        "parsed": "连续参数15(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "T1",
+        "raw": "连续参数16(单位)",
+        "parsed": "连续参数16(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "U1",
+        "raw": "连续参数17(单位)",
+        "parsed": "连续参数17(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "V1",
+        "raw": "连续参数18(单位)",
+        "parsed": "连续参数18(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "W1",
+        "raw": "连续参数19(单位)",
+        "parsed": "连续参数19(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "X1",
+        "raw": "连续参数20(单位)",
+        "parsed": "连续参数20(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "Y1",
+        "raw": "连续参数21(单位)",
+        "parsed": "连续参数21(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "Z1",
+        "raw": "连续参数22(单位)",
+        "parsed": "连续参数22(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "AA1",
+        "raw": "连续参数23(单位)",
+        "parsed": "连续参数23(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "AB1",
+        "raw": "部件数量00(个)",
+        "parsed": "部件数量00(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AC1",
+        "raw": "部件数量01(个)",
+        "parsed": "部件数量01(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AD1",
+        "raw": "部件数量02(个)",
+        "parsed": "部件数量02(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AE1",
+        "raw": "部件数量03(个)",
+        "parsed": "部件数量03(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AF1",
+        "raw": "部件数量04(个)",
+        "parsed": "部件数量04(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AG1",
+        "raw": "部件数量05(个)",
+        "parsed": "部件数量05(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AH1",
+        "raw": "部件数量06(个)",
+        "parsed": "部件数量06(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AI1",
+        "raw": "部件数量07(个)",
+        "parsed": "部件数量07(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AJ1",
+        "raw": "部件数量08(个)",
+        "parsed": "部件数量08(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AK1",
+        "raw": "部件数量09(个)",
+        "parsed": "部件数量09(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AL1",
+        "raw": "部件数量10(个)",
+        "parsed": "部件数量10(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AM1",
+        "raw": "部件数量11(个)",
+        "parsed": "部件数量11(个)",
+        "normalized": false
+      },
+      {
+        "cell": "AN1",
+        "raw": "是否配置功能00",
+        "parsed": "是否配置功能00",
+        "normalized": false
+      },
+      {
+        "cell": "AO1",
+        "raw": "是否配置功能01",
+        "parsed": "是否配置功能01",
+        "normalized": false
+      },
+      {
+        "cell": "AP1",
+        "raw": "是否配置功能02",
+        "parsed": "是否配置功能02",
+        "normalized": false
+      },
+      {
+        "cell": "AQ1",
+        "raw": "是否配置功能03",
+        "parsed": "是否配置功能03",
+        "normalized": false
+      },
+      {
+        "cell": "AR1",
+        "raw": "是否配置功能04",
+        "parsed": "是否配置功能04",
+        "normalized": false
+      },
+      {
+        "cell": "AS1",
+        "raw": "是否配置功能05",
+        "parsed": "是否配置功能05",
+        "normalized": false
+      },
+      {
+        "cell": "AT1",
+        "raw": "是否配置功能06",
+        "parsed": "是否配置功能06",
+        "normalized": false
+      },
+      {
+        "cell": "AU1",
+        "raw": "是否配置功能07",
+        "parsed": "是否配置功能07",
+        "normalized": false
+      },
+      {
+        "cell": "AV1",
+        "raw": "是否配置功能08",
+        "parsed": "是否配置功能08",
+        "normalized": false
+      },
+      {
+        "cell": "AW1",
+        "raw": "是否配置功能09",
+        "parsed": "是否配置功能09",
+        "normalized": false
+      },
+      {
+        "cell": "AX1",
+        "raw": "部件配置00",
+        "parsed": "部件配置00",
+        "normalized": false
+      },
+      {
+        "cell": "AY1",
+        "raw": "部件配置01",
+        "parsed": "部件配置01",
+        "normalized": false
+      },
+      {
+        "cell": "AZ1",
+        "raw": "部件配置02",
+        "parsed": "部件配置02",
+        "normalized": false
+      },
+      {
+        "cell": "BA1",
+        "raw": "部件配置03",
+        "parsed": "部件配置03",
+        "normalized": false
+      },
+      {
+        "cell": "BB1",
+        "raw": "部件配置04",
+        "parsed": "部件配置04",
+        "normalized": false
+      },
+      {
+        "cell": "BC1",
+        "raw": "部件配置05",
+        "parsed": "部件配置05",
+        "normalized": false
+      },
+      {
+        "cell": "BD1",
+        "raw": "部件配置06",
+        "parsed": "部件配置06",
+        "normalized": false
+      },
+      {
+        "cell": "BE1",
+        "raw": "部件配置07",
+        "parsed": "部件配置07",
+        "normalized": false
+      },
+      {
+        "cell": "BF1",
+        "raw": "可选性能00(单位)",
+        "parsed": "可选性能00(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "BG1",
+        "raw": "可选性能01(单位)",
+        "parsed": "可选性能01(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "BH1",
+        "raw": "可选性能02(单位)",
+        "parsed": "可选性能02(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "BI1",
+        "raw": "可选性能03(单位)",
+        "parsed": "可选性能03(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "BJ1",
+        "raw": "可选性能04(单位)",
+        "parsed": "可选性能04(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "BK1",
+        "raw": "可选性能05(单位)",
+        "parsed": "可选性能05(单位)",
+        "normalized": false
+      },
+      {
+        "cell": "A2",
+        "raw": "product_id",
+        "parsed": "product_id",
+        "normalized": false
+      },
+      {
+        "cell": "B2",
+        "raw": "product_name",
+        "parsed": "product_name",
+        "normalized": false
+      },
+      {
+        "cell": "C2",
+        "raw": "price_wan",
+        "parsed": "price_wan",
+        "normalized": false
+      },
+      {
+        "cell": "D2",
+        "raw": "numeric_00",
+        "parsed": "numeric_00",
+        "normalized": false
+      },
+      {
+        "cell": "E2",
+        "raw": "numeric_01",
+        "parsed": "numeric_01",
+        "normalized": false
+      },
+      {
+        "cell": "F2",
+        "raw": "numeric_02",
+        "parsed": "numeric_02",
+        "normalized": false
+      },
+      {
+        "cell": "G2",
+        "raw": "numeric_03",
+        "parsed": "numeric_03",
+        "normalized": false
+      },
+      {
+        "cell": "H2",
+        "raw": "numeric_04",
+        "parsed": "numeric_04",
+        "normalized": false
+      },
+      {
+        "cell": "I2",
+        "raw": "numeric_05",
+        "parsed": "numeric_05",
+        "normalized": false
+      },
+      {
+        "cell": "J2",
+        "raw": "numeric_06",
+        "parsed": "numeric_06",
+        "normalized": false
+      },
+      {
+        "cell": "K2",
+        "raw": "numeric_07",
+        "parsed": "numeric_07",
+        "normalized": false
+      },
+      {
+        "cell": "L2",
+        "raw": "numeric_08",
+        "parsed": "numeric_08",
+        "normalized": false
+      },
+      {
+        "cell": "M2",
+        "raw": "numeric_09",
+        "parsed": "numeric_09",
+        "normalized": false
+      },
+      {
+        "cell": "N2",
+        "raw": "numeric_10",
+        "parsed": "numeric_10",
+        "normalized": false
+      },
+      {
+        "cell": "O2",
+        "raw": "numeric_11",
+        "parsed": "numeric_11",
+        "normalized": false
+      },
+      {
+        "cell": "P2",
+        "raw": "numeric_12",
+        "parsed": "numeric_12",
+        "normalized": false
+      },
+      {
+        "cell": "Q2",
+        "raw": "numeric_13",
+        "parsed": "numeric_13",
+        "normalized": false
+      },
+      {
+        "cell": "R2",
+        "raw": "numeric_14",
+        "parsed": "numeric_14",
+        "normalized": false
+      },
+      {
+        "cell": "S2",
+        "raw": "numeric_15",
+        "parsed": "numeric_15",
+        "normalized": false
+      },
+      {
+        "cell": "T2",
+        "raw": "numeric_16",
+        "parsed": "numeric_16",
+        "normalized": false
+      },
+      {
+        "cell": "U2",
+        "raw": "numeric_17",
+        "parsed": "numeric_17",
+        "normalized": false
+      },
+      {
+        "cell": "V2",
+        "raw": "numeric_18",
+        "parsed": "numeric_18",
+        "normalized": false
+      },
+      {
+        "cell": "W2",
+        "raw": "numeric_19",
+        "parsed": "numeric_19",
+        "normalized": false
+      },
+      {
+        "cell": "X2",
+        "raw": "numeric_20",
+        "parsed": "numeric_20",
+        "normalized": false
+      },
+      {
+        "cell": "Y2",
+        "raw": "numeric_21",
+        "parsed": "numeric_21",
+        "normalized": false
+      },
+      {
+        "cell": "Z2",
+        "raw": "numeric_22",
+        "parsed": "numeric_22",
+        "normalized": false
+      },
+      {
+        "cell": "AA2",
+        "raw": "numeric_23",
+        "parsed": "numeric_23",
+        "normalized": false
+      },
+      {
+        "cell": "AB2",
+        "raw": "integer_00",
+        "parsed": "integer_00",
+        "normalized": false
+      },
+      {
+        "cell": "AC2",
+        "raw": "integer_01",
+        "parsed": "integer_01",
+        "normalized": false
+      },
+      {
+        "cell": "AD2",
+        "raw": "integer_02",
+        "parsed": "integer_02",
+        "normalized": false
+      },
+      {
+        "cell": "AE2",
+        "raw": "integer_03",
+        "parsed": "integer_03",
+        "normalized": false
+      },
+      {
+        "cell": "AF2",
+        "raw": "integer_04",
+        "parsed": "integer_04",
+        "normalized": false
+      },
+      {
+        "cell": "AG2",
+        "raw": "integer_05",
+        "parsed": "integer_05",
+        "normalized": false
+      },
+      {
+        "cell": "AH2",
+        "raw": "integer_06",
+        "parsed": "integer_06",
+        "normalized": false
+      },
+      {
+        "cell": "AI2",
+        "raw": "integer_07",
+        "parsed": "integer_07",
+        "normalized": false
+      },
+      {
+        "cell": "AJ2",
+        "raw": "integer_08",
+        "parsed": "integer_08",
+        "normalized": false
+      },
+      {
+        "cell": "AK2",
+        "raw": "integer_09",
+        "parsed": "integer_09",
+        "normalized": false
+      },
+      {
+        "cell": "AL2",
+        "raw": "integer_10",
+        "parsed": "integer_10",
+        "normalized": false
+      },
+      {
+        "cell": "AM2",
+        "raw": "integer_11",
+        "parsed": "integer_11",
+        "normalized": false
+      },
+      {
+        "cell": "AN2",
+        "raw": "flag_00",
+        "parsed": "flag_00",
+        "normalized": false
+      },
+      {
+        "cell": "AO2",
+        "raw": "flag_01",
+        "parsed": "flag_01",
+        "normalized": false
+      },
+      {
+        "cell": "AP2",
+        "raw": "flag_02",
+        "parsed": "flag_02",
+        "normalized": false
+      },
+      {
+        "cell": "AQ2",
+        "raw": "flag_03",
+        "parsed": "flag_03",
+        "normalized": false
+      },
+      {
+        "cell": "AR2",
+        "raw": "flag_04",
+        "parsed": "flag_04",
+        "normalized": false
+      },
+      {
+        "cell": "AS2",
+        "raw": "flag_05",
+        "parsed": "flag_05",
+        "normalized": false
+      },
+      {
+        "cell": "AT2",
+        "raw": "flag_06",
+        "parsed": "flag_06",
+        "normalized": false
+      },
+      {
+        "cell": "AU2",
+        "raw": "flag_07",
+        "parsed": "flag_07",
+        "normalized": false
+      },
+      {
+        "cell": "AV2",
+        "raw": "flag_08",
+        "parsed": "flag_08",
+        "normalized": false
+      },
+      {
+        "cell": "AW2",
+        "raw": "flag_09",
+        "parsed": "flag_09",
+        "normalized": false
+      },
+      {
+        "cell": "AX2",
+        "raw": "category_00",
+        "parsed": "category_00",
+        "normalized": false
+      },
+      {
+        "cell": "AY2",
+        "raw": "category_01",
+        "parsed": "category_01",
+        "normalized": false
+      },
+      {
+        "cell": "AZ2",
+        "raw": "category_02",
+        "parsed": "category_02",
+        "normalized": false
+      },
+      {
+        "cell": "BA2",
+        "raw": "category_03",
+        "parsed": "category_03",
+        "normalized": false
+      },
+      {
+        "cell": "BB2",
+        "raw": "category_04",
+        "parsed": "category_04",
+        "normalized": false
+      },
+      {
+        "cell": "BC2",
+        "raw": "category_05",
+        "parsed": "category_05",
+        "normalized": false
+      },
+      {
+        "cell": "BD2",
+        "raw": "category_06",
+        "parsed": "category_06",
+        "normalized": false
+      },
+      {
+        "cell": "BE2",
+        "raw": "category_07",
+        "parsed": "category_07",
+        "normalized": false
+      },
+      {
+        "cell": "BF2",
+        "raw": "optional_00",
+        "parsed": "optional_00",
+        "normalized": false
+      },
+      {
+        "cell": "BG2",
+        "raw": "optional_01",
+        "parsed": "optional_01",
+        "normalized": false
+      },
+      {
+        "cell": "BH2",
+        "raw": "optional_02",
+        "parsed": "optional_02",
+        "normalized": false
+      },
+      {
+        "cell": "BI2",
+        "raw": "optional_03",
+        "parsed": "optional_03",
+        "normalized": false
+      },
+      {
+        "cell": "BJ2",
+        "raw": "optional_04",
+        "parsed": "optional_04",
+        "normalized": false
+      },
+      {
+        "cell": "BK2",
+        "raw": "optional_05",
+        "parsed": "optional_05",
+        "normalized": false
+      }
+    ],
+    "header_row_numbers": [
+      1,
+      2
+    ],
+    "ignored_empty_columns": [],
+    "delimiter": null,
+    "formulas": {},
+    "status": "PASS",
+    "header_rows": 2
+  }
+}
