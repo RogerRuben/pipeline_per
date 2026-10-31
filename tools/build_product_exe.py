@@ -19,7 +19,7 @@ from tools.verify_v3_release import preflight
 from tools.bind_price_evaluation_metadata import bind
 
 SKIP = {'__pycache__','tests','test','benchmarks','.git'}
-RUNTIME_PACKAGES = ('numpy','scipy','sklearn','joblib')
+RUNTIME_PACKAGES = ('numpy','scipy','sklearn','joblib','pandas','dateutil','pytz')
 
 
 def copy_tree(source,destination):
@@ -88,6 +88,12 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
         for path in (ROOT/directory).glob('*.py'):
             shutil.copy2(str(path),str(target/path.name))
     shutil.copy2(str(ROOT/'services/__init__.py'),str(payload/'services/__init__.py'))
+    # Native V3 pickles reference these existing preprocessing/member classes.
+    # Copy their original source unchanged; no optimizer is invoked or bundled.
+    native_classes = payload/'services/price_service/optuna_v2'
+    native_classes.mkdir()
+    for name in ('__init__.py','typed_features.py','native_member.py','price_automl_core.py'):
+        shutil.copy2(str(ROOT/'services/price_service/optuna_v2'/name),str(native_classes/name))
     licenses = out/'licenses'
     licenses.mkdir()
     shutil.copy2(str(tool_dir/'pyinstaller-5.13.2.dist-info/COPYING.txt'),str(licenses/'PyInstaller_COPYING.txt'))
@@ -107,14 +113,16 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
     origin_site = runtime/'Lib/site-packages'
     for name in RUNTIME_PACKAGES:
         copy_tree(origin_site/name,site/name)
-        distribution = 'scikit_learn' if name == 'sklearn' else name
+        distribution = {'sklearn':'scikit_learn','dateutil':'python_dateutil'}.get(name,name)
         metadata = list(origin_site.glob(distribution+'-*.dist-info'))
         if len(metadata) != 1:
             raise ValueError('Missing/ambiguous runtime metadata: '+name)
         copy_tree(metadata[0],site/metadata[0].name)
     shutil.copy2(str(origin_site/'threadpoolctl.py'),str(site/'threadpoolctl.py'))
-    for path in origin_site.glob('threadpoolctl-*.dist-info'):
-        copy_tree(path,site/path.name)
+    shutil.copy2(str(origin_site/'six.py'),str(site/'six.py'))
+    for pattern in ('threadpoolctl-*.dist-info','six-*.dist-info'):
+        for path in origin_site.glob(pattern):
+            copy_tree(path,site/path.name)
     release = out/'release'
     release.mkdir()
     paths = {}
@@ -128,6 +136,17 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
         shutil.copy2(str(source_path),str(release/name))
     classification = 'synthetic' if manifest.get('virtual_data') else 'unconfirmed'
     bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification)
+    # Fail the build before sealing when a pickle-referenced class or indirect
+    # DLL/dependency is missing. Use the delivery interpreter, not the builder.
+    smoke = ('import json;from services.price_service.app import PriceService;'
+             's=PriceService('+repr(str(release/'price_native_bundle.pkl'))+',None,evaluation_metadata='
+             +repr(str(release/'evaluation_metadata.json'))+');'
+             's.handle_post("/api/v1/predict",s.example_request());print(json.dumps(s.health()))')
+    result = subprocess.run([str(embedded/'python.exe'),'-I','-B','-X','utf8','-c',smoke],
+                            cwd=str(out),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    (stamp/'embedded_model_smoke.log').write_bytes(result.stdout)
+    if result.returncode:
+        raise RuntimeError('Bundled model runtime smoke failed; see '+str(stamp/'embedded_model_smoke.log'))
     paths.update(evaluation_metadata='release/evaluation_metadata.json',product_code=manifest['product_code'],
                  product_name=manifest['product_name'],classification=classification,
                  effectiveness='trial_snapshot',virtual_data=manifest.get('virtual_data'))
