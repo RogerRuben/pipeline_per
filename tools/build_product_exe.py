@@ -180,12 +180,13 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(defaults/'desktop.json',desktop)
     (out/'访问地址.txt').write_text('Portal: http://127.0.0.1:%d/portal\nManagement: http://127.0.0.1:%d/\nChange ports in user-data/config/desktop.json; restart the application to apply.\n'%
         (desktop['ports']['web'],desktop['ports']['control']),encoding='utf-8')
-    (out/'SHOW_ADDRESSES.bat').write_bytes(b'@echo off\r\nsetlocal\r\nchcp 65001 >nul\r\n"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0payload\\product\\desktop_entry.py" --package-root "%~dp0." --addresses %*\r\nif not defined PRODUCT_NO_PAUSE pause\r\nendlocal\r\n')
+    (out/'SHOW_ADDRESSES.bat').write_bytes(b'@echo off\r\nsetlocal\r\n"%SystemRoot%\\System32\\chcp.com" 65001 >nul\r\n"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0payload\\product\\desktop_entry.py" --package-root "%~dp0." --addresses %*\r\nif not defined PRODUCT_NO_PAUSE pause\r\nendlocal\r\n')
     help_path = ROOT/('docs/NATIVE_DESKTOP_USAGE.md' if bootstrap_meta['kind']=='win32-native-cpython-onedir' else 'docs/P4_DESKTOP_USAGE.md')
     if help_path.is_file():
         shutil.copy2(str(help_path),str(out/'使用说明.md'))
-    shutil.copy2(str(ROOT/'docs/P4_1_TARGET_MACHINE.md'),str(out/'目标机验收说明.md'))
-    launcher=('@echo off\r\nsetlocal\r\nchcp 65001 >nul\r\n'
+    target_doc=ROOT/('docs/NATIVE_TARGET_CHECK.md' if bootstrap_meta['kind']=='win32-native-cpython-onedir' else 'docs/P4_1_TARGET_MACHINE.md')
+    shutil.copy2(str(target_doc),str(out/'目标机验收说明.md'))
+    launcher=('@echo off\r\nsetlocal\r\n"%SystemRoot%\\System32\\chcp.com" 65001 >nul\r\n'
               'set "P4_TARGET_OUT=%~1"\r\n'
               'if not defined P4_TARGET_OUT set "P4_TARGET_OUT=%LOCALAPPDATA%\\PipelinePerTargetCheck_%RANDOM%_%RANDOM%"\r\n'
               '"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0payload\\product\\target_check.py" --package "%~dp0." --out "%P4_TARGET_OUT%" > "%P4_TARGET_OUT%.bootstrap.log" 2>&1\r\n'

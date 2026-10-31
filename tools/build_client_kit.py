@@ -46,7 +46,7 @@ def build(out,runtime,bootstrap,example):
     for name in TOOLS:shutil.copy2(str(ROOT/'tools'/name),str(project/'tools'/name))
     for name in ('product_entry.py',):shutil.copy2(str(ROOT/name),str(project/name))
     (project/'docs').mkdir()
-    for name in ('P4_DESKTOP_USAGE.md','P4_1_TARGET_MACHINE.md','NATIVE_DESKTOP_USAGE.md','CLIENT_BUILD_KIT.md'):
+    for name in ('P4_DESKTOP_USAGE.md','P4_1_TARGET_MACHINE.md','NATIVE_DESKTOP_USAGE.md','NATIVE_TARGET_CHECK.md','CLIENT_BUILD_KIT.md'):
         shutil.copy2(str(ROOT/'docs'/name),str(project/'docs'/name))
     copy_tree(bootstrap,out/'bootstrap')
     embedded=out/'runtime/python38';embedded.mkdir(parents=True)
@@ -67,11 +67,15 @@ def build(out,runtime,bootstrap,example):
     cfg['v3']['warm_start'].update(auto_history=False,history_file=None,config_file=None)
     write_json(out/'settings/v3.json',cfg)
     write_json(out/'settings/desktop.json',template_config())
+    # Win7 Notepad reliably recognizes editable Chinese JSON with a UTF-8 BOM.
+    for path in (out/'settings').glob('*.json'):
+        content=path.read_text(encoding='utf-8');path.write_text(content,encoding='utf-8-sig')
     shutil.copy2(str(ROOT/'docs/CLIENT_BUILD_KIT.md'),str(out/'先读我.md'))
+    (out/'先读我.txt').write_text((ROOT/'docs/CLIENT_BUILD_KIT.md').read_text(encoding='utf-8'),encoding='utf-8-sig')
     commands={'CHECK_ENVIRONMENT.bat':'check','CHECK_INPUT.bat':'inspect','TRAIN_AND_PACKAGE.bat':'build',
               'SELF_TEST.bat':'self-test','REPACK_LAST.bat':'repack'}
     for filename,command in commands.items():
-        content=('@echo off\r\nsetlocal\r\nchcp 65001 >nul\r\ncd /d "%~dp0"\r\n'
+        content=('@echo off\r\nsetlocal\r\n"%SystemRoot%\\System32\\chcp.com" 65001 >nul\r\ncd /d "%~dp0"\r\n'
                  '"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0project\\tools\\client_builder.py" '+command+' %*\r\n'
                  'set "CLIENT_BUILD_EXIT=%ERRORLEVEL%"\r\n'
                  'if not "%CLIENT_BUILD_EXIT%"=="0" echo FAILED - see project\\outputs\\client_jobs logs\r\n'
