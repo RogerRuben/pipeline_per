@@ -1,0 +1,68 @@
+636 INFO: PyInstaller: 5.13.2
+636 INFO: Python: 3.8.10
+694 INFO: Platform: Windows-10-10.0.26200-SP0
+696 INFO: wrote D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\product.spec
+706 INFO: Removing temporary files and cleaning cache in D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\cache\pyinstaller
+709 INFO: Extending PYTHONPATH with paths
+['D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per',
+ 'D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per']
+1191 INFO: checking Analysis
+1191 INFO: Building Analysis because Analysis-00.toc is non existent
+1191 INFO: Initializing module dependency graph...
+1192 INFO: Caching module graph hooks...
+1208 INFO: Analyzing base_library.zip ...
+3345 INFO: Loading module hook 'hook-encodings.py' from 'D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_build_tools\\PyInstaller\\hooks'...
+4091 INFO: Loading module hook 'hook-heapq.py' from 'D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_build_tools\\PyInstaller\\hooks'...
+4872 INFO: Loading module hook 'hook-pickle.py' from 'D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_build_tools\\PyInstaller\\hooks'...
+5869 INFO: Caching module dependency graph...
+6009 INFO: running Analysis Analysis-00.toc
+6020 INFO: Adding Microsoft.Windows.Common-Controls to dependent assemblies of final executable
+  required by D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\runtime\tabpfn38\python.exe
+6738 INFO: Analyzing D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\product_entry.py
+7152 INFO: Loading module hook 'hook-sqlite3.py' from 'D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_build_tools\\PyInstaller\\hooks'...
+8042 INFO: Processing module hooks...
+8068 INFO: Looking for ctypes DLLs
+8076 INFO: Analyzing run-time hooks ...
+8084 INFO: Looking for dynamic libraries
+732 INFO: Extra DLL search directories (AddDllDirectory): []
+732 INFO: Extra DLL search directories (PATH): ['C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell', 'C:\\Users\\HP\\.codex\\tmp\\arg0-windows\\codex-arg06PsjrA', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\libheif\\libheif\\bin', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\jxrlib\\jxrlib\\bin', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\poppler\\Library\\bin', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\override', 'C:\\WINDOWS\\system32', 'C:\\WINDOWS', 'C:\\WINDOWS\\System32\\Wbem', 'C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\', 'C:\\WINDOWS\\System32\\OpenSSH\\', 'C:\\Program Files\\Git\\cmd', 'C:\\Program Files\\GitHub CLI\\', 'C:\\Program Files\\nodejs\\', 'C:\\Users\\HP\\.grok\\bin', 'c:\\Users\\HP\\AppData\\Local\\Programs\\cursor\\resources\\app\\codeBin', 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\', 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python312\\', 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Launcher\\', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell', 'C:\\Users\\HP\\AppData\\Local\\Microsoft\\WindowsApps', 'C:\\Users\\HP\\AppData\\Local\\Programs\\Microsoft VS Code\\bin', 'C:\\Users\\HP\\AppData\\Local\\Programs\\cursor\\resources\\app\\bin', 'D:\\anaconda', 'D:\\anaconda\\Library\\usr\\bin', 'D:\\anaconda\\Library\\mingw-w64', 'D:\\anaconda\\Library\\bin', 'D:\\anaconda\\Scripts', 'C:\\Program Files\\JetBrains\\PyCharm 2026.1.2\\bin', 'C:\\Users\\HP\\AppData\\Roaming\\npm', 'D:\\pycodes\\ds\\dsh\\bin', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin', 'C:\\Users\\HP\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\git\\cmd', 'C:\\Users\\HP\\AppData\\Local\\OpenAI\\Codex\\bin\\57159798136552f4', 'C:\\Users\\HP\\AppData\\Local\\OpenAI\\Codex\\bin\\22cfb1d302613eae']
+9586 INFO: Looking for eggs
+9588 INFO: Using Python library D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\runtime\tabpfn38\python38.dll
+9588 INFO: Found binding redirects: 
+[]
+9592 INFO: Warnings written to D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\work\product\warn-product.txt
+9652 INFO: Graph cross-reference written to D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\work\product\xref-product.html
+9734 INFO: checking PYZ
+9735 INFO: Building PYZ because PYZ-00.toc is non existent
+9735 INFO: Building PYZ (ZlibArchive) D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\work\product\PYZ-00.pyz
+9879 INFO: Building PYZ (ZlibArchive) D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\work\product\PYZ-00.pyz completed successfully.
+9892 INFO: checking PKG
+9892 INFO: Building PKG because PKG-00.toc is non existent
+9893 INFO: Building PKG (CArchive) product.pkg
+9912 INFO: Building PKG (CArchive) product.pkg completed successfully.
+9915 INFO: Bootloader D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\outputs\p4_build_tools\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+9915 INFO: checking EXE
+9915 INFO: Building EXE because EXE-00.toc is non existent
+9915 INFO: Building EXE from EXE-00.toc
+9915 INFO: Copying bootloader EXE to D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\work\product\product.exe.notanexecutable
+9920 INFO: Copying icon to EXE
+9923 INFO: Copying icons from ['D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\p4_build_tools\\PyInstaller\\bootloader\\images\\icon-windowed.ico']
+9925 INFO: Writing RT_GROUP_ICON 0 resource with 104 bytes
+9925 INFO: Writing RT_ICON 1 resource with 3752 bytes
+9926 INFO: Writing RT_ICON 2 resource with 2216 bytes
+9926 INFO: Writing RT_ICON 3 resource with 1384 bytes
+9926 INFO: Writing RT_ICON 4 resource with 38188 bytes
+9926 INFO: Writing RT_ICON 5 resource with 9640 bytes
+9926 INFO: Writing RT_ICON 6 resource with 4264 bytes
+9926 INFO: Writing RT_ICON 7 resource with 1128 bytes
+9937 INFO: Copying 0 resources to EXE
+9937 INFO: Embedding manifest in EXE
+9940 INFO: Updating manifest in D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\PipelinePer_P4_20261031_rc1_build\work\product\product.exe.notanexecutable
+9943 INFO: Updating resource type 24 name 1 language 0
+9952 INFO: Appending PKG archive to EXE
+9955 INFO: Fixing EXE headers
+10143 INFO: Building EXE from EXE-00.toc completed successfully.
+10149 INFO: checking COLLECT
+10150 INFO: Building COLLECT because COLLECT-00.toc is non existent
+10152 INFO: Building COLLECT COLLECT-00.toc
+10581 INFO: Building COLLECT COLLECT-00.toc completed successfully.

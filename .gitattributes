@@ -20,3 +20,6 @@ docs/audit/p1_2/browser-scenario-export.csv -text
 
 # Preserve native V3 acceptance evidence bytes (bound report SHA provenance).
 docs/audit/v3_20261031/** -text
+
+# Frozen-package acceptance CSV, manifests and compiler evidence retain bytes.
+docs/audit/p4_20261031/** -text

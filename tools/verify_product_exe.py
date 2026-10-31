@@ -89,7 +89,13 @@ def verify(package,upgrade,output):
             current=running(data)
             if current and current[1]['status']=='ready':return current
             return None
-        current=wait_for(ready)
+        try:
+            current=wait_for(ready)
+        except Exception:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=10)
+            raise
         report['timings'].setdefault('cold_start_seconds',[]).append(round(time.monotonic()-started,3));save()
         return proc,current
     parent=None
