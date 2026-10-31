@@ -197,6 +197,14 @@ def verify(package,upgrade,output):
         report['upgraded_model_sha256']=upgraded_schema['price_model_sha256']
         check('new_model_identity_and_prediction',upgraded_schema['price_model_sha256']==new['files'][new['release']['price_model']]
               and isinstance(upgraded_prediction['predicted_price_wan'],(float,int)))
+        upgraded_web=status['services']['web']['url']
+        simple_updated=fetch(upgraded_web+'/api/price-workbench/predict',{'parameters':parameters})
+        recommendation_updated=fetch(upgraded_web+'/api/evaluate',{'parameters':parameters})
+        report['upgraded_prediction_values']={'deep':upgraded_prediction['predicted_price_wan'],
+               'simple':simple_updated['prediction']['predicted_price_wan'],
+               'recommendation':recommendation_updated['predicted_price_wan']}
+        check('upgraded_three_entry_consistency',
+              max(report['upgraded_prediction_values'].values())-min(report['upgraded_prediction_values'].values())<1e-8)
         check('update_takes_preload_backup',bool(set((data/'backups').glob('backup-*.zip'))-before_backups))
         command(upgrade_copy/'product.exe','--stop');parent.wait(timeout=20);parent=None
         if 'delivery_contract' in new['release']:
