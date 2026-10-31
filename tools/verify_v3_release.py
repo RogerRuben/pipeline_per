@@ -21,6 +21,7 @@ from http.server import ThreadingHTTPServer
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+from tools.source_provenance import source_commit
 
 
 def sha(path):
@@ -90,7 +91,7 @@ def verify(build,output,classification='unconfirmed',repeats=3,replacement_build
     releases.activate(release['release_id'])
     workspace=output/'workspace'
     (workspace/'config').mkdir(exist_ok=True)
-    report={'classification':classification,'formal_acceptance':False,'source_sha':subprocess.check_output(['git','rev-parse','HEAD'],cwd=str(ROOT),encoding='utf-8').strip(),
+    report={'classification':classification,'formal_acceptance':False,'source_sha':source_commit(ROOT),
             'product_source_sha256':sha(source),'model_sha256':sha(paths['price_model']),
             'environment':environment,'host':platform.platform(),'win7_validated':False,
             'virtual_data_declared':manifest.get('virtual_data'),'checks':{},'timings':{}}

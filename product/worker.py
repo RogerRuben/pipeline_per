@@ -67,6 +67,7 @@ def main():
     parser.add_argument('--parent',type=int,required=True)
     parser.add_argument('--price-url')
     parser.add_argument('--effectiveness-url')
+    parser.add_argument('--port',type=int,default=0)
     args = parser.parse_args()
     watch_parent(args.parent)
     package,data = Path(args.package).resolve(),Path(args.data_dir).resolve()
@@ -88,8 +89,27 @@ def main():
         app.portal_config['services']['desktop_control'] = {
             'label':'软件运行管理','description':'查看运行状态、重启或停止软件',
             'url':read_json(data/'runtime/control.json')['url'],'visible':True,'enabled':True}
+        app.portal_config['services']['effectiveness']['label']='试用效能评价'
         class WebHandler(Handler):
-            pass
+            def do_GET(self):
+                from urllib.parse import urlparse
+                path=urlparse(self.path).path
+                if path=='/api/desktop-status':
+                    if self._auth_required(path):return
+                    try:
+                        from product.supervisor import fetch
+                        import sqlite3
+                        status=fetch(read_json(data/'runtime/control.json')['url']+'/api/status')
+                        with closing(sqlite3.connect((data/'data/protocol_demo.db').as_uri()+'?mode=ro',uri=True)) as connection:
+                            row=connection.execute('SELECT product_code,product_name FROM products WHERE enabled=1').fetchone()
+                            status['business']={'product_code':row[0],'product_name':row[1],
+                               'historical_count':connection.execute('SELECT COUNT(*) FROM agreements WHERE enabled=1').fetchone()[0],
+                               'field_count':connection.execute('SELECT COUNT(*) FROM parameter_definitions WHERE enabled=1').fetchone()[0],
+                               'saved_count':connection.execute('SELECT COUNT(*) FROM saved_schemes').fetchone()[0]}
+                        self._json(status)
+                    except (OSError,ValueError,KeyError):self._json({'error':'desktop_controller_unavailable'},503)
+                    return
+                super().do_GET()
         WebHandler.app = app
         handler = WebHandler
     else:
@@ -102,7 +122,7 @@ def main():
             from services.effectiveness_service.app import EffectivenessService,SnapshotBackend
             app = EffectivenessService(SnapshotBackend(contained(package,release['effectiveness_model'])))
         handler = make_handler(app)
-    server = ThreadingHTTPServer(('127.0.0.1',0),handler)
+    server = ThreadingHTTPServer(('127.0.0.1',args.port),handler)
     server.daemon_threads = True
     write_json(args.ready,{'pid':os.getpid(),'role':args.role,'generation':args.generation,
                           'url':'http://127.0.0.1:%d'%server.server_address[1]})
