@@ -53,5 +53,7 @@ void WINAPI entry(void) {
         fail(L"无法启动包内 Python。请完整解压软件，检查 runtime\\python38 和目标机运行库。",14);
     CloseHandle(pi.hThread);WaitForSingleObject(pi.hProcess,INFINITE);
     GetExitCodeProcess(pi.hProcess,&exit_code);CloseHandle(pi.hProcess);
+    if(exit_code>=0xc0000000UL)
+        fail(L"包内运行环境异常退出。请先执行环境检查，核对 Win7 系统补丁与 VC/UCRT 运行库，并保留错误记录。",exit_code);
     ExitProcess(exit_code);
 }
