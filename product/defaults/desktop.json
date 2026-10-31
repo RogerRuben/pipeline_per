@@ -1,0 +1,9 @@
+{
+  "ports": {
+    "control": 17890,
+    "web": 17891,
+    "price": 18101,
+    "effectiveness": 18102
+  },
+  "open_browser": true
+}

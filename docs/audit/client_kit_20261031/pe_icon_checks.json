@@ -1,0 +1,17 @@
+{
+  "machine": "0x8664",
+  "subsystem": 2,
+  "subsystem_version": [
+    6,
+    1
+  ],
+  "resource_types": [
+    3,
+    14,
+    24
+  ],
+  "icon_image_count": 7,
+  "win7_supported_os_manifest": true,
+  "crt_imported": false,
+  "bootstrap_sha256": "b3899569b80313696230655efd9ea959a9768fe3faed6529a27d10347699c29b"
+}

@@ -1,0 +1,45 @@
+{
+  "kind": "win32-native-cpython-onedir",
+  "target": "Windows 7 SP1 x64",
+  "compiler": "Zig 0.13.0 clang/lld; no compiler required on client",
+  "exe_sha256": "b3899569b80313696230655efd9ea959a9768fe3faed6529a27d10347699c29b",
+  "pe_imports": {
+    "KERNEL32.dll": [
+      "CloseHandle",
+      "CreateProcessW",
+      "ExitProcess",
+      "GetCommandLineW",
+      "GetCurrentProcessId",
+      "GetExitCodeProcess",
+      "GetModuleFileNameW",
+      "GetProcessHeap",
+      "HeapAlloc",
+      "SetErrorMode",
+      "WaitForSingleObject"
+    ],
+    "USER32.dll": [
+      "MessageBoxW"
+    ]
+  },
+  "subsystem_version": [
+    6,
+    1
+  ],
+  "win7_machine_tested": false,
+  "icon": "original PipelinePer mark",
+  "source": {
+    "product_entry.py": "de7c066384f483cfac065f4b6036ad11ec6b4d36088f0295c72823fb3db24709",
+    "product/__init__.py": "bfaa1c9819c1bc7beabf1767f83977c7f100b0a60986c8871277bdaba5b7bf41",
+    "product/common.py": "e6f4f5aff7ebb6612d0ac77a141f2c8ebdd1fd4bf82c061890c34375cfcb1312",
+    "product/launcher.py": "cc345b9b08f17eb7b8d7b842a58c872c8ed4fb129146d20f651fce8077c89959",
+    "product/windows.py": "855a865b000217c944c06fd2c5177fd8c87f25f47cb25874486b7ac89e20098e",
+    "product/compatibility.py": "13733c2eb282462123b13d5dc20ea1439da6fb94980f7b83b8691495e170d46c",
+    "product/recovery.py": "d9bb2af45af08ab7296c625ffea64eb8d9a3e38d7fa7795f91f8aa062dc293ad",
+    "product/desktop_entry.py": "1aef7043aed56694899e008b6515542f95622910dcd1a8553fd479be1bbaaba5",
+    "product/native/launcher.c": "b05db6510dbcf9065484e872438b3cbf9fa634ce1cee05fe55753295ff60cd26",
+    "product/native/launcher.manifest": "d231c54b98b1aca6fe6dd89d00a4a6c89d91f4f5b600dabb1b50216fa6608eae",
+    "app/static/launcher.ico": "74237663b5089ef6fdd08cb9b0882488421d1b7e903dbda91178511e6a09e38d",
+    "product/supervisor.py": "892bc09da32d89c7e6d7a490736426b6a6c3af6ab3612e04254ff3eeab447570",
+    "product/desktop_config.py": "6f85467ed5219d918e98620dba92be1abfb01b767426b0cab57a5d6a5800e026"
+  }
+}

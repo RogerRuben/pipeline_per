@@ -18,6 +18,9 @@ from product.common import contained,read_json,sha,write_json
 from tools.verify_v3_release import preflight
 from tools.bind_price_evaluation_metadata import bind
 from product.compatibility import make_contract
+from tools.source_provenance import source_commit
+from tools.build_native_bootstrap import source_fingerprints
+from product.desktop_config import DEFAULT_PORTS,validate_config,template_config
 
 SKIP = {'__pycache__','tests','test','benchmarks','.git'}
 RUNTIME_PACKAGES = ('numpy','scipy','sklearn','joblib','pandas','dateutil','pytz')
@@ -34,7 +37,7 @@ def copy_tree(source,destination):
             shutil.copy2(str(path),str(target))
 
 
-def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=()):
+def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None):
     if sys.version_info[:3] != (3,8,10) or sys.maxsize <= 2**32:
         raise ValueError('Build requires Python 3.8.10 x64 matching the V3 model')
     manifest,artifacts,source,environment = preflight(release_dir,'unconfirmed')
@@ -57,7 +60,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
         program = 'import sys;sys.path.insert(0,'+repr(str(tool_dir))+');import PyInstaller.__main__;PyInstaller.__main__.run(sys.argv[1:])'
         command = [sys.executable,'-c',program,'--noconfirm','--clean','--onedir','--windowed',
                    '--name','product','--distpath',str(stamp/'dist'),'--workpath',str(stamp/'work'),
-                   '--specpath',str(stamp),'--paths',str(ROOT),str(ROOT/'product_entry.py')]
+                   '--specpath',str(stamp),'--paths',str(ROOT),'--icon',str(ROOT/'app/static/launcher.ico'),str(ROOT/'product_entry.py')]
         env = dict(os.environ,PYINSTALLER_CONFIG_DIR=str(stamp/'cache'))
         result = subprocess.run(command,cwd=str(ROOT),env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         (stamp/'pyinstaller.log').write_bytes(result.stdout)
@@ -66,11 +69,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
         bootstrap = stamp/'dist/product'
     bootstrap = Path(bootstrap).resolve()
     # A bootstrap reuse is permitted only with matching frozen launcher source.
-    launcher_sources = {str(p.relative_to(ROOT).as_posix()):sha(p) for p in
-                        [ROOT/'product_entry.py',ROOT/'product/__init__.py',ROOT/'product/common.py',
-                         ROOT/'product/launcher.py',ROOT/'product/windows.py']}
-    launcher_sources.update({p.relative_to(ROOT).as_posix():sha(p) for p in
-                             (ROOT/'product/compatibility.py',ROOT/'product/recovery.py')})
+    launcher_sources = source_fingerprints()
     provenance = bootstrap/'BOOTSTRAP_SOURCE.json'
     if provenance.exists():
         if read_json(provenance) != launcher_sources:
@@ -81,6 +80,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
             raise ValueError('Reused bootstrap lacks source provenance')
         write_json(provenance,launcher_sources)
     shutil.copytree(str(bootstrap),str(out))
+    bootstrap_meta=read_json(bootstrap/'BOOTSTRAP_META.json') if (bootstrap/'BOOTSTRAP_META.json').exists() else {'kind':'pyinstaller-5.13.2'}
     payload = out/'payload'
     copy_tree(ROOT/'app',payload/'app')
     copy_tree(ROOT/'product',payload/'product')
@@ -98,8 +98,9 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     for name in ('__init__.py','typed_features.py','native_member.py','price_automl_core.py'):
         shutil.copy2(str(ROOT/'services/price_service/optuna_v2'/name),str(native_classes/name))
     licenses = out/'licenses'
-    licenses.mkdir()
-    shutil.copy2(str(tool_dir/'pyinstaller-5.13.2.dist-info/COPYING.txt'),str(licenses/'PyInstaller_COPYING.txt'))
+    licenses.mkdir(exist_ok=True)
+    if bootstrap_meta['kind'].startswith('pyinstaller'):
+        shutil.copy2(str(tool_dir/'pyinstaller-5.13.2.dist-info/COPYING.txt'),str(licenses/'PyInstaller_COPYING.txt'))
     # Module and bundled numerical-library licenses are also retained in each
     # runtime .dist-info directory; the CPython license is adjacent to Python.
     (licenses/'README.txt').write_text('CPython: runtime/python38/LICENSE.txt\nNumerical dependencies: runtime/python38/Lib/site-packages/*.dist-info/LICENSE*\nECharts: payload/app/static/deep_price/vendor/LICENSE*\n',encoding='utf-8')
@@ -175,11 +176,17 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(defaults/'model_services.json',{'execution_mode':'services','local_fallback':False,
                                               'price_output':{'unit':'wan_yuan','scale':1.0}})
     write_json(defaults/'deep_price_adjustment.json',{'confirmed':False,'message':'未配置正式价格校正规则'})
-    help_path = ROOT/'docs/P4_DESKTOP_USAGE.md'
+    desktop=validate_config(read_json(desktop_config)) if desktop_config else template_config()
+    write_json(defaults/'desktop.json',desktop)
+    (out/'访问地址.txt').write_text('Portal: http://127.0.0.1:%d/portal\nManagement: http://127.0.0.1:%d/\nChange ports in user-data/config/desktop.json; restart the application to apply.\n'%
+        (desktop['ports']['web'],desktop['ports']['control']),encoding='utf-8')
+    (out/'SHOW_ADDRESSES.bat').write_bytes(b'@echo off\r\nsetlocal\r\n"%SystemRoot%\\System32\\chcp.com" 65001 >nul\r\n"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0payload\\product\\desktop_entry.py" --package-root "%~dp0." --addresses %*\r\nif not defined PRODUCT_NO_PAUSE pause\r\nendlocal\r\n')
+    help_path = ROOT/('docs/NATIVE_DESKTOP_USAGE.md' if bootstrap_meta['kind']=='win32-native-cpython-onedir' else 'docs/P4_DESKTOP_USAGE.md')
     if help_path.is_file():
         shutil.copy2(str(help_path),str(out/'使用说明.md'))
-    shutil.copy2(str(ROOT/'docs/P4_1_TARGET_MACHINE.md'),str(out/'目标机验收说明.md'))
-    launcher=('@echo off\r\nsetlocal\r\nchcp 65001 >nul\r\n'
+    target_doc=ROOT/('docs/NATIVE_TARGET_CHECK.md' if bootstrap_meta['kind']=='win32-native-cpython-onedir' else 'docs/P4_1_TARGET_MACHINE.md')
+    shutil.copy2(str(target_doc),str(out/'目标机验收说明.md'))
+    launcher=('@echo off\r\nsetlocal\r\n"%SystemRoot%\\System32\\chcp.com" 65001 >nul\r\n'
               'set "P4_TARGET_OUT=%~1"\r\n'
               'if not defined P4_TARGET_OUT set "P4_TARGET_OUT=%LOCALAPPDATA%\\PipelinePerTargetCheck_%RANDOM%_%RANDOM%"\r\n'
               '"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0payload\\product\\target_check.py" --package "%~dp0." --out "%P4_TARGET_OUT%" > "%P4_TARGET_OUT%.bootstrap.log" 2>&1\r\n'
@@ -188,10 +195,10 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
               'echo Target check completed: "%P4_TARGET_OUT%\\target_report.json"\r\n'
               'if not defined PRODUCT_NO_PAUSE pause\r\nendlocal\r\n')
     (out/'TARGET_CHECK.bat').write_bytes(launcher.encode('ascii'))
-    source_sha = subprocess.check_output(['git','rev-parse','HEAD'],cwd=str(ROOT),text=True).strip()
+    source_sha = source_commit(ROOT)
     files = {p.relative_to(out).as_posix():sha(p) for p in sorted(out.rglob('*')) if p.is_file()}
     write_json(out/'PACKAGE_MANIFEST.json',{'format':'pipeline-per-desktop-1.0','version':version,'data_schema':1,
-               'entrypoint':'product.exe','packaging':'PyInstaller-5.13.2-onedir-windowed-launcher+embedded-model-runtime',
+               'entrypoint':'product.exe','packaging':bootstrap_meta['kind']+'+embedded-model-runtime',
                'build_source_sha':source_sha,'launcher_source_sha256':launcher_sources,'files':files,'release':paths,
                'training_environment':environment,'runtime_python':'3.8.10','architecture':'x64',
                'default_data_dir':'%LOCALAPPDATA%/PipelinePer','external_python_required':False,
@@ -219,5 +226,6 @@ if __name__ == '__main__':
     parser.add_argument('--version',required=True)
     parser.add_argument('--bootstrap',help='Reuse a sealed matching frozen launcher without recompiling')
     parser.add_argument('--legacy-package',action='append',default=[],help='Approve a verified P4 predecessor with identical artifacts')
+    parser.add_argument('--desktop-config',help='JSON defining fixed service ports and open_browser')
     args = parser.parse_args()
-    print(json.dumps(build(args.release_dir,args.python_runtime,args.build_tools,args.out,args.version,args.bootstrap,args.legacy_package),ensure_ascii=True,indent=2))
+    print(json.dumps(build(args.release_dir,args.python_runtime,args.build_tools,args.out,args.version,args.bootstrap,args.legacy_package,args.desktop_config),ensure_ascii=True,indent=2))

@@ -1,0 +1,10 @@
+{
+  "status": "pass",
+  "text_files_scanned": 2790,
+  "known_credential_pattern_hits": [],
+  "forbidden_paths": [],
+  "archive_sha256": "9263c3e2e5c23aa9376a757253f80af101f2cb66c17d739943860fa7ef9abba5",
+  "archive_bytes": 72060835,
+  "no_external_paths_in_python_pth": true,
+  "scope": "Known credential patterns, forbidden archive paths and embedded interpreter search-path check; not a complete security audit"
+}

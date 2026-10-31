@@ -1,0 +1,14 @@
+{
+  "pid": 18612,
+  "supervisor_pid": 25916,
+  "version": "client-v3-20261031_165710-fc8e",
+  "portal_url": "http://127.0.0.1:17892/portal",
+  "control_url": "http://127.0.0.1:17890",
+  "ports": {
+    "control": 17890,
+    "web": 17892,
+    "price": 18101,
+    "effectiveness": 18102
+  },
+  "data_dir": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\client_generated_target_final\\restored-userdata"
+}
