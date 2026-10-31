@@ -17,6 +17,7 @@ sys.path.insert(0,str(ROOT))
 from product.common import contained,read_json,sha,write_json
 from tools.verify_v3_release import preflight
 from tools.bind_price_evaluation_metadata import bind
+from product.compatibility import make_contract
 
 SKIP = {'__pycache__','tests','test','benchmarks','.git'}
 RUNTIME_PACKAGES = ('numpy','scipy','sklearn','joblib','pandas','dateutil','pytz')
@@ -33,7 +34,7 @@ def copy_tree(source,destination):
             shutil.copy2(str(path),str(target))
 
 
-def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
+def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=()):
     if sys.version_info[:3] != (3,8,10) or sys.maxsize <= 2**32:
         raise ValueError('Build requires Python 3.8.10 x64 matching the V3 model')
     manifest,artifacts,source,environment = preflight(release_dir,'unconfirmed')
@@ -68,6 +69,8 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
     launcher_sources = {str(p.relative_to(ROOT).as_posix()):sha(p) for p in
                         [ROOT/'product_entry.py',ROOT/'product/__init__.py',ROOT/'product/common.py',
                          ROOT/'product/launcher.py',ROOT/'product/windows.py']}
+    launcher_sources.update({p.relative_to(ROOT).as_posix():sha(p) for p in
+                             (ROOT/'product/compatibility.py',ROOT/'product/recovery.py')})
     provenance = bootstrap/'BOOTSTRAP_SOURCE.json'
     if provenance.exists():
         if read_json(provenance) != launcher_sources:
@@ -141,15 +144,31 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
     smoke = ('import json;from services.price_service.app import PriceService;'
              's=PriceService('+repr(str(release/'price_native_bundle.pkl'))+',None,evaluation_metadata='
              +repr(str(release/'evaluation_metadata.json'))+');'
-             's.handle_post("/api/v1/predict",s.example_request());print(json.dumps(s.health()))')
+             's.handle_post("/api/v1/predict",s.example_request());print(json.dumps({"health":s.health(),"schema":s.schema()}))')
     result = subprocess.run([str(embedded/'python.exe'),'-I','-B','-X','utf8','-c',smoke],
                             cwd=str(out),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     (stamp/'embedded_model_smoke.log').write_bytes(result.stdout)
     if result.returncode:
         raise RuntimeError('Bundled model runtime smoke failed; see '+str(stamp/'embedded_model_smoke.log'))
+    observed=json.loads(result.stdout.decode('utf-8'))
+    contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
+                           {'unit':'wan_yuan','scale':1.0})
+    from product.common import verify_package
+    for legacy_dir in legacy_packages:
+        old=verify_package(legacy_dir,True)
+        # An old package lacking schema state can be admitted only for the exact
+        # same model and business package. Real retraining upgrades require a
+        # predecessor that already carries the full accepted schema contract.
+        if (old['files'][old['release']['price_model']]!=contract['model_sha256'] or
+            old['files'][old['release']['business_package']]!=sha(artifacts['business_package'])):
+            raise ValueError('Legacy predecessor must use the identical model and business package')
+        contract['compatible_legacy'].append({'version':old['version'],
+                      'business_package_sha256':old['files'][old['release']['business_package']]})
+    write_json(release/'delivery_contract.json',contract)
     paths.update(evaluation_metadata='release/evaluation_metadata.json',product_code=manifest['product_code'],
                  product_name=manifest['product_name'],classification=classification,
-                 effectiveness='trial_snapshot',virtual_data=manifest.get('virtual_data'))
+                 effectiveness='trial_snapshot',virtual_data=manifest.get('virtual_data'),
+                 delivery_contract='release/delivery_contract.json')
     defaults = out/'defaults'
     defaults.mkdir()
     shutil.copy2(str(ROOT/'app/defaults/scenario_config.json'),str(defaults/'scenario_config.json'))
@@ -159,6 +178,16 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None):
     help_path = ROOT/'docs/P4_DESKTOP_USAGE.md'
     if help_path.is_file():
         shutil.copy2(str(help_path),str(out/'使用说明.md'))
+    shutil.copy2(str(ROOT/'docs/P4_1_TARGET_MACHINE.md'),str(out/'目标机验收说明.md'))
+    launcher=('@echo off\r\nsetlocal\r\nchcp 65001 >nul\r\n'
+              'set "P4_TARGET_OUT=%~1"\r\n'
+              'if not defined P4_TARGET_OUT set "P4_TARGET_OUT=%LOCALAPPDATA%\\PipelinePerTargetCheck_%RANDOM%_%RANDOM%"\r\n'
+              '"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0payload\\product\\target_check.py" --package "%~dp0." --out "%P4_TARGET_OUT%" > "%P4_TARGET_OUT%.bootstrap.log" 2>&1\r\n'
+              'if errorlevel 1 (\r\n echo Target check failed. See "%P4_TARGET_OUT%.bootstrap.log" and target_report.json\r\n'
+              ' if not defined PRODUCT_NO_PAUSE pause\r\n exit /b 1\r\n)\r\n'
+              'echo Target check completed: "%P4_TARGET_OUT%\\target_report.json"\r\n'
+              'if not defined PRODUCT_NO_PAUSE pause\r\nendlocal\r\n')
+    (out/'TARGET_CHECK.bat').write_bytes(launcher.encode('ascii'))
     source_sha = subprocess.check_output(['git','rev-parse','HEAD'],cwd=str(ROOT),text=True).strip()
     files = {p.relative_to(out).as_posix():sha(p) for p in sorted(out.rglob('*')) if p.is_file()}
     write_json(out/'PACKAGE_MANIFEST.json',{'format':'pipeline-per-desktop-1.0','version':version,'data_schema':1,
@@ -189,5 +218,6 @@ if __name__ == '__main__':
     parser.add_argument('--out',required=True)
     parser.add_argument('--version',required=True)
     parser.add_argument('--bootstrap',help='Reuse a sealed matching frozen launcher without recompiling')
+    parser.add_argument('--legacy-package',action='append',default=[],help='Approve a verified P4 predecessor with identical artifacts')
     args = parser.parse_args()
-    print(json.dumps(build(args.release_dir,args.python_runtime,args.build_tools,args.out,args.version,args.bootstrap),ensure_ascii=True,indent=2))
+    print(json.dumps(build(args.release_dir,args.python_runtime,args.build_tools,args.out,args.version,args.bootstrap,args.legacy_package),ensure_ascii=True,indent=2))
