@@ -2,6 +2,7 @@
 from contextlib import closing
 import hashlib
 import json
+import math
 from pathlib import Path
 import sqlite3
 
@@ -48,6 +49,23 @@ def binding_schema(rows):
     keys=('model_kind','parameter_id','source_type','data_type','unit','required','missing_policy','configured_value')
     return sorted([{key:row.get(key) for key in keys} for row in rows if row.get('enabled',1)],
                   key=lambda row:(str(row['model_kind']),str(row['parameter_id'])))
+
+
+def price_output(config):
+    unit=str(config.get('unit') or 'wan_yuan').strip().lower()
+    scale=float(config.get('scale',1.0))
+    if unit not in ('yuan','thousand_yuan','wan_yuan','million_yuan') or not math.isfinite(scale) or scale<=0:
+        raise ValueError('Invalid price output unit/scale')
+    return {'unit':unit,'scale':scale}
+
+
+def check_data_root(data):
+    data=Path(data)
+    if (data/'runtime/restore_pending.json').exists():
+        raise ValueError('Interrupted restore detected; restore the backup into a new empty directory')
+    if not (data/'data/protocol_demo.db').exists() and any((data/name).exists() for name in
+                  ('installed.json','delivery_state.json','runtime/initialized.json')):
+        raise ValueError('Initialized installation has lost its database; restore a backup instead of reseeding')
 
 
 def make_contract(schema,business,model_sha,price_output):
@@ -116,12 +134,13 @@ def inspect_database(database):
 def validate_data(package,data,manifest,contract=None):
     """Reject before Application/Store can migrate or sync an existing database."""
     package,data=Path(package),Path(data)
+    check_data_root(data)
     contract=contract or load_contract(package,manifest)
     current=inspect_database(data/'data/protocol_demo.db')
     if current['product_code']!=contract['product_code'] or current['business_schema_sha256']!=contract['business_schema_sha256']:
         raise ValueError('Published business/model schema is incompatible with existing user data')
     settings=read_json(data/'config/model_services.json')
-    output=settings.get('price_output',{'unit':'wan_yuan','scale':1.0})
+    output=price_output(settings.get('price_output') or {})
     if output!=contract['price_basis']['raw_output']:
         raise ValueError('Price output unit/scale differs from the delivery contract; explicit migration required')
     state_path=data/'delivery_state.json'

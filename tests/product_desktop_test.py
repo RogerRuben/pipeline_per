@@ -20,7 +20,7 @@ sys.path.insert(0,str(ROOT))
 from product.common import InstanceLock,contained,data_directory,read_json,sha,verify_package,write_json
 from product.launcher import Supervisor,backup_data,fetch
 from product.worker import initialize_data
-from product.compatibility import make_contract,accept_initial,validate_data,fingerprint
+from product.compatibility import make_contract,accept_initial,validate_data,fingerprint,check_data_root
 from product.recovery import restore_backup
 
 
@@ -185,6 +185,20 @@ class DesktopTests(unittest.TestCase):
             with self.assertRaises(ValueError):restore_backup(self.package,target,self.manifest,corrupt)
             self.assertFalse((target/'data/protocol_demo.db').exists())
             self.assertFalse((self.root/'escape.txt').exists())
+
+    def test_missing_database_or_interrupted_restore_never_reseeds(self):
+        self.database();(self.data/'data/protocol_demo.db').unlink()
+        with self.assertRaisesRegex(ValueError,'lost its database'):
+            initialize_data(self.package,self.data,self.manifest)
+        self.assertFalse((self.data/'data/protocol_demo.db').exists())
+        write_json(self.data/'runtime/restore_pending.json',{'files':['data/protocol_demo.db']})
+        with self.assertRaisesRegex(ValueError,'Interrupted restore'):check_data_root(self.data)
+
+    def test_equivalent_price_output_configuration_is_canonicalized(self):
+        self.database()
+        write_json(self.data/'config/model_services.json',{'price_output':{'unit':'WAN_YUAN','scale':'1.0'}})
+        self.assertEqual(validate_data(self.package,self.data,self.manifest)['price_basis']['raw_output'],
+                         {'unit':'wan_yuan','scale':1.0})
 
     def test_instance_lock_is_exclusive_and_os_released(self):
         lock=InstanceLock(self.data)

@@ -10,7 +10,7 @@ sys.path.insert(0,str(ROOT))
 
 from product.common import contained, read_json, write_json, verify_package
 from product.windows import watch_parent
-from product.compatibility import load_contract,validate_data,accept_initial,fingerprint
+from product.compatibility import load_contract,validate_data,accept_initial,fingerprint,check_data_root
 
 
 def initialize_data(package, data, manifest):
@@ -18,6 +18,7 @@ def initialize_data(package, data, manifest):
     import shutil
     import sqlite3
     import uuid
+    check_data_root(data)
     contract=load_contract(package,manifest)
     database=data/'data/protocol_demo.db'
     if database.exists():

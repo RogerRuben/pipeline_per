@@ -18,7 +18,7 @@ import webbrowser
 
 from product.common import InstanceLock,data_directory,read_json,verify_package,write_json
 from product.windows import WorkerJob
-from product.compatibility import validate_data
+from product.compatibility import validate_data,check_data_root
 from product.recovery import backup_data,restore_backup
 
 HTTP = build_opener(ProxyHandler({}))  # Loopback never goes through a system proxy.
@@ -350,6 +350,7 @@ def main(argv=None):
         handler = RotatingFileHandler(str(data/'logs/launcher.log'),maxBytes=2*1024*1024,backupCount=3,encoding='utf-8')
         logging.basicConfig(level=logging.INFO,handlers=[handler],format='%(asctime)s %(levelname)s %(message)s')
         manifest = verify_package(package,full=True)
+        check_data_root(data)
         if (data/'data/protocol_demo.db').exists():
             validate_data(package,data,manifest)
         supervisor = Supervisor(package,data,manifest,args.no_browser)

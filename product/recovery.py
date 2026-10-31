@@ -105,6 +105,8 @@ def restore_backup(package,data,manifest,archive_path):
             # Validation is read-only. Publish only with exclusive ownership;
             # database is last, so an interrupted restore cannot look initialized.
             order=sorted(set(records)-{'data/protocol_demo.db'})+['data/protocol_demo.db']
+            journal=data/'runtime/restore_pending.json'
+            write_json(journal,{'backup_sha256':sha(archive_path),'files':order})
             try:
                 for relative in order:
                     target=data/relative;target.parent.mkdir(parents=True,exist_ok=True)
@@ -112,10 +114,12 @@ def restore_backup(package,data,manifest,archive_path):
                     os.replace(str(stage/relative),str(target));installed.append((relative,target))
                 write_json(data/'runtime/restored.json',{'backup_sha256':sha(archive_path),
                            'active_release_id':state['active_release_id'],'files_restored':len(records)})
+                journal.unlink()
             except Exception:
                 for relative,target in reversed(installed):
                     original=stage/relative;original.parent.mkdir(parents=True,exist_ok=True)
                     os.replace(str(target),str(original))
+                journal.unlink()
                 raise
         return {'status':'restored','data_dir':str(data),'files_restored':len(records),
                 'active_release_id':state['active_release_id'],'backup_sha256':sha(archive_path)}
