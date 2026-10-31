@@ -1,0 +1,12 @@
+test_control_rejects_missing_token_cross_origin_and_rebinding_host (__main__.DesktopTests) ... ok
+test_data_path_is_independent_and_override_is_explicit (__main__.DesktopTests) ... ok
+test_existing_data_and_confirmed_config_never_reseeded (__main__.DesktopTests) ... ok
+test_instance_lock_is_exclusive_and_os_released (__main__.DesktopTests) ... ok
+test_live_backup_is_consistent_and_excludes_runtime_secrets (__main__.DesktopTests) ... ok
+test_manifest_cannot_escape_or_accept_changed_model (__main__.DesktopTests) ... ok
+test_wrong_product_and_corrupt_existing_db_fail_without_replacement (__main__.DesktopTests) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.987s
+
+OK

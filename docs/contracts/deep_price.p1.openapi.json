@@ -1,0 +1,1455 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Deep Price P1-1 API",
+    "version": "1.0.0-p1.1",
+    "description": "Implemented five HTTP-only routes. P0/P2 routes remain proposed. UI/export/adjustment deferred."
+  },
+  "servers": [
+    {
+      "url": "/api/deep-price/v1"
+    }
+  ],
+  "security": [
+    {
+      "portalSession": []
+    }
+  ],
+  "paths": {
+    "/schema": {
+      "get": {
+        "operationId": "get_schema",
+        "responses": {
+          "400": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error; no traceback exposed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "operationId": "get_products",
+        "responses": {
+          "400": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error; no traceback exposed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
+    "/products/{product_id}": {
+      "get": {
+        "operationId": "get_products_product_id",
+        "responses": {
+          "400": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error; no traceback exposed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/predict": {
+      "post": {
+        "operationId": "post_predict",
+        "responses": {
+          "400": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                },
+                "example": {
+                  "product_code": "BUSINESS",
+                  "release_id": "REL-1",
+                  "model_version": "fixture-v1",
+                  "price_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "model_instance_id": "fixture-instance",
+                  "business_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "price_output_signature": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "price_unit": "万元",
+                  "request_id": "DEEP-fixture",
+                  "success": true,
+                  "pricing_mode": "ml",
+                  "predicted_price_wan": 50,
+                  "business_parameters": {
+                    "size": 5,
+                    "kind": "经济"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error; no traceback exposed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictionRequest"
+              },
+              "example": {
+                "product_code": "BUSINESS",
+                "release_id": "REL-1",
+                "model_version": "fixture-v1",
+                "price_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "model_instance_id": "fixture-instance",
+                "business_snapshot_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "price_output_signature": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "parameters": {
+                  "size": 5,
+                  "kind": "经济"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict/batch": {
+      "post": {
+        "operationId": "post_predict_batch",
+        "responses": {
+          "400": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "See Error.code; no legacy model fallback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected internal error; no traceback exposed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "portalSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ipdemo_auth",
+        "description": "Existing Portal session cookie from app/server.py AUTH_COOKIE; enforce existing authentication."
+      }
+    },
+    "schemas": {
+      "PredictionRequest": {
+        "type": "object",
+        "properties": {
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Business Values keyed by stable English field_id; validated against active schema at runtime"
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "enum": [
+              "万元"
+            ]
+          }
+        },
+        "required": [
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "parameters",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      },
+      "Field": {
+        "type": "object",
+        "properties": {
+          "field_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "label_zh": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "number",
+              "integer",
+              "enum",
+              "boolean",
+              "string"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "allowed_values": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "minimum": {
+            "type": "number"
+          },
+          "maximum": {
+            "type": "number"
+          },
+          "model_value_mapping": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "function",
+              "performance",
+              "environment",
+              "other"
+            ]
+          },
+          "price_model_input": {
+            "type": "boolean"
+          },
+          "additive_rule_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "field_id",
+          "label_zh",
+          "unit",
+          "type",
+          "required",
+          "group",
+          "price_model_input",
+          "additive_rule_id"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "invalid_input",
+                  "authentication_required",
+                  "forbidden",
+                  "not_found",
+                  "unavailable",
+                  "not_configured",
+                  "unsupported_mixed_adjustment",
+                  "version_conflict",
+                  "batch_too_large",
+                  "timeout",
+                  "internal_error"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "success",
+          "request_id",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "type": "string",
+            "enum": [
+              "万元"
+            ]
+          },
+          "success": {
+            "const": true
+          },
+          "pricing_mode": {
+            "enum": [
+              "ml",
+              "additive_rule"
+            ]
+          },
+          "predicted_price_wan": {
+            "type": "number"
+          },
+          "business_parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Business Values keyed by stable English field_id; validated against active schema at runtime"
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "request_id",
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "price_unit",
+          "success",
+          "pricing_mode",
+          "predicted_price_wan",
+          "business_parameters",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      },
+      "SchemaResponse": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "type": "string",
+            "enum": [
+              "万元"
+            ]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Field"
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "ml": {
+                "const": true
+              },
+              "additive_rules": {
+                "type": "boolean"
+              },
+              "mixed_adjustment": {
+                "const": false
+              },
+              "explanation": {
+                "enum": [
+                  "not_configured",
+                  "available"
+                ]
+              },
+              "batch_limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "ml",
+              "additive_rules",
+              "mixed_adjustment",
+              "explanation",
+              "batch_limit"
+            ],
+            "additionalProperties": false
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "request_id",
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "price_unit",
+          "fields",
+          "capabilities",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "Business Values keyed by stable English field_id; validated against active schema at runtime"
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "parameters"
+        ],
+        "additionalProperties": false
+      },
+      "ProductsResponse": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "type": "string",
+            "enum": [
+              "万元"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "request_id",
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "price_unit",
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      },
+      "ProductResponse": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "type": "string",
+            "enum": [
+              "万元"
+            ]
+          },
+          "item": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "request_id",
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "price_unit",
+          "item",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      },
+      "BatchRequest": {
+        "type": "object",
+        "properties": {
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": "Business Values keyed by stable English field_id; validated against active schema at runtime"
+                }
+              },
+              "required": [
+                "item_id",
+                "parameters"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "enum": [
+              "万元"
+            ]
+          }
+        },
+        "required": [
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "items",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      },
+      "BatchResponse": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "product_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "release_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "price_model_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_unit": {
+            "type": "string",
+            "enum": [
+              "万元"
+            ]
+          },
+          "success": {
+            "const": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "result": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              },
+              "required": [
+                "item_id",
+                "result"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 100
+          },
+          "model_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "business_snapshot_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "price_output_signature": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "request_id",
+          "product_code",
+          "release_id",
+          "model_version",
+          "price_model_sha256",
+          "price_unit",
+          "success",
+          "items",
+          "model_instance_id",
+          "business_snapshot_sha256",
+          "price_output_signature"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

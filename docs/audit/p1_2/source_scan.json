@@ -1,0 +1,6 @@
+{
+  "source_sha": "188a15d3b83630b67d4a291b8c543d70e02f5657",
+  "tracked_text_files_scanned": 797,
+  "known_credential_pattern_findings": [],
+  "limits": "Known token/private-key patterns; not proof against all secret formats."
+}

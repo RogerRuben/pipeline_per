@@ -1,0 +1,25 @@
+test_csv_formula_injection_is_escaped_but_numeric_prices_preserved (__main__.ComprehensiveTests) ... ok
+test_logout_invalidates_result_session_even_with_old_auth_cookie (__main__.ComprehensiveTests) ... ok
+test_model_metrics_are_real_read_only_or_unavailable (__main__.ComprehensiveTests) ... ok
+test_rule_is_unconfigured_until_confirmed_and_adjustment_is_separate (__main__.ComprehensiveTests) ... ok
+test_sensitivity_top10_scenario_use_same_service_and_legal_values (__main__.ComprehensiveTests) ... ok
+test_server_export_is_session_isolated_and_cannot_be_forged (__main__.ComprehensiveTests) ... ok
+test_zero_base_change_rates_are_null (__main__.ComprehensiveTests) ... ok
+test_authentication_origin_content_type_and_json_errors (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_concurrent_business_write_is_rejected_after_http (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_invalid_batch_atomic_limits_and_inputs (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_missing_value_is_owned_by_model_and_bad_model_input_is_400 (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_model_change_during_prediction_rejected (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_no_active_release_and_missing_original_excel (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_no_local_fallback_or_effectiveness_dependency (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_normalization_change_and_unverifiable_model_fail_closed (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_read_queries_and_predictions_do_not_change_database_or_model (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_real_application_published_product_and_existing_service (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_response_order_corruption_rejected_and_deadline_shared (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_same_price_workbench_recommendation_wire_single_batch_and_mapping_once (deep_price_contract_test.DeepPriceContractTests) ... ok
+test_stale_token_and_model_restart_or_change_rejected (deep_price_contract_test.DeepPriceContractTests) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 24.616s
+
+OK

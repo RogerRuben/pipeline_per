@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "saved_model_count": 3,
+  "saved_models": [
+    "xgboost",
+    "svr",
+    "gbdt"
+  ],
+  "prediction": 26.875,
+  "stale_weight_fallback": [
+    0.3333333333333333,
+    0.3333333333333333,
+    0.3333333333333333
+  ]
+}

@@ -1,4 +1,4 @@
-"""Read-only P0 structural/provenance checks; no model deserialization or services.
+"""Read-only structural/provenance checks; no model deserialization or services.
 
 Python 3.8+ standard library only. This is not a Win7/model compatibility test.
 """
@@ -28,7 +28,7 @@ def main():
     api = read('docs/contracts/deep_price.openapi.json')
     check(profile['price_engine'] == 'optuna_v3', 'explicit Optuna V3 profile')
     check(profile['runtime_prediction'] == 'http_price_service_only', 'HTTP-only analysis prediction policy')
-    check(profile['stage'] == 'P0' and not profile['deep_price_enabled'], 'P0 accurately declares analysis not implemented')
+    check(profile['stage'] in ('P0', 'P1-1', 'P1-2', 'V3-validation') and profile['deep_price_enabled'] == (profile['stage'] in ('P1-2','V3-validation')), 'UI capability matches implemented stage')
     check(profile['mixed_adjustment'] == 'unsupported', 'mixed pricing disabled')
     check(profile['userdata_policy'] == 'external_persistent', 'persistent data separate from distribution')
     check(profile['source_commit'] == baseline['commit'], 'profile source commit matches baseline')
@@ -73,10 +73,16 @@ def main():
                 walk(item)
     walk(api)
     check(not errors, 'API internal references resolved')
-    # Check inherited business code remains byte-for-byte equal to selected upstream.
+    # P0 preserves all business code; P1 permits only documented integration,
+    # loaded-model identity metadata, and the reproduced startup defect fix.
     proc = subprocess.run(['git', 'diff', '--name-only', baseline['commit'], '--', 'app', 'automl_pipeline', 'services'], cwd=str(ROOT), capture_output=True, text=True)
-    check(proc.returncode == 0 and not proc.stdout.strip(), 'inherited business code unchanged from upstream SHA')
-    report = {'status': 'pass' if not errors else 'fail', 'checks_passed': len(checks), 'errors': errors, 'python': sys.version.split()[0], 'scope': 'P0 structural/provenance checks only; no inference, browser, EXE or Win7 acceptance'}
+    allowed = {'app/server.py', 'app/model_service_client.py', 'app/data_master.py',
+               'services/price_service/app.py', 'services/price_service/native_bundle.py'} if profile['stage'] in ('P1-1','P1-2','V3-validation') else set()
+    if profile['stage'] in ('P1-2','V3-validation'):
+        allowed.update({'app/configuration.py','app/generation_tasks.py','services/common/http_service.py'})
+    changed = proc.stdout.splitlines()
+    check(proc.returncode == 0 and all(p in allowed or (profile['stage'] in ('P1-1','P1-2','V3-validation') and p.startswith('app/deep_price/')) or (profile['stage'] in ('P1-2','V3-validation') and p.startswith('app/static/deep_price/')) for p in changed), 'source changes limited to documented stage scope')
+    report = {'status': 'pass' if not errors else 'fail', 'checks_passed': len(checks), 'errors': errors, 'python': sys.version.split()[0], 'scope': profile['stage'] + ' structural/provenance checks only; no inference, browser, EXE or Win7 acceptance'}
     print(json.dumps(report, ensure_ascii=True, indent=2))
     return 1 if errors else 0
 

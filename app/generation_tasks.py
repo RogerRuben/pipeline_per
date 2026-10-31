@@ -58,7 +58,11 @@ class GenerationTaskManager(object):
 
     def canonicalize_generation_controls(self, request):
         """Return the single canonical representation used by generation and batch identity."""
-        req = apply_generation_profile(request)
+        # Direct task creation and recommendation lookup must apply the same
+        # scenario defaults before hashing; otherwise a valid batch looks stale.
+        policy = getattr(self.app, 'scenario_policy', None)
+        prepared = policy.apply(request)[0] if policy is not None else request
+        req = apply_generation_profile(prepared)
         req["count"] = max(1, min(int(req.get("count") or req.get("generation_count") or 5), 30))
         if req.get("generation_budget") not in (None, ""):
             req["generation_budget"] = max(

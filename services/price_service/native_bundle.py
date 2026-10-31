@@ -60,9 +60,10 @@ def save_bundle(path, bundle):
     return target
 
 
-def load_bundle(path):
-    with Path(path).open("rb") as handle:
-        bundle = pickle.load(handle)
+def load_bundle(path, bundle_bytes=None):
+    # A service may supply the exact bytes it hashed, binding identity to the
+    # loaded instance even when the source path is replaced during runtime.
+    bundle = pickle.loads(Path(path).read_bytes() if bundle_bytes is None else bundle_bytes)
     if not isinstance(bundle, dict) or bundle.get("format_version") != FORMAT_VERSION:
         raise ValueError("价格模型文件不是%s格式" % FORMAT_VERSION)
     validate_bundle(bundle)

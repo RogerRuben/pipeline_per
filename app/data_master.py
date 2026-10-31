@@ -841,6 +841,7 @@ class DataMasterService(object):
                         report["errors"].append("指标%s引用了不存在的指标分组%s。" % (p.get("parameter_id"), g))
             report["data"]["parameter_groups"] = group_items
 
+            param_by_key = {item["parameter_id"]: item for item in parameters}
             tags = []
             for r in parsed["标签字典"]:
                 tags.append({"tag_id":clean(r.get("标签编号")), "tag_name":clean(r.get("标签名称")), "tag_group":clean(r.get("标签分组")), "weight":num(r.get("匹配权重"), False), "derivation_mode":normalize_derivation(r.get("生成判定方式")), "description":clean(r.get("标签说明")), "enabled":parse_bool(r.get("是否启用",1))})

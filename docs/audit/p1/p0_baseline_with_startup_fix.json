@@ -1,0 +1,25 @@
+{
+  "version": "V19.6.14",
+  "status": "FAIL",
+  "checks": [
+    "DataMaster可初始化参考方案库",
+    "SQLite数据库完整",
+    "价格与效能模型契约有效",
+    "当前DataMaster可导出并重新校验",
+    "防护等级按整数合法域统一维护，不再被旧离散列表吸附",
+    "前端可获得统一的混合属性搜索类型",
+    "页面初始加载不启动生成",
+    "开始智能推荐后立即返回已有参考方案",
+    "智能推荐点击后静默启动生成任务",
+    "静默生成完成并形成稳定批次",
+    "生成方案具有批次和候选稳定标识",
+    "再次生成创建新批次而不覆盖旧批次",
+    "新批次完成后旧生成方案仍可打开编辑"
+  ],
+  "started_at": "2026-10-30 19:55:07",
+  "error": "AssertionError: 智能生成方案可独立查看",
+  "finished_at": "2026-10-30 19:55:35",
+  "baseline_commit": "fbe13fe7b66f362750076dc43afeee1c8d6e7dd6",
+  "only_patch": "Define missing param_by_key dictionary to allow fresh startup",
+  "exit_code": 1
+}

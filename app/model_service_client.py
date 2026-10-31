@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import json
 import os
+import socket
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -19,7 +20,10 @@ from .price_output import PriceOutputNormalizer
 
 
 class ModelServiceUnavailable(RuntimeError):
-    pass
+    def __init__(self, message, status=503, code="unavailable"):
+        RuntimeError.__init__(self, message)
+        self.status = status
+        self.code = code
 
 
 def _json_request(url, payload=None, timeout=15.0):
@@ -39,8 +43,15 @@ def _json_request(url, payload=None, timeout=15.0):
             message = detail.get("message") or detail.get("error") or str(exc)
         except Exception:
             message = str(exc)
-        raise ModelServiceUnavailable("%s: %s" % (url, message))
+        status = exc.code if exc.code in (400, 401, 403, 404, 409, 413, 422, 504) else 503
+        code = {400: "invalid_input", 401: "authentication_required", 403: "forbidden", 404: "not_found",
+                409: "version_conflict", 413: "batch_too_large", 422: "invalid_input", 504: "timeout"}.get(status, "unavailable")
+        raise ModelServiceUnavailable("%s: %s" % (url, message), status, code)
+    except (socket.timeout, TimeoutError) as exc:
+        raise ModelServiceUnavailable("%s: %s" % (url, exc), 504, "timeout")
     except (URLError, OSError, ValueError) as exc:
+        if isinstance(getattr(exc, "reason", None), (socket.timeout, TimeoutError)):
+            raise ModelServiceUnavailable("%s: %s" % (url, exc), 504, "timeout")
         raise ModelServiceUnavailable("%s: %s" % (url, exc))
 
 
@@ -142,18 +153,34 @@ class ModelServiceGateway(object):
             self.effectiveness_url + "/api/v1/schema", None, self.timeout
         )
 
-    def price_schema(self):
+    def price_schema(self, timeout=None):
         """Inspect only the price service for the operator prediction page."""
-        return _json_request(self.price_url + "/api/v1/schema", None, self.timeout)
+        return _json_request(self.price_url + "/api/v1/schema", None, self.timeout if timeout is None else timeout)
 
-    def predict_price(self, params, product_code=None):
+    def price_health(self, timeout=None):
+        """Price-only probe: never contacts the effectiveness service."""
+        return _json_request(self.price_url + "/health", None, self.timeout if timeout is None else timeout)
+
+    def predict_price(self, params, product_code=None, timeout=None, request_id=None, expected_identity=None):
         envelope = build_model_request(
-            "price", params, request_id="PRICE-WORKBENCH-%s" % uuid.uuid4().hex[:16],
+            "price", params, request_id=request_id or "PRICE-WORKBENCH-%s" % uuid.uuid4().hex[:16],
             product_code=product_code or self.product_code,
             scenario="operator_price_workbench", context_source="price_workbench",
         )
-        response = _json_request(self.price_url + "/api/v1/predict", envelope, self.timeout)
+        envelope.update(expected_identity or {})
+        response = _json_request(self.price_url + "/api/v1/predict", envelope, self.timeout if timeout is None else timeout)
         return self.price_normalizer.normalize_response(response)
+
+    def predict_price_batch(self, items, product_code=None, timeout=None, request_id=None, expected_identity=None):
+        """Price-only batch, with exactly the same output normalization as single."""
+        payload = {"request_id": request_id or uuid.uuid4().hex, "product_code": product_code or self.product_code,
+                   "items": [build_model_request("price", item["parameters"], request_id=item["item_id"],
+                              product_code=product_code or self.product_code) for item in items]}
+        payload.update(expected_identity or {})
+        response = _json_request(self.price_url + "/api/v1/predict/batch", payload, self.timeout if timeout is None else timeout)
+        result = dict(response)
+        result["items"] = [self.price_normalizer.normalize_response(item) for item in response.get("items", [])]
+        return result
 
     def evaluate_effectiveness(self, params, target_protocol=None):
         """Evaluate one scheme without requiring the price service."""

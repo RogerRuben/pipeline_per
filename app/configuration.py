@@ -32,7 +32,7 @@ DEFAULT_SERVICE_PORTAL_CONFIG = {
         "recommendation": {"label": "方案智能推荐", "description": "根据设计要求筛选、推荐并生成候选方案", "url": "/", "visible": True, "enabled": True},
         "quick_price": {"label": "简易价格预测", "description": "快速估算成品参考价格", "url": "/price", "visible": True, "enabled": True},
         "cost_effectiveness_analysis": {"label":"效费分析台","description":"比较方案的价格、效能与帕累托前沿","url":"http://127.0.0.1:17000","visible":True,"enabled":True},
-        "advanced_price": {"label": "价格深度分析", "description": "专业价格预测与综合分析", "url": "", "visible": True, "enabled": False},
+        "advanced_price": {"label": "价格深度分析", "description": "价格预测、敏感性与情景分析", "url": "/price/deep", "visible": True, "enabled": True},
         "effectiveness": {"label": "简易效能评价", "description": "评估综合效能与主要风险", "url": "/effectiveness", "visible": True, "enabled": True},
         "admin": {"label": "数据管理中心", "description": "维护成品数据、指标、规则与系统设置", "url": "/admin", "visible": True, "enabled": True},
     },

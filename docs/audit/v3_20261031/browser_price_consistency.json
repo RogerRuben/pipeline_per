@@ -1,0 +1,21 @@
+{
+  "model_sha256": "260f18f43e82dbf3b3670e486a4ba6fa3884713015c517f279930ea5c7ea3dab",
+  "raw_tolerance": 1e-08,
+  "display_policy": "UI existing4-decimal formatting; compare unrounded API/CSV values",
+  "checks": [
+    {
+      "scenario": 1,
+      "csv_and_api_raw_price_wan": 17.535699,
+      "replayed_http_price_wan": 17.535699,
+      "display_4_decimal": "17.5357",
+      "equal_raw": true
+    },
+    {
+      "scenario": 2,
+      "csv_and_api_raw_price_wan": 17.262836,
+      "replayed_http_price_wan": 17.262836,
+      "display_4_decimal": "17.2628",
+      "equal_raw": true
+    }
+  ]
+}

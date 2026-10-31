@@ -1,0 +1,51 @@
+{
+  "classification": "synthetic",
+  "formal_acceptance": false,
+  "model": {
+    "model_version": "user-optuna-v3-joint-pareto-2.0",
+    "model_count": 6,
+    "model_names": [
+      "lasso",
+      "ridge",
+      "expert_tree",
+      "extratrees",
+      "svr",
+      "gbdt"
+    ],
+    "backend": "native_pickle",
+    "exact_mode": true
+  },
+  "field_count": 36,
+  "timings": {
+    "model_load": [
+      0.328
+    ],
+    "single": [
+      0.125,
+      0.14,
+      0.125,
+      0.141,
+      0.172
+    ],
+    "batch": [
+      0.343
+    ],
+    "scenario": [
+      0.407
+    ],
+    "top10": [
+      14.375,
+      14.109,
+      14.078
+    ]
+  },
+  "checks": {
+    "price_consistency_max_delta_wan": 0,
+    "records_compared": 5,
+    "read_only": true,
+    "model_identity": true,
+    "stale_model_rejected": true,
+    "original_artifacts_unchanged": true
+  },
+  "model_sha256": "b2ef0216c34d09419e79a73541494803e032926be4c9a97edbef2ad00be3a97d"
+}

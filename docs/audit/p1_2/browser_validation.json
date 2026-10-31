@@ -1,0 +1,56 @@
+{
+  "source_sha": "8ebe6c2e04e9e19385e5614bd019a3555ab08bb0",
+  "environment": "Codex in-app browser, real loopback services, virtual product data",
+  "portal_navigation": true,
+  "product_refill": true,
+  "edited_prediction_wan": 20.8959,
+  "single_sensitivity": true,
+  "top10": true,
+  "multi_attribute_scenarios": [
+    20.8959,
+    20.5219
+  ],
+  "real_model_metrics": true,
+  "unconfigured_adjustment_visible": true,
+  "csv_download": true,
+  "txt_download": true,
+  "product_switch_clears_price": true,
+  "product_switch_disables_export": true,
+  "mobile_dimensions": {
+    "documentWidth": 325,
+    "viewport": 330
+  },
+  "no_mobile_body_overflow": true,
+  "viewport_reset": true,
+  "console_errors": [],
+  "screenshot_replay": "interaction-replay.html",
+  "final_frontend_sha": "188a15d",
+  "final_boolean_refill": [
+    {
+      "field": "manual_emergency",
+      "label": "是",
+      "value": "1"
+    },
+    {
+      "field": "self_lock",
+      "label": "是",
+      "value": "1"
+    },
+    {
+      "field": "position_feedback",
+      "label": "是",
+      "value": "1"
+    },
+    {
+      "field": "overload_protection",
+      "label": "是",
+      "value": "1"
+    },
+    {
+      "field": "self_diagnosis",
+      "label": "否",
+      "value": "0"
+    }
+  ],
+  "final_prediction_wan": 20.8959
+}

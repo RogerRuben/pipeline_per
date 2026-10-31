@@ -1,0 +1,28 @@
+{
+  "policy": "SHA256 of Git-distributed bytes; text normalized by .gitattributes; screenshots/GIF and actual browser CSV preserved as bytes",
+  "files": {
+    "01-portal.jpg": "79f7ec61c353c580a66f954c141aa57847ca8cf8e457202cadd335e44558392c",
+    "03-edited-product-prediction.jpg": "d692db39d24454b70633db3439049ac09e427a83995626c219716a974ad6d94b",
+    "04-single-sensitivity.jpg": "47fd1f8e09c230e88dd3235e2a7e550e8a66374e6cae0857840dd312fa7b22b5",
+    "05-top10.jpg": "962d87231750e34f85a2a3acb987dee1364ad8a606f99ef33280bdd08e9942a8",
+    "06-scenario-comparison.jpg": "c1a88f675556b41d685f0daf95c2b79ce5cbd2132e02be70916adcb9a1dfbdcd",
+    "07-real-model-metadata.jpg": "00fae3981afd7e53fe0f07c81678147dfc9dc4501c173571e6f049fc1e09d9cd",
+    "08-export-and-unconfigured-rule.jpg": "69d077e60185a9c8786fea911850158805e4ec4444bbbfa31bf1b29762f9089f",
+    "09-mobile-layout.jpg": "a9e8da9339157aa48a5b719e34fb23bbdcd7940bc93166018e3c4e097035bbe7",
+    "browser-scenario-export.csv": "6fbbcf8ed5677c9b53d67c8558194e447cd34627a042528ba3de2356043141c9",
+    "browser-scenario-export.txt": "6248aa37e53f0f8bf060b5e99b0121d900386f07d44248303610d419c58b3aca",
+    "browser_validation.json": "d83d970a17c8ad252a7823da7b20f823f5b4df1ba35d5d0d54a03f66005e4752",
+    "deep_price_comprehensive_test_output.txt": "722eb097252652ce1a8dc783232985dcc73d1255717b359ed5fee219daf69bc3",
+    "full_pipeline_test_output.txt": "40be04e871fc64319fe113de66c82dbf6116f7713716848c19e58523c9cec196",
+    "full_pipeline_test_report.json": "61569be16ec75909528aab03c0da974889dfe3560761574b37034876a8b9c3fb",
+    "interaction-demo.gif": "b0f82c0183a54a44e352135468e2339f4de1cadee80f1444f4424a8aeed6a8cb",
+    "interaction-replay.html": "2d4708f8dd1201ea741f24d136540b71c572e9e7a91f1aeb1112ff557e3a1a07",
+    "p1_validation_report.json": "36324048800ad06036d5d71f57f293969adda8114ceb2e6d4edd387db08f2020",
+    "portable_compatibility_test_output.txt": "9472f134768a3461bd2cd39998b4b6b8cefcde25c6db993a87d90070d476c313",
+    "price_dynamic_model_hotfix_test_output.txt": "4daaae381bdedda17905a8b28812fe8a2ea8e4fbbf17f4c0de7f95273533b052",
+    "source_scan.json": "29ce9abee1c79b4b8245fe85a90d81ff72991a98a164b94c0735bf7b8fd2ac56",
+    "structural_validation.json": "f1c523ae7029cfca7975e8951ca4d988b0f86ccb14a009734338f0002bc0cea9",
+    "ui_api_consistency.json": "73ad600ee8f3727ee20b943b55a25b84d37598dc4f314959f7916c278cc56957",
+    "v21_workflow_portal_workbench_test_output.txt": "c602239675e0ed83dfb675bae6fbf56ac2c23efce1c088745d5df12e15fa7a6a"
+  }
+}

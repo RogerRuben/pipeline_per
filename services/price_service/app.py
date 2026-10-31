@@ -2,9 +2,12 @@
 from __future__ import print_function
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import sys
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,7 +17,7 @@ if str(ROOT) not in sys.path:
 from services.common.http_service import ServiceApplication, JsonServiceError, run_service
 from services.price_service.native_bundle import (
     load_bundle, predict as native_predict, predict_batch as native_predict_batch,
-    file_sha256, active_model_names,
+    active_model_names,
     prepare_vector,
 )
 
@@ -23,7 +26,7 @@ class PriceService(ServiceApplication):
     service_name = "price-prediction-service"
     service_version = "1.0.1"
 
-    def __init__(self, model_path=None, fallback_json=None, allow_degraded=False, allow_model_fallback=False):
+    def __init__(self, model_path=None, fallback_json=None, allow_degraded=False, allow_model_fallback=False, evaluation_metadata=None):
         self.model_path = Path(model_path).resolve() if model_path else None
         self.fallback_json = Path(fallback_json).resolve() if fallback_json else None
         self.allow_degraded = bool(allow_degraded)
@@ -31,12 +34,28 @@ class PriceService(ServiceApplication):
         self.backend = None
         self.bundle = None
         self.load_error = None
+        self.model_sha256 = None
+        self.model_instance_id = uuid.uuid4().hex
         self._load()
+        self.evaluation_metadata=None
+        self.evaluation_metadata_sha256=None
+        if evaluation_metadata:
+            content=Path(evaluation_metadata).read_bytes()
+            metadata=json.loads(content.decode('utf-8-sig'))
+            if metadata.get('schema_version')!='price-model-evaluation-metadata-1.0' or metadata.get('price_model_sha256')!=self.model_sha256:
+                raise ValueError('模型评价元数据未绑定当前模型SHA，拒绝加载')
+            if not isinstance(metadata.get('metrics'),dict) or not isinstance(metadata.get('source_training_report_sha256'),str) or not re.fullmatch('[0-9a-f]{64}',metadata['source_training_report_sha256']):
+                raise ValueError('模型评价元数据缺少真实训练报告来源')
+            json.dumps(metadata,allow_nan=False)
+            self.evaluation_metadata=metadata
+            self.evaluation_metadata_sha256=hashlib.sha256(content).hexdigest()
 
     def _load(self):
         if self.model_path and self.model_path.is_file():
             try:
-                self.bundle = load_bundle(self.model_path)
+                raw = self.model_path.read_bytes()
+                self.bundle = load_bundle(self.model_path, bundle_bytes=raw)
+                self.model_sha256 = hashlib.sha256(raw).hexdigest()
                 self.backend = "native_pickle"
                 return
             except Exception as exc:
@@ -45,12 +64,14 @@ class PriceService(ServiceApplication):
                     raise RuntimeError("原生价格模型存在但加载失败，禁止静默切换模型: %s" % exc)
         if self.fallback_json and self.fallback_json.is_file():
             from app.model_runtime import PriceBundleV4, PriceBundle
-            raw = json.loads(self.fallback_json.read_text(encoding="utf-8"))
+            content = self.fallback_json.read_bytes()
+            raw = json.loads(content.decode("utf-8"))
             if str(raw.get("recommendation_contract_version") or "") == "4.0":
                 self.bundle = PriceBundleV4(raw, self.fallback_json)
             else:
                 self.bundle = PriceBundle(raw, self.fallback_json)
             self.backend = "portable_json"
+            self.model_sha256 = hashlib.sha256(content).hexdigest()
             return
         raise RuntimeError("未找到可加载的价格模型。请配置price_native_bundle.pkl或price_bundle.json")
 
@@ -69,6 +90,8 @@ class PriceService(ServiceApplication):
                 "required_modules": self.bundle.get("required_modules") or [],
                 "load_warning": self.load_error,
                 "automl_explanation": self.bundle.get("automl_explanation"),
+                "analysis_metadata": self.analysis_metadata(),
+                "virtual_fixture": bool(self.bundle.get("virtual_fixture")) or bool(self.evaluation_metadata and self.evaluation_metadata.get('data_classification')=='synthetic'),
             }
         fields = []
         for item in self.bundle.raw_contract:
@@ -83,7 +106,29 @@ class PriceService(ServiceApplication):
             })
         product_code = self.bundle.bundle.get("product_code") or self.bundle.bundle.get("manifest", {}).get("product_code")
         model_version = self.bundle.bundle.get("model_version") or self.bundle.bundle.get("manifest", {}).get("model_version")
-        return {"service": self.service_name, "product_code": product_code, "model_version": model_version, "backend": self.backend, "fields": fields, "load_warning": self.load_error}
+        return {"service": self.service_name, "product_code": product_code, "model_version": model_version, "backend": self.backend, "fields": fields, "load_warning": self.load_error,
+                "analysis_metadata": self.analysis_metadata(), "virtual_fixture": 'virtual' in str(self.bundle.bundle.get('manifest', {}).get('training_source', '')).lower()}
+
+    def analysis_metadata(self):
+        raw = self.bundle if self.backend == 'native_pickle' else self.bundle.bundle
+        explanation = raw.get('automl_explanation') or {}
+        metrics = {key: raw.get(key, explanation.get(key)) for key in
+                   ('training_metrics','development_metrics','holdout_metrics','test_metrics','reference_metrics','evaluation_scope')
+                   if raw.get(key, explanation.get(key)) is not None}
+        importance = raw.get('feature_importance', explanation.get('feature_importance'))
+        if self.evaluation_metadata:
+            # Keep report key names/scopes; never rename selected validation
+            # scores to independent test results or invent feature importance.
+            metrics.update(self.evaluation_metadata['metrics'])
+        return {'metrics': metrics, 'feature_importance': importance,
+                'expert_scores': explanation.get('price_attribute_scores'),
+                'source': 'bound_training_report' if self.evaluation_metadata else 'loaded_price_model',
+                'evaluation_metadata_sha256':self.evaluation_metadata_sha256,
+                'training_report_sha256':self.evaluation_metadata.get('source_training_report_sha256') if self.evaluation_metadata else None,
+                'model_names': self.schema_model_names()}
+
+    def schema_model_names(self):
+        return active_model_names(self.bundle) if self.backend == 'native_pickle' else []
 
     def health(self):
         data = ServiceApplication.health(self)
@@ -92,7 +137,8 @@ class PriceService(ServiceApplication):
             "model_version": self.schema().get("model_version"),
             "product_code": self.schema().get("product_code"),
             "model_path": str(self.model_path or self.fallback_json or ""),
-            "model_sha256": file_sha256(self.model_path) if self.model_path and self.model_path.is_file() else None,
+            "model_sha256": self.model_sha256,
+            "model_instance_id": self.model_instance_id,
             "load_warning": self.load_error,
             "exact_mode": self.backend == "native_pickle" and not self.allow_degraded,
             "model_count": self.schema().get("model_count"),
@@ -102,6 +148,7 @@ class PriceService(ServiceApplication):
         return data
 
     def _one(self, request):
+        self._check_identity(request)
         params = request.get("parameters") or request.get("params") or {}
         if self.backend == "native_pickle":
             result = native_predict(self.bundle, params, allow_degraded=self.allow_degraded)
@@ -133,6 +180,8 @@ class PriceService(ServiceApplication):
                 "warnings": ((result.get("input_status") or {}).get("warnings") or [str(x) for x in result.get("feature_anomalies", [])])+(['价格预测超出历史可信区域'] if (result.get('price_risk') or {}).get('is_extrapolation') else []),
             },
             "model": {
+                "model_sha256": self.model_sha256,
+                "model_instance_id": self.model_instance_id,
                 "service_version": self.service_version,
                 "model_version": self.schema().get("model_version"),
                 "product_code": self.schema().get("product_code"),
@@ -202,7 +251,20 @@ class PriceService(ServiceApplication):
             output["configuration_details"] = details
         return output
 
+    def _check_identity(self, request):
+        for key, actual in (("expected_model_sha256", self.model_sha256),
+                            ("expected_model_instance_id", self.model_instance_id)):
+            if key in request and request[key] != actual:
+                raise JsonServiceError("价格模型实例已变化，请刷新后重试", 409, "version_conflict")
+
     def handle_post(self, path, payload):
+        try:
+            return self._handle_post(path, payload)
+        except ValueError as exc:
+            raise JsonServiceError(str(exc), 400, "invalid_input")
+
+    def _handle_post(self, path, payload):
+        self._check_identity(payload)
         if path == "/api/v1/predict":
             return self._one(payload)
         if path == "/api/v1/predict/batch":
@@ -283,10 +345,11 @@ def main():
     parser.add_argument("--fallback-json", default=os.environ.get("PRICE_JSON_BUNDLE", str(ROOT / "models" / "price_bundle.json")))
     parser.add_argument("--allow-degraded", action="store_true", default=str(os.environ.get("PRICE_ALLOW_DEGRADED", "0")).lower() in ("1", "true", "yes"))
     parser.add_argument("--allow-model-fallback", action="store_true", default=str(os.environ.get("PRICE_ALLOW_MODEL_FALLBACK", "0")).lower() in ("1", "true", "yes"))
+    parser.add_argument('--evaluation-metadata',default=None,help='已绑定模型SHA的训练评价JSON，不修改模型权重')
     args = parser.parse_args()
     model = args.model if Path(args.model).is_file() else None
     fallback = args.fallback_json if Path(args.fallback_json).is_file() else None
-    run_service(PriceService(model, fallback, args.allow_degraded, args.allow_model_fallback), args.host, args.port)
+    run_service(PriceService(model, fallback, args.allow_degraded, args.allow_model_fallback,evaluation_metadata=args.evaluation_metadata), args.host, args.port)
 
 
 if __name__ == "__main__":

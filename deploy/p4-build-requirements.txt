@@ -1,0 +1,8 @@
+# Install into an isolated build-tool directory with CPython 3.8.10 x64.
+PyInstaller==5.13.2
+pyinstaller-hooks-contrib==2023.8
+pefile==2023.2.7
+altgraph==0.17.4
+pywin32-ctypes==0.2.2
+packaging==24.2
+setuptools==69.5.1
