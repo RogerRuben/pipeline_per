@@ -1,0 +1,57 @@
+{
+  "status": "pass",
+  "source_sha": "82d3fb48ccf853f0fb36761158834d7166a023dc",
+  "actual_generated_exe": "C:\\Users\\HP\\AppData\\Local\\Temp\\甲方 开发包_qlxd3n8z\\ClientBuilder_V3_Win7x64_20261101_R3\\project\\deliverables\\client-v3-20261101_165204-9483\\product.exe",
+  "exe_sha256": "c324aa632ce529b3ce311646dc868ae0aa785190d8d106417dac14b64229bfe2",
+  "source_ico_sha256": "4fc7d054ee1bad83b1a2411bb8b85ed2322aaeef9fa9162f5ddc647b5a3115eb",
+  "embedded_frames": {
+    "16": {
+      "pixels_match": true,
+      "width": 16,
+      "height": 16
+    },
+    "24": {
+      "pixels_match": true,
+      "width": 24,
+      "height": 24
+    },
+    "32": {
+      "pixels_match": true,
+      "width": 32,
+      "height": 32
+    },
+    "48": {
+      "pixels_match": true,
+      "width": 48,
+      "height": 48
+    },
+    "64": {
+      "pixels_match": true,
+      "width": 64,
+      "height": 64
+    },
+    "128": {
+      "pixels_match": true,
+      "width": 128,
+      "height": 128
+    },
+    "256": {
+      "pixels_match": true,
+      "width": 256,
+      "height": 256
+    }
+  },
+  "imports": [
+    "KERNEL32.dll",
+    "USER32.dll"
+  ],
+  "subsystem": 2,
+  "subsystem_version": [
+    6,
+    1
+  ],
+  "win7_machine_validated": false,
+  "scope": "Extracted actual generated product.exe resources; every frame compared pixel-for-pixel with source design",
+  "repacked_exe_sha256": "c324aa632ce529b3ce311646dc868ae0aa785190d8d106417dac14b64229bfe2",
+  "repack_preserves_embedded_icon": true
+}

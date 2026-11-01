@@ -1,0 +1,18 @@
+{
+  "configured_ports": {
+    "control": 57851,
+    "web": 57852,
+    "price": 57853,
+    "effectiveness": 57854
+  },
+  "status": "pass",
+  "startup_seconds": 14.688,
+  "prices_wan": [
+    16.489381,
+    16.489381,
+    16.489381
+  ],
+  "field_count": 60,
+  "model_sha256": "60eec243b2faceab0deb41de06713a35b895275600f6465613980f53861015bf",
+  "portal_url": "http://127.0.0.1:57852/portal"
+}
