@@ -50,7 +50,7 @@ def build(zig,out):
     write_json(out/'BOOTSTRAP_META.json',{'kind':'win32-native-cpython-onedir','target':'Windows 7 SP1 x64',
                'compiler':'Zig 0.13.0 clang/lld; no compiler required on client','exe_sha256':sha(out/'product.exe'),
                'pe_imports':imports,'subsystem_version':[pe.OPTIONAL_HEADER.MajorSubsystemVersion,pe.OPTIONAL_HEADER.MinorSubsystemVersion],
-               'win7_machine_tested':False,'icon':'original PipelinePer mark','source':source})
+               'win7_machine_tested':False,'icon':'OneClick pixel price coin, effectiveness gauge and click cursor','source':source})
     return {'bootstrap':str(out),'sha256':sha(out/'product.exe'),'imports':imports}
 
 
