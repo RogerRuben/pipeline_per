@@ -70,6 +70,16 @@ def exercise(package,out,rollback_package=None):
     for key in list(env):
         if key.startswith(('PYTHON','IPDEMO_','_PYI','_MEIPASS')):env.pop(key,None)
     parent=None;data=out/'userdata';handles=[]
+    # Test profiles must not contend with a user's configured live instance.
+    import socket
+    sockets=[];ports={}
+    try:
+        for role in ('control','web','price','effectiveness'):
+            sock=socket.socket();sock.bind(('127.0.0.1',0));sockets.append(sock);ports[role]=sock.getsockname()[1]
+    finally:
+        for sock in sockets:sock.close()
+    write_json(data/'config/desktop.json',{'ports':ports,'open_browser':False})
+    report['test_profile_ports']=ports;save()
     def command(folder,user,*args,success=True):
         path=out/('command-%d.json'%time.time_ns())
         result=subprocess.run([str(folder/'product.exe'),'--no-browser','--data-dir',str(user),'--report',str(path)]+list(args),

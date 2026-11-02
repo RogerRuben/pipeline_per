@@ -76,7 +76,7 @@ def main():
         sys.stdout=sys.stderr=(data/('logs/'+args.role+'.log')).open('a',encoding='utf-8',buffering=1)
     manifest = verify_package(package)
     release = manifest['release']
-    from http.server import ThreadingHTTPServer
+    from services.common.http_service import ExclusiveThreadingHTTPServer as ThreadingHTTPServer
     if args.role == 'web':
         initialize_data(package,data,manifest)
         os.environ.update(IPDEMO_MODEL_EXECUTION_MODE='services',IPDEMO_PRICE_SERVICE_URL=args.price_url,

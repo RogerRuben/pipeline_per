@@ -1,6 +1,7 @@
 """Own and supervise three independently controllable local services."""
 from collections import deque
-from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
+from services.common.http_service import ExclusiveThreadingHTTPServer as ThreadingHTTPServer
 import json
 import logging
 import os

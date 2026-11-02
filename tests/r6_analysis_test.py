@@ -97,6 +97,22 @@ class OfflineImportanceTests(unittest.TestCase):
             self.assertEqual(value['model_sha256'],hashlib.sha256(b'unchanged').hexdigest())
             self.assertEqual(model.read_bytes(),b'unchanged')
 
+
+class PortIsolationTests(unittest.TestCase):
+    def test_live_http_listener_cannot_be_rebound_by_reuse_address(self):
+        import os
+        from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
+        from services.common.http_service import ExclusiveThreadingHTTPServer
+        first=ExclusiveThreadingHTTPServer(('127.0.0.1',0),BaseHTTPRequestHandler)
+        second=None
+        try:
+            try:second=ThreadingHTTPServer(first.server_address,BaseHTTPRequestHandler)
+            except OSError:pass
+            self.assertIsNone(second)
+        finally:
+            if second:second.server_close()
+            first.server_close()
+
 if __name__=='__main__':unittest.main()
 
 
