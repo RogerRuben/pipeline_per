@@ -115,7 +115,13 @@ def smoke(package,job):
                   'model_instance_id','business_snapshot_sha256','price_output_signature')}
         deep=fetch(web+'/api/deep-price/v1/predict',dict(identity,parameters=params))
         simple=fetch(web+'/api/price-workbench/predict',{'parameters':params})
-        recommendation=fetch(web+'/api/evaluate',{'parameters':params})
+        try:
+            recommendation=fetch(web+'/api/evaluate',{'parameters':params})
+        except Exception as exc:
+            from urllib.error import HTTPError
+            detail=exc.read().decode('utf-8',errors='replace') if isinstance(exc,HTTPError) else str(exc)
+            write_json(job/'recommendation_failure.json',{'error':detail,'endpoint':web+'/api/evaluate'})
+            raise RuntimeError('推荐入口验证失败：'+detail) from exc
         values=[deep['predicted_price_wan'],simple['prediction']['predicted_price_wan'],recommendation['predicted_price_wan']]
         if max(values)-min(values)>1e-8:raise ValueError('推荐、简易与深度价格不一致')
         report.update(status='pass',startup_seconds=round(time.monotonic()-started,3),prices_wan=values,

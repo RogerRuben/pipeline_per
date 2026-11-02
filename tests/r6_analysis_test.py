@@ -18,6 +18,22 @@ class R6Tests(unittest.TestCase):
     get_schema=ComprehensiveTests.get_schema
     call=ComprehensiveTests.call
 
+    def test_calculation_gate_retries_existing_recovery_mechanism(self):
+        import threading
+        from app.server import Application
+        state=SimpleNamespace(model_data_sync_error='temporary startup probe failure',model_lock=threading.RLock())
+        def recover():
+            self.assertEqual(self.gateway.price_health()['status'],'ok')
+            state.model_data_sync_error=None
+            return True
+        state._try_restore_model_services=unittest.mock.Mock(side_effect=recover)
+        Application._require_product_ready(state)
+        state._try_restore_model_services.assert_called_once()
+        state.model_data_sync_error='permanent mismatch'
+        state._try_restore_model_services=unittest.mock.Mock(return_value=False)
+        with self.assertRaisesRegex(ValueError,'permanent mismatch'):
+            Application._require_product_ready(state)
+
     def test_readonly_single_model_library(self):
         before=self.db.read_bytes()
         status,result=self.call('/model-library')

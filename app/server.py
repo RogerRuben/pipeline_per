@@ -401,6 +401,12 @@ class Application(object):
 
     def _require_product_ready(self):
         if self.model_data_sync_error:
+            # A transient startup probe must not permanently gate a healthy
+            # HTTP service until somebody opens the runtime-status page.
+            with self.model_lock:
+                if self.model_data_sync_error:
+                    self._try_restore_model_services()
+        if self.model_data_sync_error:
             raise ValueError(
                 "当前HTTP模型服务与运行业务数据尚未同步，推荐和计算已暂停；"
                 "数据维护和业务成品切换不受影响。请启动该成品对应的价格/效能服务后重启主系统。详情：%s" % self.model_data_sync_error
