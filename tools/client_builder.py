@@ -23,15 +23,22 @@ from product.supervisor import fetch
 from product.launcher import running
 from product.desktop_config import DEFAULT_PORTS,validate_config
 from tools.source_provenance import source_commit
+from tools.client_kit_paths import validate_kit_path
 
 
 def verify_kit(kit=KIT):
-    kit=Path(kit).resolve();manifest=read_json(kit/'KIT_MANIFEST.json')
+    kit=Path(kit).resolve()
+    validate_kit_path(kit)
+    manifest=read_json(kit/'KIT_MANIFEST.json')
     if manifest.get('format')!='pipeline-client-build-kit-1.0':raise ValueError('离线开发包清单无效')
     for relative,expected in manifest['files'].items():
         path=(kit/relative).resolve()
-        if kit not in path.parents or not path.is_file() or sha(path)!=expected:
-            raise ValueError('开发包文件缺失或改变：'+relative)
+        if kit not in path.parents:
+            raise ValueError('开发包清单路径越界：'+relative)
+        if not path.is_file():
+            raise ValueError('开发包文件缺失：'+relative+'。请完整解压开发包后重试。')
+        if sha(path)!=expected:
+            raise ValueError('开发包文件校验不一致：'+relative+'。请从原始压缩包重新解压，不要跳过校验。')
     if sys.version_info[:3]!=(3,8,10) or sys.maxsize<=2**32:
         raise ValueError('请使用包内 CPython 3.8.10 x64 启动脚本')
     if (kit/'runtime/python38').resolve() not in Path(sys.executable).resolve().parents:

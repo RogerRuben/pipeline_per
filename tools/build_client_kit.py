@@ -13,9 +13,10 @@ sys.path.insert(0,str(ROOT))
 from product.common import read_json,write_json,sha
 from product.desktop_config import DEFAULT_PORTS,template_config
 from tools.source_provenance import source_commit
+from tools.client_kit_paths import batch_entry,MAX_KIT_ROOT_CHARS
 
 SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
-TOOLS=('client_builder.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
+TOOLS=('client_builder.py','client_kit_paths.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py')
 
@@ -75,12 +76,7 @@ def build(out,runtime,bootstrap,example):
     commands={'CHECK_ENVIRONMENT.bat':'check','CHECK_INPUT.bat':'inspect','TRAIN_AND_PACKAGE.bat':'build',
               'SELF_TEST.bat':'self-test','REPACK_LAST.bat':'repack'}
     for filename,command in commands.items():
-        content=('@echo off\r\nsetlocal\r\n"%SystemRoot%\\System32\\chcp.com" 65001 >nul\r\ncd /d "%~dp0"\r\n'
-                 '"%~dp0runtime\\python38\\python.exe" -B -X utf8 "%~dp0project\\tools\\client_builder.py" '+command+' %*\r\n'
-                 'set "CLIENT_BUILD_EXIT=%ERRORLEVEL%"\r\n'
-                 'if not "%CLIENT_BUILD_EXIT%"=="0" echo FAILED - see project\\outputs\\client_jobs logs\r\n'
-                 'if not defined PRODUCT_NO_PAUSE pause\r\nexit /b %CLIENT_BUILD_EXIT%\r\n')
-        (out/filename).write_bytes(content.encode('ascii'))
+        (out/filename).write_bytes(batch_entry(command))
     source=source_commit(ROOT)
     source_files={path.relative_to(project).as_posix():sha(path) for path in sorted(project.rglob('*')) if path.is_file()}
     write_json(project/'SOURCE_BUILD.json',{'format':'pipeline-source-distribution-1.0','source_sha':source,'files':source_files})
@@ -93,6 +89,7 @@ def build(out,runtime,bootstrap,example):
                'target':'Windows 7 SP1 x64','python':'3.8.10','files':files,'example_sha256':sha(example),
                'training_dependencies':dependencies,'external_python_required':False,'git_required':False,
                'compiler_on_client_required':False,'network_required':False,'win7_machine_validated':False,
+               'path_policy':{'max_root_utf16_chars':MAX_KIT_ROOT_CHARS,'recommended_root':'C:\\CB6'},
                'mutable_directories':['input','settings','logs','deliverables','builder_state','project/outputs','project/deliverables']})
     archive=Path(str(out)+'.zip')
     with zipfile.ZipFile(str(archive),'x',zipfile.ZIP_DEFLATED,compresslevel=6) as bundle:
