@@ -46,6 +46,9 @@ class PriceService(ServiceApplication):
                 raise ValueError('模型评价元数据未绑定当前模型SHA，拒绝加载')
             if not isinstance(metadata.get('metrics'),dict) or not isinstance(metadata.get('source_training_report_sha256'),str) or not re.fullmatch('[0-9a-f]{64}',metadata['source_training_report_sha256']):
                 raise ValueError('模型评价元数据缺少真实训练报告来源')
+            importance=metadata.get('feature_importance')
+            if isinstance(importance,dict) and importance.get('kind')=='permutation_mae_increase' and importance.get('model_sha256')!=self.model_sha256:
+                raise ValueError('重要度未绑定当前模型SHA')
             json.dumps(metadata,allow_nan=False)
             self.evaluation_metadata=metadata
             self.evaluation_metadata_sha256=hashlib.sha256(content).hexdigest()
@@ -120,7 +123,11 @@ class PriceService(ServiceApplication):
             # Keep report key names/scopes; never rename selected validation
             # scores to independent test results or invent feature importance.
             metrics.update(self.evaluation_metadata['metrics'])
+            importance=self.evaluation_metadata.get('feature_importance') or importance
         return {'metrics': metrics, 'feature_importance': importance,
+                'active_members':(self.evaluation_metadata or {}).get('active_members',[]),
+                'metric_units':(self.evaluation_metadata or {}).get('metric_units',{}),
+                'search_candidates':(self.evaluation_metadata or {}).get('search_candidates',[]),
                 'expert_scores': explanation.get('price_attribute_scores'),
                 'source': 'bound_training_report' if self.evaluation_metadata else 'loaded_price_model',
                 'evaluation_metadata_sha256':self.evaluation_metadata_sha256,

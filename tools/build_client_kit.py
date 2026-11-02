@@ -16,7 +16,7 @@ from tools.source_provenance import source_commit
 
 SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
 TOOLS=('client_builder.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
-       'verify_v3_release.py','bind_price_evaluation_metadata.py','build_v3_release.py',
+       'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py')
 
 

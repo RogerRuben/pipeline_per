@@ -54,7 +54,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
                      ('price_native_bundle.pkl.manifest.json',Path(str(artifacts['price_model'])+'.manifest.json'))]:
         shutil.copy2(str(src),str(release/name))
     classification='synthetic' if manifest.get('virtual_data') else 'unconfirmed'
-    bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification)
+    bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification,business=artifacts['business_package'])
     # No optimizer: inspect the already-trained model using the pinned builder.
     from services.price_service.app import PriceService
     service=PriceService(release/'price_native_bundle.pkl',None,evaluation_metadata=release/'evaluation_metadata.json')

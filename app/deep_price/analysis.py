@@ -6,7 +6,7 @@ import uuid
 from ..model_service_client import ModelServiceUnavailable
 from .errors import DeepPriceError
 from .provider import BusinessSnapshot
-from .schema import encode, fields_for
+from .schema import encode, fields_for, bound_metadata
 
 
 class Deadline:
@@ -79,7 +79,7 @@ class DeepPriceAnalysis:
                 output = dict(metadata, fields=fields, capabilities={'ml': True, 'additive_rules': False,
                               'mixed_adjustment': False, 'explanation': 'not_configured', 'batch_limit': 100})
                 output.update(backend=before.get('backend'), fixture=bool(schema.get('virtual_fixture')),
-                              published_at=snapshot.release.get('activated_at'), analysis_metadata=schema.get('analysis_metadata') or {})
+                              published_at=snapshot.release.get('activated_at'), analysis_metadata=bound_metadata(schema.get('analysis_metadata'),snapshot,before['model_sha256']))
             elif path == '/products':
                 try:
                     page = int((query.get('page') or ['1'])[0])

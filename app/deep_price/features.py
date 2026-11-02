@@ -16,13 +16,15 @@ class AnalysisFeatures:
 
     def handle(self, method, path, payload=None, query=None):
         request_id='DEEP-'+uuid.uuid4().hex
-        if method == 'GET' and path in ('/model-summary','/feature-importance','/explanation/status'):
+        if method == 'GET' and path in ('/model-summary','/model-library','/feature-importance','/explanation/status'):
             status, schema = self.core.handle('GET','/schema')
             if status != 200:
                 return status, schema
             result = {key:schema[key] for key in IDENTITY + ('request_id','price_unit')}
             meta = schema.get('analysis_metadata') or {}
-            if path == '/explanation/status':
+            if path == '/model-library':
+                result.update(status='available',items=[dict(result,active=True,readonly=True,metadata=meta,published_at=schema.get('published_at'))],installed_count=1,note='当前HTTP服务仅发布一个模型；历史版本只在受控发布目录提供时展示，不能推断磁盘文件就是已发布模型。')
+            elif path == '/explanation/status':
                 result.update(status='not_configured', metric_kind=None, data={})
             elif path == '/feature-importance':
                 actual = meta.get('feature_importance')
@@ -50,12 +52,18 @@ class AnalysisFeatures:
             if status==200:
                 for item,name in zip(result['items'],names):
                     item['label']=name
+                if items and items[0]['item_id']=='baseline':
+                    baseline=result['items'][0]['result'];base=baseline['predicted_price_wan'];params=baseline['business_parameters']
+                    for item in result['items'][1:]:
+                        actual=item['result'];delta=actual['predicted_price_wan']-base
+                        item.update(base_price_wan=base,delta_wan=delta,change_rate_pct=delta/base*100 if base else None,
+                            changed_fields=[{'field_id':k,'old_value':params.get(k),'new_value':v} for k,v in actual['business_parameters'].items() if v!=params.get(k)])
             return status,result
         deadline = Deadline(self.core.budget_seconds)
         try:
             if not isinstance(payload, dict) or not isinstance(payload.get('parameters'), dict):
                 raise DeepPriceError('invalid_input','parameters必须为对象')
-            allowed = set(IDENTITY) | {'parameters','field_id','values'} if path.endswith('/single') else set(IDENTITY) | {'parameters','field_ids'}
+            allowed = set(IDENTITY) | {'parameters','field_id','values','range_mode'} if path.endswith('/single') else set(IDENTITY) | {'parameters','field_ids','range_mode','ranking_mode'}
             if set(payload)-allowed:
                 raise DeepPriceError('invalid_input','包含未知分析参数')
             core = DeepPriceAnalysis(self.core.store,self.core.gateway,deadline.remaining())
@@ -74,11 +82,36 @@ class AnalysisFeatures:
                             and (f.get('allowed_values') or f['type']=='boolean' or isinstance(payload['parameters'].get(k),(int,float)))]
             if not isinstance(selected,list) or not selected or any(not isinstance(k,str) for k in selected) or len(set(selected)) != len(selected) or any(k not in fields for k in selected):
                 raise DeepPriceError('invalid_input','请选择不同的可计算价格模型字段')
+            mode=payload.get('range_mode','local')
+            if mode not in ('local','historical'):raise DeepPriceError('invalid_input','未知采样范围')
+            historical={}
+            if mode=='historical':
+                sample=BusinessSnapshot(self.core.store,deadline.remaining())
+                try:
+                    for key in selected:
+                        vals=[r['parameters'].get(key) for r in sample.products]
+                        historical[key]=[v for v in vals if isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v)]
+                finally:sample.close()
+            ranking=payload.get('ranking_mode','perturbation')
+            if ranking not in ('perturbation','importance'):raise DeepPriceError('invalid_input','未知排序口径')
+            if ranking=='importance':
+                importance=(schema.get('analysis_metadata') or {}).get('feature_importance') or {}
+                rows=importance.get('items',[]) if isinstance(importance,dict) else []
+                selected=[r['field_id'] for r in rows if r.get('field_id') in fields and fields[r['field_id']].get('analysis_supported')][:10]
+                if not selected:raise DeepPriceError('invalid_input','当前模型未提供匹配的重要度',422)
             plan = []
             for key in selected:
                 values = payload.get('values') if path.endswith('/single') else None
                 if values is None:
-                    values = sample_values(fields[key],payload['parameters'].get(key),9 if len(selected)>1 else 21)
+                    field=dict(fields[key])
+                    if mode=='historical' and field['type'] in ('number','integer'):
+                        observed=historical.get(key,[])
+                        if not observed:raise DeepPriceError('invalid_input','没有可用的历史数值范围：'+key)
+                        low,high=min(observed),max(observed)
+                        low=max(low,field.get('minimum',low));high=min(high,field.get('maximum',high))
+                        field.update(minimum=low,maximum=high)
+                        values=sample_values(field,(low+high)/2,9 if len(selected)>1 else 21,full_range=True)
+                    else:values = sample_values(field,payload['parameters'].get(key),9 if len(selected)>1 else 21)
                 if not isinstance(values,list) or not 1 <= len(values) <= 99:
                     raise DeepPriceError('invalid_input','采样点必须为1至99个合法标量')
                 unique = []
@@ -139,20 +172,20 @@ class AnalysisFeatures:
                 lease.assert_unchanged()
             finally:
                 lease.close()
-            if path.endswith('/top10'):
+            if path.endswith('/top10') and ranking=='perturbation':
                 series.sort(key=lambda s:max((abs(p['change_rate_pct']) for p in s['points'] if p['change_rate_pct'] is not None),default=0),reverse=True)
                 series=series[:10]
             result = dict(request,request_id=request_id,price_unit='万元')
             result.update(success=True,pricing_mode='ml',base_price_wan=base,metric_kind='price_change_rate',series=series,compared_field_count=len(selected),
-                          sample_count=sample_count,batch_count=batches,
-                          note='在所选字段及合法采样范围内按最大绝对价格变化率排序；跨批次使用同一模型身份，不是全局重要度或因果效应。')
+                          sample_count=sample_count,batch_count=batches,range_mode=mode,ranking_mode=ranking,
+                          note=('当前模型重要度先选取Top10，保持重要度顺序比较扰动曲线。' if ranking=='importance' else '在所选字段及合法采样范围内按最大绝对价格变化率排序；')+'跨批次使用同一模型身份，不是因果效应。')
             deadline.remaining()
             return 200,result
         except DeepPriceError as exc:
             return exc.status,exc.response(request_id)
 
 
-def sample_values(field,base,count):
+def sample_values(field,base,count,full_range=False):
     allowed = field.get('allowed_values') or ([True,False] if field['type']=='boolean' else [])
     if allowed:
         if len(allowed)<=count:
@@ -162,8 +195,8 @@ def sample_values(field,base,count):
         raise DeepPriceError('invalid_input','数值敏感性需要当前数值，枚举字段需要允许值')
     lo,hi = field.get('minimum'),field.get('maximum')
     span = max(abs(base)*.2,1)
-    lo = max(base-span,lo) if lo is not None else base-span
-    hi = min(base+span,hi) if hi is not None else base+span
+    lo = lo if full_range else max(base-span,lo) if lo is not None else base-span
+    hi = hi if full_range else min(base+span,hi) if hi is not None else base+span
     if hi<lo:
         raise DeepPriceError('invalid_input','当前数值不在业务合法范围')
     if field['type']=='integer':
