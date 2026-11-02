@@ -28,6 +28,24 @@ class R6Tests(unittest.TestCase):
         self.assertEqual(self.call('/model-library',{})[0],404)
         self.assertEqual(before,self.db.read_bytes())
 
+    def test_importance_selection_preserves_published_order_not_perturbation_rank(self):
+        import hashlib
+        snapshot=BusinessSnapshot(self.app.store)
+        try:
+            data=json.loads(snapshot.release['data_json'])
+            digest=hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode('utf-8')).hexdigest()
+        finally:snapshot.close()
+        identity=self.get_schema()
+        self.price.bundle['feature_importance']={'kind':'permutation_mae_increase','model_sha256':identity['price_model_sha256'],
+            'business_data_sha256':digest,'items':[{'field_id':'size','importance':10},{'field_id':'kind','importance':1}]}
+        status,chosen=self.call('/sensitivity/top10',dict(self.request(),ranking_mode='importance'))
+        self.assertEqual(status,200,chosen)
+        self.assertEqual([r['field_id'] for r in chosen['series']],['size','kind'])
+        self.assertNotEqual(len(chosen['series'][0]['points']),len(chosen['series'][1]['points']))
+        status,perturbed=self.call('/sensitivity/top10',dict(self.request(),field_ids=['size','kind']))
+        self.assertEqual(status,200,perturbed)
+        self.assertEqual(perturbed['series'][0]['field_id'],'kind')
+
     def test_range_protocol_and_importance_not_invented(self):
         req=self.request()
         status,result=self.call('/sensitivity/single',dict(req,field_id='size',range_mode='historical'))
