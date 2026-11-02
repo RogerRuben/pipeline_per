@@ -39,7 +39,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     out=Path(out).resolve()
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
         raise ValueError('Choose a new project outputs/ or deliverables/ path')
-    stamp=out.parent/(out.name+'_build');stamp.mkdir()
+    stamp=out.parent/(out.name+'_build');stamp.mkdir(parents=True)
     out.mkdir()
     for p in bootstrap.iterdir():
         if p.name in ('BOOTSTRAP_SOURCE.json','BOOTSTRAP_META.json'):continue
