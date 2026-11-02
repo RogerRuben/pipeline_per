@@ -75,6 +75,36 @@ class DesktopTests(unittest.TestCase):
         for path in (self.package,self.package/'userdata',self.root):
             with self.assertRaises(ValueError):data_directory(self.package,str(path))
 
+    def test_default_data_path_separates_products_and_keeps_matching_legacy(self):
+        import hashlib
+        import shutil
+        database=self.database()
+        base=self.root/'local/PipelinePer'
+        (base/'data').mkdir(parents=True)
+        shutil.copy2(str(database),str(base/'data/protocol_demo.db'))
+        before=sha(base/'data/protocol_demo.db')
+        write_json(self.package/'PACKAGE_MANIFEST.json',self.manifest)
+        with patch.dict(os.environ,{'LOCALAPPDATA':str(self.root/'local')},clear=True):
+            self.assertEqual(data_directory(self.package),base)
+            self.manifest['release']['product_code']='NEW_PRODUCT'
+            write_json(self.package/'PACKAGE_MANIFEST.json',self.manifest)
+            expected=base/'products'/hashlib.sha256(b'NEW_PRODUCT').hexdigest()[:32]
+            self.assertEqual(data_directory(self.package),expected)
+            self.assertEqual(data_directory(self.package,str(self.data)),self.data)
+            self.assertEqual(sha(base/'data/protocol_demo.db'),before)
+            self.manifest['version']='repacked-version'
+            write_json(self.package/'PACKAGE_MANIFEST.json',self.manifest)
+            self.assertEqual(data_directory(self.package),expected)
+
+    def test_default_data_path_does_not_silently_skip_unreadable_legacy(self):
+        legacy=self.root/'local/PipelinePer/data/protocol_demo.db'
+        legacy.parent.mkdir(parents=True);legacy.write_bytes(b'broken database')
+        write_json(self.package/'PACKAGE_MANIFEST.json',{'release':{'product_code':'P'}})
+        with patch.dict(os.environ,{'LOCALAPPDATA':str(self.root/'local')},clear=True):
+            with self.assertRaisesRegex(ValueError,'旧用户数据无法核验'):
+                data_directory(self.package)
+        self.assertEqual(legacy.read_bytes(),b'broken database')
+
     def test_manifest_cannot_escape_or_accept_changed_model(self):
         release=self.package/'release';release.mkdir()
         model=release/'model.pkl';model.write_bytes(b'trusted-test-bytes')
@@ -97,7 +127,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_wrong_product_and_corrupt_existing_db_fail_without_replacement(self):
         database=self.database('OTHER');before=database.read_bytes()
-        with self.assertRaisesRegex(ValueError,'incompatible'):
+        with self.assertRaisesRegex(ValueError,'不兼容'):
             initialize_data(self.package,self.data,self.manifest)
         self.assertEqual(database.read_bytes(),before)
         database.write_bytes(b'corrupt-existing-user-data')

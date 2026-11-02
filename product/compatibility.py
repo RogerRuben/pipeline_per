@@ -138,7 +138,12 @@ def validate_data(package,data,manifest,contract=None):
     contract=contract or load_contract(package,manifest)
     current=inspect_database(data/'data/protocol_demo.db')
     if current['product_code']!=contract['product_code'] or current['business_schema_sha256']!=contract['business_schema_sha256']:
-        raise ValueError('Published business/model schema is incompatible with existing user data')
+        raise ValueError('当前运行包与已有用户数据不兼容，已停止启动以保护数据。'
+                         '\n运行包产品：'+str(contract['product_code'])+
+                         '\n已有数据产品：'+str(current['product_code'])+
+                         '\n用户数据目录：'+str(data)+
+                         '\n请使用匹配的原版本；独立测试请通过 --data-dir 指定新的空目录。'
+                         '\n同一产品的字段或价格口径变更需要明确迁移，不能覆盖旧数据库。')
     settings=read_json(data/'config/model_services.json')
     output=price_output(settings.get('price_output') or {})
     if output!=contract['price_basis']['raw_output']:

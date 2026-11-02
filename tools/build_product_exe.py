@@ -201,7 +201,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
                'entrypoint':'product.exe','packaging':bootstrap_meta['kind']+'+embedded-model-runtime',
                'build_source_sha':source_sha,'launcher_source_sha256':launcher_sources,'files':files,'release':paths,
                'training_environment':environment,'runtime_python':'3.8.10','architecture':'x64',
-               'default_data_dir':'%LOCALAPPDATA%/PipelinePer','external_python_required':False,
+               'default_data_dir':'%LOCALAPPDATA%/PipelinePer/products/<product-code-sha256-prefix32> (matching legacy product retained)','external_python_required':False,
                'training_on_start':False,'win7_validated':False,'code_signed':False})
     archive = out.with_suffix('.zip')
     if archive.exists():

@@ -70,7 +70,26 @@ def data_directory(package, override=None):
         local = os.environ.get('LOCALAPPDATA')
         if not local:
             raise ValueError('LOCALAPPDATA is unavailable; specify --data-dir')
-        target = (Path(local)/'PipelinePer').resolve()
+        base = (Path(local)/'PipelinePer').resolve()
+        manifest_path = Path(package)/'PACKAGE_MANIFEST.json'
+        code = read_json(manifest_path).get('release',{}).get('product_code') if manifest_path.exists() else None
+        if code:
+            # Stable across repacks/model updates; never mix different products.
+            key = hashlib.sha256(str(code).encode('utf-8')).hexdigest()[:32]
+            target = base/'products'/key
+            legacy = base/'data/protocol_demo.db'
+            if not (target/'data/protocol_demo.db').exists() and legacy.exists():
+                from product.compatibility import inspect_database
+                try:
+                    previous = inspect_database(legacy)
+                except Exception as exc:
+                    raise ValueError('旧用户数据无法核验，请先备份并检查，或用 --data-dir 指定独立目录：'+str(base)) from exc
+                # Preserve discoverability of the same product's legacy data.
+                # Full schema/price/upgrade checks still run before any writes.
+                if previous['product_code'] == code:
+                    target = base
+        else:
+            target = base
     package = Path(package).resolve()
     if target == package or package in target.parents or target in package.parents:
         raise ValueError('User data must be separate from the application package')

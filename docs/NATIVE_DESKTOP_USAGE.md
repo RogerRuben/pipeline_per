@@ -23,7 +23,7 @@
 
 ## 数据、更新和恢复
 
-默认用户目录 `%LOCALAPPDATA%\PipelinePer`，SQLite 位于 `data\protocol_demo.db`，配置、日志、导出和备份分别在独立子目录。可用 `--data-dir "D:\PipelineData"` 显式指定，同一实例的命令使用同一路径。
+默认用户目录按产品编码隔离在 `%LOCALAPPDATA%\PipelinePer\products\<产品编码SHA256前32位>`；检测到公共旧目录属于同一产品时继续使用旧目录（仍须通过兼容检查），SQLite 位于 `data\protocol_demo.db`，配置、日志、导出和备份分别在独立子目录。可用 `--data-dir "D:\PipelineData"` 显式指定，同一实例的命令使用同一路径。
 
 首次才导入业务发布包；已有数据不会重新导入。新版本解压到新目录，继续使用原数据目录。更新前备份，换模型时验证字段／业务发布／价格契约；不兼容时停止并要求迁移。
 
@@ -38,3 +38,7 @@
 ## Win7
 
 原生入口按 Windows 6.1 编译，仅调用 Win7 可用 Win32 API，不依赖 PyInstaller 或额外 C 运行时；模型解释器和数值依赖仍有自身运行库／补丁要求。当前没有 Win7 实机，不能标记整包已通过 Win7。请运行 `TARGET_CHECK.bat` 并在目标浏览器实际操作后再确认交付。启动器和服务仍保持 Job 所有权及父进程监视，无法建立时明确失败。
+
+## 源码交付边界
+
+当前是原生启动器 + 包内 CPython + Python 业务源码的 onedir 原型。运行包的 payload 包含业务源码，未实施源码保护；EXE 入口不代表业务代码全部编译隐藏。网页 HTML/CSS/JS 也随运行包交付。甲方训练开发包与最终受保护发行包属于不同交付范围，当前包不能作为无可读 Python 源码的发行版。
