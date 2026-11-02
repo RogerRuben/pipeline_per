@@ -43,7 +43,7 @@ function renderLibrary(library){
 function samplePayload(){return Object.assign(D.identity(),{parameters:D.parameters(),range_mode:Q('rangeMode').value});}
 function sensitivity(result,ranking){
  if(!result.series.length)throw new Error('没有可用的分析属性');
- Q('sensitivityNote').textContent=ranking+'；'+(result.range_mode==='historical'?'历史 min/max':'当前值 ±20%')+'；'+result.note;
+ Q('sensitivityNote').textContent=ranking+'；'+(result.range_mode==='historical'?'历史 min/max':'局部 max(|当前值|×20%,1) 半径')+'；'+result.note;
  const top=result.series.length>1;
  D.chart('sensitivityChart',{tooltip:{trigger:'axis',formatter:params=>params.map(p=>{let item=result.series[p.seriesIndex].points[p.dataIndex];if(!item)return '';return E(p.seriesName)+'：取值 '+E(item.value)+'，价格 '+fmt(item.price_wan)+' 万元，变化 '+fmt(item.change_rate_pct)+'%';}).join('<br>')},legend:{type:'scroll',bottom:0},grid:{left:70,right:25,bottom:80},xAxis:{type:'category',name:top?'独立采样点（悬浮查看真实取值）':'实际属性值',data:top?Array.from({length:Math.max(...result.series.map(s=>s.points.length))},(_,i)=>i+1):result.series[0].points.map(p=>p.value)},yAxis:{type:'value',name:top?'价格变化 %':'价格 · 万元',scale:!top},series:result.series.map(r=>({name:r.label_zh,type:'line',data:r.points.map(p=>top?p.change_rate_pct:p.price_wan)}))});
  Q('sensitivityTable').innerHTML=table(['属性','实际采样值','价格 / 万元','变化率 %'],result.series.flatMap(s=>s.points.map(p=>[s.label_zh,typeof p.value==='number'?Number(p.value.toPrecision(9)):p.value,fmt(p.price_wan),fmt(p.change_rate_pct)])));D.remember(ranking+' · '+(result.range_mode==='historical'?'历史范围':'局部范围'),result);D.status('敏感性分析完成。','success');
