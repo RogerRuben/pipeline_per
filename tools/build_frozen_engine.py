@@ -16,6 +16,8 @@ def engine_sources():
     for folder in ('app','product','services/common','services/price_service','services/effectiveness_service'):
         for path in sorted((ROOT/folder).rglob('*')):
             rel=path.relative_to(ROOT).as_posix()
+            if folder.startswith('services/') and '/' in path.relative_to(ROOT/folder).as_posix() and not rel.startswith('services/price_service/optuna_v2/'):
+                continue
             if not path.is_file() or '__pycache__' in path.parts or path.name=='_frozen_resources.py':continue
             if path.suffix=='.py' or rel.startswith('app/static/') or '/defaults/' in rel or rel=='product/control.html':
                 records[rel]=sha(path)
