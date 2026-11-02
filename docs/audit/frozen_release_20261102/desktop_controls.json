@@ -1,0 +1,27 @@
+{
+  "checks": {
+    "uses_external_ports": true,
+    "entrypoint_owns_supervisor": true,
+    "address_record_without_browser": true,
+    "price_stop_keeps_other_processes": true,
+    "intentional_stop_not_auto_restarted": true,
+    "portal_receives_real_status": true,
+    "price_start_same_address": true,
+    "price_restart_is_independent": true,
+    "effect_service_independent": true,
+    "web_stop_keeps_management": true,
+    "web_start_independent_and_stable": true,
+    "occupied_port_rejected_without_silent_fallback": true,
+    "external_config_recovery": true,
+    "package_immutable": true
+  },
+  "configured_ports": {
+    "control": 50586,
+    "web": 50587,
+    "price": 50588,
+    "effectiveness": 50589
+  },
+  "source_sha": "6553461e45dc34b2050f650ff872a705a23af378",
+  "win7_validated": false,
+  "status": "pass"
+}

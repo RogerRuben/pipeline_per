@@ -2392,9 +2392,15 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/price", "/price/"): rel = "price.html"
         elif path in ("/price/deep", "/price/deep/"): rel = "deep_price/index.html"
         else: rel = "index.html" if path in ("", "/") else unquote(path.lstrip("/"))
-        target = (self.app.static_dir / rel).resolve()
-        if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return
-        data = target.read_bytes(); ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+        loader=getattr(self.app,'static_loader',None)
+        if loader:
+            data=loader(rel)
+            if data is None:self._json({"error":"not_found"},404);return
+        else:
+            target = (self.app.static_dir / rel).resolve()
+            if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return
+            data=target.read_bytes()
+        ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
         self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store, no-cache, must-revalidate"); self.send_header("Pragma","no-cache"); self.end_headers(); self.wfile.write(data)
 
     def do_GET(self):

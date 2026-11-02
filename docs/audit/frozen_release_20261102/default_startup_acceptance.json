@@ -1,0 +1,63 @@
+{
+  "status": "pass",
+  "source_sha": "6553461e45dc34b2050f650ff872a705a23af378",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_Runtime_R5_20261102",
+  "default_data_dir": "C:\\Users\\HP\\AppData\\Local\\PipelinePer\\products\\db81ac1dd33e5afa36078cc404f588e7",
+  "no_data_dir_override": true,
+  "legacy_database_unchanged": true,
+  "legacy_database_sha256": "498a78ffd67c0c7548074b427f926957066da90ce16e1df13409260d27c839bc",
+  "product_code": "CLIENT_PRODUCT",
+  "model_sha256": "6580c65256e460c0be6fec165911386dd9696196db14bd3e34e958066a1aad3f",
+  "price_consistency": [
+    16.4538,
+    16.4538,
+    16.4538
+  ],
+  "duplicate_click_reuses_instance": true,
+  "portal_url": "http://127.0.0.1:17892/portal",
+  "ports": {
+    "control": 17890,
+    "web": 17892,
+    "price": 18101,
+    "effectiveness": 18102
+  },
+  "win7_validated": false,
+  "memory": [
+    {
+      "Id": 3248,
+      "ProcessName": "product",
+      "WorkingSet64": 37490688,
+      "PrivateMemorySize64": 24702976,
+      "PeakWorkingSet64": 41201664
+    },
+    {
+      "Id": 21488,
+      "ProcessName": "product",
+      "WorkingSet64": 36102144,
+      "PrivateMemorySize64": 24219648,
+      "PeakWorkingSet64": 36134912
+    },
+    {
+      "Id": 29720,
+      "ProcessName": "product",
+      "WorkingSet64": 43978752,
+      "PrivateMemorySize64": 31797248,
+      "PeakWorkingSet64": 49504256
+    },
+    {
+      "Id": 31080,
+      "ProcessName": "product",
+      "WorkingSet64": 109998080,
+      "PrivateMemorySize64": 222064640,
+      "PeakWorkingSet64": 110157824
+    }
+  ],
+  "total_working_set_mib": 217.02734375,
+  "total_private_mib": 288.7578125,
+  "embedded_assets_match": {
+    "/portal": true,
+    "/portal.css": true,
+    "/portal.js": true,
+    "/price/deep": true
+  }
+}

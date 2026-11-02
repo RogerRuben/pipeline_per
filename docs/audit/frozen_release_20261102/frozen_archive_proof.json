@@ -1,0 +1,13 @@
+{
+  "frozen_modules": 1373,
+  "required_business_modules_embedded": {
+    "app.server": true,
+    "product.launcher": true,
+    "product.supervisor": true,
+    "product.worker": true,
+    "product._frozen_resources": true,
+    "services.price_service.app": true,
+    "services.effectiveness_service.app": true
+  },
+  "source_files_distributed": false
+}

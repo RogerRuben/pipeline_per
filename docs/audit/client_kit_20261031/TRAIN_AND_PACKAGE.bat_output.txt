@@ -1,0 +1,2 @@
+FAILED - see project\outputs\client_jobs logs
+构建失败：当前仍是虚拟示例表，请替换为甲方真实数据或标记为 synthetic

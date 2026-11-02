@@ -1,0 +1,10 @@
+test_ephemeral_diagnostic_ports_are_explicit (__main__.ClientKitTests) ... ok
+test_external_ports_reject_duplicates_invalid_values_and_unknown_keys (__main__.ClientKitTests) ... ok
+test_external_user_configuration_overrides_packaged_template (__main__.ClientKitTests) ... ok
+test_sealed_offline_sources_need_no_git_or_parent_checkout (__main__.ClientKitTests) ... ok
+test_source_seal_rejects_path_escape (__main__.ClientKitTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.054s
+
+OK

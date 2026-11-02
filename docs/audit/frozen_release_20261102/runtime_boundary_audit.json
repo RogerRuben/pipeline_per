@@ -1,0 +1,23 @@
+{
+  "status": "pass",
+  "checks": [
+    {
+      "archive": "PipelinePer_Runtime_R5_20261102.zip",
+      "sha256": "a261cf321165aa43e01c9e2aaec07c676d2313363f0501b6e6cde03f97e507fe",
+      "sealed_files_verified": 909,
+      "forbidden_source_files": [],
+      "executable_sha256": "8201e5079391c4a6c85ba7769b195376a8728370eb246513ecd032ebd43c8e52",
+      "no_payload_or_project": true,
+      "model_sha256": "6580c65256e460c0be6fec165911386dd9696196db14bd3e34e958066a1aad3f"
+    },
+    {
+      "archive": "client-v3-20261102_120141-8f69.zip",
+      "sha256": "ee09b3e7959991ae24d42c6acc55b1e042ad8a4446c8b21a7e1e7bfc5272d3c6",
+      "sealed_files_verified": 909,
+      "forbidden_source_files": [],
+      "executable_sha256": "8201e5079391c4a6c85ba7769b195376a8728370eb246513ecd032ebd43c8e52",
+      "no_payload_or_project": true,
+      "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "source_sha": "7846069a2e79668ae6b2418595ff6f843d6e1108",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\client-v3-20261102-defaultfix",
+  "default_data_dir": "C:\\Users\\HP\\AppData\\Local\\PipelinePer\\products\\db81ac1dd33e5afa36078cc404f588e7",
+  "no_data_dir_override": true,
+  "legacy_database_unchanged": true,
+  "legacy_database_sha256": "498a78ffd67c0c7548074b427f926957066da90ce16e1df13409260d27c839bc",
+  "product_code": "CLIENT_PRODUCT",
+  "model_sha256": "6580c65256e460c0be6fec165911386dd9696196db14bd3e34e958066a1aad3f",
+  "price_consistency": [
+    16.4538,
+    16.4538,
+    16.4538
+  ],
+  "duplicate_click_reuses_instance": true,
+  "portal_url": "http://127.0.0.1:17892/portal",
+  "ports": {
+    "control": 17890,
+    "web": 17892,
+    "price": 18101,
+    "effectiveness": 18102
+  },
+  "win7_validated": false
+}
