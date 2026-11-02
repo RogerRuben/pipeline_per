@@ -1,0 +1,18 @@
+{
+  "configured_ports": {
+    "control": 60620,
+    "web": 60621,
+    "price": 60622,
+    "effectiveness": 60623
+  },
+  "status": "pass",
+  "startup_seconds": 21.906,
+  "prices_wan": [
+    16.489381,
+    16.489381,
+    16.489381
+  ],
+  "field_count": 60,
+  "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc",
+  "portal_url": "http://127.0.0.1:60621/portal"
+}
