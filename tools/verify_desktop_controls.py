@@ -61,7 +61,7 @@ def verify(package,out):
     try:
         parent,(control,status)=start()
         check('uses_external_ports',status['ports']==cfg['ports'])
-        check('native_launcher_pid',status['pid']==parent.pid and status['supervisor_pid']!=parent.pid)
+        check('entrypoint_owns_supervisor',status['pid']==parent.pid and (status['supervisor_pid']==parent.pid if manifest.get('packaging')=='pyinstaller-full-app-onedir' else status['supervisor_pid']!=parent.pid))
         check('address_record_without_browser',(data/'runtime/access.txt').is_file() and
               str(cfg['ports']['web']) in (data/'runtime/access.txt').read_text(encoding='utf-8'))
         original={role:item['pid'] for role,item in status['services'].items()}

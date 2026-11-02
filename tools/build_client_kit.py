@@ -15,7 +15,7 @@ from product.desktop_config import DEFAULT_PORTS,template_config
 from tools.source_provenance import source_commit
 
 SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
-TOOLS=('client_builder.py','build_product_exe.py','build_native_bootstrap.py','source_provenance.py',
+TOOLS=('client_builder.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py')
 
@@ -23,7 +23,7 @@ TOOLS=('client_builder.py','build_product_exe.py','build_native_bootstrap.py','s
 def copy_tree(source,target):
     for path in sorted(Path(source).rglob('*')):
         relative=path.relative_to(source)
-        if path.is_file() and not set(relative.parts)&SKIP and path.suffix not in ('.pyc','.pyo','.log'):
+        if path.is_file() and path.name!='_frozen_resources.py' and not set(relative.parts)&SKIP and path.suffix not in ('.pyc','.pyo','.log'):
             if path.is_symlink():raise ValueError('Linked source is not distributable: '+str(path))
             destination=target/relative;destination.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(str(path),str(destination))
@@ -33,8 +33,8 @@ def build(out,runtime,bootstrap,example):
     out,runtime,bootstrap,example=map(lambda p:Path(p).resolve(),(out,runtime,bootstrap,example))
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
         raise ValueError('Choose a new project outputs/ or deliverables/ directory')
-    if read_json(bootstrap/'BOOTSTRAP_META.json')['kind']!='win32-native-cpython-onedir':
-        raise ValueError('Win7-target client kit requires the native bootstrap')
+    if read_json(bootstrap/'BOOTSTRAP_META.json')['kind']!='pyinstaller-full-app-onedir':
+        raise ValueError('Client kit requires a precompiled source-free software engine')
     out.mkdir(parents=True);project=out/'project'
     for directory in ('app','product','automl_pipeline'):copy_tree(ROOT/directory,project/directory)
     for directory in ('services/common','services/price_service','services/effectiveness_service'):

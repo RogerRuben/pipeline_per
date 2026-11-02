@@ -71,6 +71,9 @@ def main():
     args = parser.parse_args()
     watch_parent(args.parent)
     package,data = Path(args.package).resolve(),Path(args.data_dir).resolve()
+    if getattr(sys,'frozen',False):
+        (data/'logs').mkdir(parents=True,exist_ok=True)
+        sys.stdout=sys.stderr=(data/('logs/'+args.role+'.log')).open('a',encoding='utf-8',buffering=1)
     manifest = verify_package(package)
     release = manifest['release']
     from http.server import ThreadingHTTPServer
@@ -82,6 +85,12 @@ def main():
         from app.server import Application,Handler
         app = Application(data)
         app.static_dir = ROOT/'app/static'
+        if getattr(sys,'frozen',False):
+            from product.resources import read_asset
+            def static_loader(relative):
+                try:return read_asset('app/static/'+relative)
+                except KeyError:return None
+            app.static_loader=static_loader
         # Capture the post-sync binding state only after a successful startup.
         write_json(data/'delivery_state.json',accept_initial(data,manifest,load_contract(package,manifest)))
         # Runtime-only links: persisted configuration and prices remain untouched.

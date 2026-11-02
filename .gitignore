@@ -1,5 +1,6 @@
 # Python caches and local environments
 __pycache__/
+product/_frozen_resources.py
 *.py[cod]
 *.pyo
 .pytest_cache/

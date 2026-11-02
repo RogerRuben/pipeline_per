@@ -132,13 +132,13 @@ def exercise(package,out,rollback_package=None):
         _,backup=command(package,data,'--backup');backup_path=Path(backup['backup'])
         check('backup_created',backup_path.is_file())
         # Only current owned process handles are used; never image-wide taskkill.
-        k,h=owned_handle(status['services']['price']['pid'],package/'runtime/python38/pythonw.exe')
+        k,h=owned_handle(status['services']['price']['pid'],(package/'product.exe' if manifest.get('packaging')=='pyinstaller-full-app-onedir' else package/'runtime/python38/pythonw.exe'))
         try:k.TerminateProcess(h,98)
         finally:k.CloseHandle(h)
         generation=status['generation']
         status=wait_for(lambda:(lambda item:item[1] if item and item[1]['status']=='ready' and item[1]['generation']!=generation else None)(running(data)))
         check('worker_exit_recovery',status['restart_count']>=1)
-        handles=[owned_handle(item['pid'],package/'runtime/python38/pythonw.exe') for item in status['services'].values()]
+        handles=[owned_handle(item['pid'],(package/'product.exe' if manifest.get('packaging')=='pyinstaller-full-app-onedir' else package/'runtime/python38/pythonw.exe')) for item in status['services'].values()]
         parent.kill();parent.wait(timeout=15);parent=None
         check('parent_crash_cleans_all_workers',all(k.WaitForSingleObject(h,10000)==0 for k,h in handles))
         for k,h in handles:k.CloseHandle(h)
@@ -184,8 +184,10 @@ def exercise(package,out,rollback_package=None):
         for k,h in handles:k.CloseHandle(h)
 
 
-if __name__=='__main__':
+def main():
     parser=argparse.ArgumentParser();parser.add_argument('--package',required=True);parser.add_argument('--out',required=True)
     parser.add_argument('--rollback-package');args=parser.parse_args()
     result=exercise(args.package,args.out,args.rollback_package)
     print(json.dumps(result,ensure_ascii=True,indent=2))
+
+if __name__=='__main__':main()

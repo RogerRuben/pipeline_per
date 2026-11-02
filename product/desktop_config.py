@@ -8,7 +8,9 @@ DEFAULT_PORTS={role:0 for role in PORT_ROLES}
 
 
 def template_config():
-    return validate_config(read_json(Path(__file__).resolve().parent/'defaults/desktop.json'))
+    import json
+    from product.resources import read_asset
+    return validate_config(json.loads(read_asset('product/defaults/desktop.json').decode('utf-8-sig')))
 
 
 def validate_config(raw):

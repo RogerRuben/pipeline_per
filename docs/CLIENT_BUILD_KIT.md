@@ -1,6 +1,6 @@
 # 甲方离线开发包 · Optuna V3
 
-用途：在甲方开发机上读取本地产品表，使用现有 Optuna V3 训练，验证后生成带真实 `product.exe` 的完整运行压缩包。Python、训练依赖、程序源码、预编译原生启动器和虚拟示例均已包含；常规使用不需要安装 Python、Git、PyInstaller 或编译器，也不需要访问互联网。
+用途：在甲方开发机上读取本地产品表，使用现有 Optuna V3 训练，验证后生成带真实 `product.exe` 的完整运行压缩包。Python、训练依赖、程序源码、预编译完整软件引擎和虚拟示例均已包含；常规使用不需要安装 Python、Git、PyInstaller 或编译器，也不需要访问互联网。
 
 **目标系统是 Windows 7 SP1 x64。当前没有 Win7 实机，已有完整流程测试属于 Windows 11 x64 结果；不能将此包当作已完成 Win7 首机验收。** 请先在甲方执行环境检查和示例自检，再使用真实数据。Win7 需具备可正常加载 CPython 3.8.10 和数值依赖的系统补丁／VC 运行库；不自动修改系统或安装补丁。
 
@@ -62,3 +62,11 @@ SQLite、配置、日志和备份默认保存在 `%LOCALAPPDATA%\PipelinePer`，
 如果 Win7 上包内 Python 无法启动，请保留系统错误截图和控制台输出，由甲方 IT 核对运行库及系统更新。不要通过关闭安全策略或绕过签名警告来验收。通过环境检查后依次完成虚拟训练封装、实际 EXE、浏览器操作、单服务控制、保存／备份／恢复和目标机 `TARGET_CHECK.bat`。使用支持当前网页 JavaScript 的已安装浏览器。
 
 参考：[Python Windows 支持说明](https://docs.python.org/3/using/windows.html)、[Microsoft Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)。Win7 不支持嵌套 Job；当前运行仍持有自己的 Job 并监视父进程，无法建立安全的进程所有权时明确失败。
+
+## R5 开发包与运行包的区别
+
+开发包保留训练与构建源码，以及预编译完整 EXE 引擎。训练后只将已验证模型、配置装入完整引擎，常规现场构建不需要安装编译器或 PyInstaller。最外层 deliverables 中成功生成的 ZIP 才是交给最终使用方的运行包。
+
+运行包包含 product.exe、必要运行库、release 模型及 defaults 外部配置；没有 payload、project、独立 python.exe/pythonw.exe、Python 源文件或 BAT 入口。网页资源内嵌于 EXE，浏览器按 HTTP 获取。双击 product.exe 启动；统一进程管理、单服务启停、独立用户数据目录继续生效。端口仍由 settings/desktop.json 配置，已有用户目录的 config/desktop.json 优先。
+
+打包使用 PyInstaller 5.13.2 冻结全部业务模块，字节码封存不等于不可逆加密。该工具官方 Windows 支持范围为 Windows 8 及以上；Win7 SP1 x64 必须在实际目标机验收，本包不宣称已通过 Win7 实机测试。

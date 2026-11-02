@@ -8,6 +8,7 @@ from pathlib import Path
 import queue
 import secrets
 import subprocess
+import sys
 import threading
 import time
 from urllib.parse import urlparse
@@ -103,9 +104,12 @@ class Supervisor:
             def do_GET(self):
                 if not self.host_valid():return self.send(403,{'error':'invalid_host'})
                 if self.path=='/api/status':return self.send(200,supervisor.status())
-                if self.path=='/launcher.svg':return self.send(200,(supervisor.package/'payload/app/static/launcher.svg').read_bytes(),'image/svg+xml')
+                if self.path=='/launcher.svg':
+                    from product.resources import read_asset
+                    return self.send(200,read_asset('app/static/launcher.svg',supervisor.package),'image/svg+xml')
                 if self.path=='/':
-                    page=(supervisor.package/'payload/product/control.html').read_text(encoding='utf-8')
+                    from product.resources import read_asset
+                    page=read_asset('product/control.html',supervisor.package).decode('utf-8')
                     return self.send(200,page.replace('__TOKEN_JSON__',json.dumps(supervisor.token)),'text/html; charset=utf-8')
                 self.send(404,{'error':'not_found'})
             def do_POST(self):
@@ -146,8 +150,9 @@ class Supervisor:
         if logfile.exists() and logfile.stat().st_size>5*1024*1024:
             os.replace(str(logfile),str(logfile.with_suffix('.previous.log')))
         stream=logfile.open('ab',buffering=0);self.logs[role]=stream
-        args=[str(self.package/'runtime/python38/pythonw.exe'),'-I','-B','-X','utf8',
-              str(self.package/'payload/product/worker.py'),'--package',str(self.package),
+        entry=[sys.executable,'--worker'] if getattr(sys,'frozen',False) else [
+              str(self.package/'runtime/python38/pythonw.exe'),'-I','-B','-X','utf8',str(self.package/'payload/product/worker.py')]
+        args=entry+['--package',str(self.package),
               '--data-dir',str(self.data),'--role',role,'--ready',str(ready),'--generation',self.generation,
               '--parent',str(os.getpid()),'--port',str(self.ports[role])]
         if role=='web':args.extend(['--price-url',self.service_url('price'),'--effectiveness-url',self.service_url('effectiveness')])
