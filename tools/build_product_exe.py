@@ -85,7 +85,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(out/'PACKAGE_MANIFEST.json',{'format':'pipeline-per-desktop-1.0','version':version,'data_schema':1,
                'entrypoint':'product.exe','packaging':meta['kind'],'build_source_sha':source_sha,
                'launcher_source_sha256':sources,'files':files,'release':paths,'training_environment':environment,
-               'runtime_python':'3.8.10','architecture':'x64','python_source_included':False,'ui_resources':'embedded',
+               'runtime_python':'3.8.10','architecture':'x64','python_source_included':False,'ui_resources':'embedded','configurable_files':['defaults/desktop.json'],
                'default_data_dir':'%LOCALAPPDATA%/PipelinePer/products/<product-code-sha256-prefix32>',
                'external_python_required':False,'training_on_start':False,'win7_validated':False,'code_signed':False})
     archive=Path(str(out)+'.zip')

@@ -48,7 +48,7 @@ class Supervisor:
         try:self.server=ThreadingHTTPServer(('127.0.0.1',self.ports['control']),self.handler())
         except OSError as exc:
             self.job.close()
-            raise RuntimeError('管理端口 %d 无法使用，请检查 config/desktop.json：%s'%(self.ports['control'],exc))
+            raise RuntimeError('管理端口 %d 无法使用，请检查配置文件 %s：%s'%(self.ports['control'],self.data/'config/desktop.json',exc))
         self.server.daemon_threads=True;self.ports['control']=self.server.server_address[1]
         self.url=self.service_url('control')
         write_json(self.data/'runtime/control.json',{'url':self.url,'token':self.token,
