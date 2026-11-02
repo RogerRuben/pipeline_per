@@ -6,7 +6,7 @@
 
 ## 现场顺序
 
-1. 完整解压到较短且可写的路径，如 `D:\PipelineBuilder`。保留整个目录结构。
+1. 完整解压到较短且可写的路径，推荐直接解压到 `C:\` 或 `D:\`，使开发包根目录为 `C:\CB6` 或 `D:\CB6`。根目录最多 100 个字符；过长时所有入口会在启动 Python 前明确提示。保留整个目录结构，不要在压缩软件内直接运行 BAT，也不要只复制单个 DLL。Windows 7 无法依赖较新系统的长路径策略，深层 DLL 可能存在但仍无法被 Python／数值库读取。
 2. 双击 `CHECK_ENVIRONMENT.bat`。通过后双击 `SELF_TEST.bat`，以包内虚拟表执行 40 次试验的完整训练、HTTP 验证、EXE 封装及启动检查。
 3. 用甲方产品表替换 `input\products.xlsx`，编辑外部 `settings\project.json`：填写产品编码和名称，真实数据将 `data_kind` 改为 `customer`。仍使用虚拟数据时保留 `synthetic`。
 4. 双击 `CHECK_INPUT.bat`。修正表格诊断中的错误后，双击 `TRAIN_AND_PACKAGE.bat`。默认按 `settings\v3.json` 训练 300 次试验，耗时取决于数据和机器。

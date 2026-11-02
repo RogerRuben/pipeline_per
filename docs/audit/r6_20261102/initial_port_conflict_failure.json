@@ -1,0 +1,48 @@
+{
+  "format": "pipeline-target-exercise-1.0",
+  "host": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+  "os_version": [
+    10,
+    0,
+    26200,
+    2,
+    ""
+  ],
+  "win7_sp1_workstation": false,
+  "checks": {
+    "frozen_verify": true,
+    "three_services": true,
+    "empty_path_start": true,
+    "duplicate_launch": true,
+    "native_v3_consistency": true,
+    "top10_under_30_seconds": true,
+    "real_saved_scheme_created": true,
+    "backup_created": true,
+    "worker_exit_recovery": true,
+    "parent_crash_cleans_all_workers": true
+  },
+  "timings": {
+    "startup_seconds": [
+      92.219
+    ],
+    "top10_seconds": 3.61
+  },
+  "win7_validated": false,
+  "manual_browser_acceptance": "pending",
+  "upload_performed": false,
+  "package_version": "runtime-r6-20261102-final",
+  "build_source_sha": "7885af5772ad121d3d6cb2ca5f95544320df16e2",
+  "classification": "synthetic",
+  "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc",
+  "prices_wan": [
+    16.489381,
+    16.489381,
+    16.489381
+  ],
+  "saved_ids": [
+    1
+  ],
+  "status": "fail",
+  "error": "Target-machine condition timed out"
+}

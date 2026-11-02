@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 
-def bind(model,report,output,classification='unconfirmed'):
+def bind(model,report,output,classification='unconfirmed',business=None):
     model,report,output=Path(model),Path(report),Path(output)
     if output.exists():raise ValueError('不能覆盖既有元数据')
     source=json.loads(report.read_text(encoding='utf-8-sig'))
@@ -17,7 +17,14 @@ def bind(model,report,output,classification='unconfirmed'):
             'data_classification':classification,
             'price_model_sha256':hashlib.sha256(model.read_bytes()).hexdigest(),
             'source_training_report_sha256':hashlib.sha256(report.read_bytes()).hexdigest(),
-            'metrics':{key:source[key] for key in keys if source.get(key) is not None}}
+            'metrics':{key:source[key] for key in keys if source.get(key) is not None},
+            'metric_units':{
+              'selected_training_metrics':{'mape_percent':'percent','r2':'dimensionless'},
+              'full_refit_training_metrics':{'mape_percent':'percent','r2':'dimensionless'},
+              'deployed_training_metrics':{'mape_percent':'percent','r2':'dimensionless'},
+              'validation_metrics':{'mape':'ratio','mae':'wan_yuan','rmse':'wan_yuan','r2':'dimensionless'}}}
+    from tools.release_analysis_metadata import enrich
+    result.update(enrich(model,business,source))
     output.parent.mkdir(parents=True,exist_ok=True)
     output.write_text(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False)+'\n',encoding='utf-8')
     return output

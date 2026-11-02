@@ -31,5 +31,25 @@ class FrozenDeliveryTests(unittest.TestCase):
             self.assertNotIn(paths[6],records)
             self.assertNotIn(paths[7],records)
 
+
+    def test_only_typed_port_template_is_editable_while_models_remain_sealed(self):
+        from product.common import write_json,sha,verify_package
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);model=root/'release/model.bin';model.parent.mkdir();model.write_bytes(b'trusted')
+            config=root/'defaults/desktop.json'
+            ports={'control':17900,'web':17901,'price':18201,'effectiveness':18202}
+            write_json(config,{'ports':ports,'open_browser':False})
+            manifest={'format':'pipeline-per-desktop-1.0','files':{'release/model.bin':sha(model),'defaults/desktop.json':sha(config)},
+              'release':{k:'release/model.bin' for k in ('price_model','effectiveness_model','business_package','evaluation_metadata')},
+              'configurable_files':['defaults/desktop.json']}
+            write_json(root/'PACKAGE_MANIFEST.json',manifest)
+            ports['web']=17903;write_json(config,{'ports':ports,'open_browser':False})
+            verify_package(root,True)
+            write_json(config,{'ports':ports,'open_browser':False,'host':'0.0.0.0'})
+            with self.assertRaises(ValueError):verify_package(root,True)
+            write_json(config,{'ports':ports,'open_browser':False})
+            model.write_bytes(b'tampered')
+            with self.assertRaisesRegex(ValueError,'integrity'):verify_package(root,True)
+
 if __name__=='__main__':unittest.main()
 

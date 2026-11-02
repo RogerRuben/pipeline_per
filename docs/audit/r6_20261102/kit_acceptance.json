@@ -1,0 +1,26 @@
+{
+  "checks": {
+    "no_git_checkout_in_distribution": true,
+    "bat_environment_check_with_empty_path": true,
+    "bat_input_check": true,
+    "full_bat_train_verify_package_pass": true,
+    "actual_v3_training_40_trials": true,
+    "http_consistency_checks": true,
+    "generated_native_exe_starts_and_predicts": true,
+    "repack_does_not_retrain_or_modify_model": true,
+    "sample_cannot_be_mislabeled_customer_data": true,
+    "modified_immutable_source_rejected": true,
+    "kit_still_valid_after_mutable_job_outputs": true
+  },
+  "archive_sha256": "71c77896963ef401b027b203294dbb8366453f8de43886038d31e55694086add",
+  "extracted_to": "C:\\Users\\HP\\AppData\\Local\\Temp\\甲方 开发包_kha_sgm4",
+  "host_scope": "Actual Windows host; Win7 hardware unavailable",
+  "win7_machine_validated": false,
+  "kit_root": "C:\\Users\\HP\\AppData\\Local\\Temp\\甲方 开发包_kha_sgm4\\ClientBuilder_R6_Win7x64_20261102",
+  "training_trials_completed": 40,
+  "trained_model_sha256": "54f8f258856ee295f64ee2bce5461348ee5e4c5faebd87f007d92153739d24d8",
+  "generated_delivery_zip": "C:\\Users\\HP\\AppData\\Local\\Temp\\甲方 开发包_kha_sgm4\\ClientBuilder_R6_Win7x64_20261102\\deliverables\\client-v3-20261102_213213-2ccb.zip",
+  "field_count": 60,
+  "runtime_executable": "C:\\Users\\HP\\AppData\\Local\\Temp\\甲方 开发包_kha_sgm4\\ClientBuilder_R6_Win7x64_20261102\\runtime\\python38\\python.exe",
+  "status": "pass"
+}

@@ -1,0 +1,209 @@
+{
+  "kind": "legacy_demo",
+  "scope": "原价格预测界面0823演示字段，不适用于当前模型",
+  "source_sha256": "ad000cd8d3c6de40217ee37b6094b0a6ecfa1b2e2be8da3e5a2860c0e2d94481",
+  "source_file": "价格预测界面1005(1).rar / feature_importance.xlsx",
+  "note": "历史排序演示 legacy_demo；字段和模型与当前发布不匹配，不作为当前预测解释。",
+  "items": [
+    {
+      "field_id": "重量_kg",
+      "label_zh": "重量_kg",
+      "importance": 0.5970919514761258,
+      "rank": 1,
+      "ratio": 0.5970919514761259,
+      "cumulative_ratio": 0.5970919514761259
+    },
+    {
+      "field_id": "温度_min_°C",
+      "label_zh": "温度_min_°C",
+      "importance": 0.09906641394185614,
+      "rank": 2,
+      "ratio": 0.09906641394185615,
+      "cumulative_ratio": 0.696158365417982
+    },
+    {
+      "field_id": "行程_mm",
+      "label_zh": "行程_mm",
+      "importance": 0.07709657149567584,
+      "rank": 3,
+      "ratio": 0.07709657149567585,
+      "cumulative_ratio": 0.7732549369136579
+    },
+    {
+      "field_id": "流量_L_min",
+      "label_zh": "流量_L_min",
+      "importance": 0.05037683139688134,
+      "rank": 4,
+      "ratio": 0.050376831396881344,
+      "cumulative_ratio": 0.8236317683105392
+    },
+    {
+      "field_id": "功率_kW",
+      "label_zh": "功率_kW",
+      "importance": 0.03678901458364374,
+      "rank": 5,
+      "ratio": 0.036789014583643746,
+      "cumulative_ratio": 0.8604207828941829
+    },
+    {
+      "field_id": "固有频率_Hz",
+      "label_zh": "固有频率_Hz",
+      "importance": 0.02974531279804457,
+      "rank": 6,
+      "ratio": 0.029745312798044574,
+      "cumulative_ratio": 0.8901660956922275
+    },
+    {
+      "field_id": "出力_kN",
+      "label_zh": "出力_kN",
+      "importance": 0.02431038713800285,
+      "rank": 7,
+      "ratio": 0.024310387138002855,
+      "cumulative_ratio": 0.9144764828302303
+    },
+    {
+      "field_id": "速度_mm_s",
+      "label_zh": "速度_mm_s",
+      "importance": 0.0215698520776935,
+      "rank": 8,
+      "ratio": 0.021569852077693505,
+      "cumulative_ratio": 0.9360463349079238
+    },
+    {
+      "field_id": "MTBF_小时",
+      "label_zh": "MTBF_小时",
+      "importance": 0.01206325695618921,
+      "rank": 9,
+      "ratio": 0.012063256956189213,
+      "cumulative_ratio": 0.948109591864113
+    },
+    {
+      "field_id": "安装方式",
+      "label_zh": "安装方式",
+      "importance": 0.01023047687952433,
+      "rank": 10,
+      "ratio": 0.010230476879524332,
+      "cumulative_ratio": 0.9583400687436374
+    },
+    {
+      "field_id": "液压油类型",
+      "label_zh": "液压油类型",
+      "importance": 0.008979889426681875,
+      "rank": 11,
+      "ratio": 0.008979889426681877,
+      "cumulative_ratio": 0.9673199581703193
+    },
+    {
+      "field_id": "故障率_10e6_FH",
+      "label_zh": "故障率_10e6_FH",
+      "importance": 0.005799985422938208,
+      "rank": 12,
+      "ratio": 0.0057999854229382085,
+      "cumulative_ratio": 0.9731199435932576
+    },
+    {
+      "field_id": "适用机型",
+      "label_zh": "适用机型",
+      "importance": 0.005184537223696032,
+      "rank": 13,
+      "ratio": 0.0051845372236960325,
+      "cumulative_ratio": 0.9783044808169536
+    },
+    {
+      "field_id": "阻尼系数",
+      "label_zh": "阻尼系数",
+      "importance": 0.004100974332193805,
+      "rank": 14,
+      "ratio": 0.004100974332193806,
+      "cumulative_ratio": 0.9824054551491475
+    },
+    {
+      "field_id": "密封等级",
+      "label_zh": "密封等级",
+      "importance": 0.003325926420552285,
+      "rank": 15,
+      "ratio": 0.0033259264205522856,
+      "cumulative_ratio": 0.9857313815696997
+    },
+    {
+      "field_id": "维护周期_小时",
+      "label_zh": "维护周期_小时",
+      "importance": 0.003183938381550111,
+      "rank": 16,
+      "ratio": 0.0031839383815501113,
+      "cumulative_ratio": 0.9889153199512498
+    },
+    {
+      "field_id": "响应时间_ms",
+      "label_zh": "响应时间_ms",
+      "importance": 0.002428102091285659,
+      "rank": 17,
+      "ratio": 0.0024281020912856593,
+      "cumulative_ratio": 0.9913434220425354
+    },
+    {
+      "field_id": "冗余配置",
+      "label_zh": "冗余配置",
+      "importance": 0.002279578727755758,
+      "rank": 18,
+      "ratio": 0.0022795787277557584,
+      "cumulative_ratio": 0.9936230007702912
+    },
+    {
+      "field_id": "控制方式",
+      "label_zh": "控制方式",
+      "importance": 0.001663964761653527,
+      "rank": 19,
+      "ratio": 0.0016639647616535271,
+      "cumulative_ratio": 0.9952869655319447
+    },
+    {
+      "field_id": "泄漏_mL_min",
+      "label_zh": "泄漏_mL_min",
+      "importance": 0.001439525789088543,
+      "rank": 20,
+      "ratio": 0.0014395257890885433,
+      "cumulative_ratio": 0.9967264913210333
+    },
+    {
+      "field_id": "认证等级",
+      "label_zh": "认证等级",
+      "importance": 0.001149904128368292,
+      "rank": 21,
+      "ratio": 0.0011499041283682921,
+      "cumulative_ratio": 0.9978763954494015
+    },
+    {
+      "field_id": "压力_bar",
+      "label_zh": "压力_bar",
+      "importance": 0.001038981787596738,
+      "rank": 22,
+      "ratio": 0.0010389817875967383,
+      "cumulative_ratio": 0.9989153772369983
+    },
+    {
+      "field_id": "材料类型",
+      "label_zh": "材料类型",
+      "importance": 0.0006144313503017838,
+      "rank": 23,
+      "ratio": 0.0006144313503017839,
+      "cumulative_ratio": 0.9995298085873001
+    },
+    {
+      "field_id": "温度_max_°C",
+      "label_zh": "温度_max_°C",
+      "importance": 0.000354553314944427,
+      "rank": 24,
+      "ratio": 0.00035455331494442706,
+      "cumulative_ratio": 0.9998843619022445
+    },
+    {
+      "field_id": "接口类型",
+      "label_zh": "接口类型",
+      "importance": 0.000115638097755474,
+      "rank": 25,
+      "ratio": 0.00011563809775547401,
+      "cumulative_ratio": 1.0
+    }
+  ]
+}

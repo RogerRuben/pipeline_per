@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "checks": {
+    "prelaunch_template_edit_accepted": true,
+    "unapproved_host_key_rejected": true,
+    "model_tamper_still_rejected": true,
+    "original_delivery_restored": true
+  },
+  "exe_sha256": "d01a11fa4833ff0cc9dd93feea1326f8bf0b10cd4aafe963cf413afafcfd657b",
+  "scope": "Byte-identical copy of final EXE; live preview untouched"
+}

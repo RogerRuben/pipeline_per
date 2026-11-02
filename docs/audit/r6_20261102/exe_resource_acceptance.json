@@ -1,0 +1,56 @@
+{
+  "status": "pass",
+  "version": "r6-20261102",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_R6_20261102",
+  "pid": 32140,
+  "default_data_dir": "C:\\Users\\HP\\AppData\\Local\\PipelinePer\\products\\c7277d8e55e2885ed946d24b85f12b8b",
+  "business_before": {
+    "agreements": {
+      "count": 160,
+      "sha256": "292099e612798c52939e5cd303ec640a6fc05c91802d6d14c19c80b247d63b71"
+    },
+    "saved_schemes": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "parameter_definitions": {
+      "count": 60,
+      "sha256": "51262bd0103179f4d033612f2aa06093bb0ee3d3e04f9a40b474e3739b7591ea"
+    },
+    "products": {
+      "count": 1,
+      "sha256": "d09e539b015ff1bc7156cf5662eaebd995a78906e27bc5a42908448c12575000"
+    }
+  },
+  "business_after": {
+    "agreements": {
+      "count": 160,
+      "sha256": "292099e612798c52939e5cd303ec640a6fc05c91802d6d14c19c80b247d63b71"
+    },
+    "saved_schemes": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "parameter_definitions": {
+      "count": 60,
+      "sha256": "51262bd0103179f4d033612f2aa06093bb0ee3d3e04f9a40b474e3739b7591ea"
+    },
+    "products": {
+      "count": 1,
+      "sha256": "d09e539b015ff1bc7156cf5662eaebd995a78906e27bc5a42908448c12575000"
+    }
+  },
+  "data_preserved": true,
+  "static_resources": {
+    "index.html": "f31f39b24def3591bbbdf2eef85a0fcfcf0dfb1734587415915fc8843c4d19e9",
+    "deep.css": "53d32c4727e42d4b984b6eada83a8d7e806ae8018b778c6ddc29bf6713ededcf",
+    "deep.js": "fc64b54f623f7e7cd1bff8374b11c453b16dd951befce390db7cc94c7296c941",
+    "analyses.js": "ed1db489914238d08a033f61639686561a04385e4b4dbd4d66df5312b73acdd1",
+    "reports.js": "4730b401823af0b31f90039ba8518848f3140d6b073a82ef94d3677fb9d8e0da",
+    "r6.js": "f1f9bf06d82c7a3d2f01da5c6e2e202562e9cbeb98592b69cf77c7890052d73b",
+    "legacy_importance.json": "151e89e6589aa9cef4e429e00b3c8412f0e23c35861818f922175770811d9337"
+  },
+  "exe_sha256": "d01a11fa4833ff0cc9dd93feea1326f8bf0b10cd4aafe963cf413afafcfd657b",
+  "base_url": "http://127.0.0.1:17901",
+  "exclusive_http_binding": true
+}

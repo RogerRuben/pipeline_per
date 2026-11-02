@@ -11,6 +11,18 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
+class ExclusiveThreadingHTTPServer(ThreadingHTTPServer):
+    """Never let another Windows HTTP listener share our configured port."""
+    allow_reuse_address = False
+
+    def server_bind(self):
+        import os
+        import socket
+        if os.name == 'nt' and hasattr(socket,'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET,socket.SO_EXCLUSIVEADDRUSE,1)
+        return super().server_bind()
+
+
 class JsonServiceError(Exception):
     def __init__(self, message, status=400, code="bad_request", details=None):
         Exception.__init__(self, message)
@@ -163,7 +175,7 @@ def make_handler(app):
 
 
 def run_service(app, host="127.0.0.1", port=18101):
-    server = ThreadingHTTPServer((host, int(port)), make_handler(app))
+    server = ExclusiveThreadingHTTPServer((host, int(port)), make_handler(app))
     print("%s listening on http://%s:%s" % (app.service_name, host, port))
     try:
         server.serve_forever()

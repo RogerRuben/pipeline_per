@@ -45,6 +45,9 @@ def fields_for(snapshot, schema):
         for source, target in [('min_value', 'minimum'), ('max_value', 'maximum')]:
             if definition.get(source) is not None:
                 field[target] = definition[source]
+        field['analysis_supported']=bool(key in specs and (field['type'] in ('number','integer','boolean') or field['allowed_values']))
+        field['analysis_unavailable_reason']=None if field['analysis_supported'] else '自由文本或未提供枚举合法取值，不能执行单属性扰动'
+        field['missing_policy']=spec.get('missing_policy','service_owned')
         result.append(field)
     return result, specs
 
@@ -84,3 +87,15 @@ def encode(snapshot, parameters, fields, specs):
                 raise DeepPriceError('invalid_input', '属性超出业务范围：' + key)
     encoded = snapshot.codec.runtime_parameters(business)
     return business, {key: value for key, value in encoded.items() if key in specs}
+
+def bound_metadata(metadata,snapshot,model_sha):
+    import copy,hashlib
+    result=copy.deepcopy(metadata or {})
+    value=result.get("feature_importance")
+    if isinstance(value,dict) and value.get("kind")=="permutation_mae_increase":
+        data=json.loads(snapshot.release["data_json"])
+        observed=hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(",",":")).encode("utf-8")).hexdigest()
+        if value.get("model_sha256")!=model_sha or value.get("business_data_sha256")!=observed:
+            result["feature_importance"]=None
+            result["analysis_unavailable_reason"]="重要度与当前模型或业务发布不匹配"
+    return result

@@ -1,0 +1,9 @@
+{
+  "legacy": {
+    "second_bind_allowed": true
+  },
+  "exclusive": {
+    "second_bind_allowed": false,
+    "winerror": 10013
+  }
+}

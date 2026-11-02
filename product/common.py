@@ -48,11 +48,18 @@ def verify_package(root, full=False):
     if manifest.get('format') != 'pipeline-per-desktop-1.0':
         raise ValueError('Unsupported desktop package')
     records = manifest['files']
+    configurable=manifest.get('configurable_files',[])
+    if not isinstance(configurable,list) or any(v!='defaults/desktop.json' for v in configurable):
+        raise ValueError('Unsupported configurable package file')
     selected = records if full else {key: value for key, value in records.items()
                                     if key.startswith('release/')}
     for relative, expected in selected.items():
         target = contained(root, relative)
-        if not target.is_file() or sha(target) != expected:
+        if relative in configurable:
+            if not target.is_file():raise ValueError('Missing desktop port template')
+            from product.desktop_config import validate_config
+            validate_config(read_json(target))
+        elif not target.is_file() or sha(target) != expected:
             raise ValueError('Package integrity check failed: '+relative)
     for key in ('price_model', 'effectiveness_model', 'business_package', 'evaluation_metadata'):
         relative = manifest['release'][key]

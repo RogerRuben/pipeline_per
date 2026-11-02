@@ -54,7 +54,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
                      ('price_native_bundle.pkl.manifest.json',Path(str(artifacts['price_model'])+'.manifest.json'))]:
         shutil.copy2(str(src),str(release/name))
     classification='synthetic' if manifest.get('virtual_data') else 'unconfirmed'
-    bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification)
+    bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification,business=artifacts['business_package'])
     # No optimizer: inspect the already-trained model using the pinned builder.
     from services.price_service.app import PriceService
     service=PriceService(release/'price_native_bundle.pkl',None,evaluation_metadata=release/'evaluation_metadata.json')
@@ -85,7 +85,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(out/'PACKAGE_MANIFEST.json',{'format':'pipeline-per-desktop-1.0','version':version,'data_schema':1,
                'entrypoint':'product.exe','packaging':meta['kind'],'build_source_sha':source_sha,
                'launcher_source_sha256':sources,'files':files,'release':paths,'training_environment':environment,
-               'runtime_python':'3.8.10','architecture':'x64','python_source_included':False,'ui_resources':'embedded',
+               'runtime_python':'3.8.10','architecture':'x64','python_source_included':False,'ui_resources':'embedded','configurable_files':['defaults/desktop.json'],
                'default_data_dir':'%LOCALAPPDATA%/PipelinePer/products/<product-code-sha256-prefix32>',
                'external_python_required':False,'training_on_start':False,'win7_validated':False,'code_signed':False})
     archive=Path(str(out)+'.zip')

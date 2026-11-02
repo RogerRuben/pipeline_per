@@ -1,0 +1,30 @@
+{
+  "checks": {
+    "published_importance_bound_to_model": true,
+    "importance_reference_protocol": true,
+    "importance_ratios_and_std": true,
+    "readonly_single_published_model": true,
+    "metrics_have_explicit_units": true,
+    "active_members_use_actual_weights": true,
+    "importance_top10_keeps_published_order": true,
+    "historical_range_uses_published_values": true,
+    "scenario_server_delta_and_change_list": true,
+    "csv_txt_match_native_results": true
+  },
+  "source_sha": "18baf0c63fd7b8b04f1b51a0d6ff5b56f5a92a08",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_R6_20261102",
+  "win7_validated": false,
+  "status": "pass",
+  "active_members": [
+    {
+      "name": "lasso",
+      "weight": 0.2840568526713312
+    },
+    {
+      "name": "ridge",
+      "weight": 0.7159431473286688
+    }
+  ],
+  "sample_count": 32,
+  "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc"
+}
