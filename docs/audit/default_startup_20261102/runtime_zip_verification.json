@@ -1,0 +1,8 @@
+{
+  "status": "pass",
+  "archive_sha256": "56cbddf30535a6f2c79812d8ab9eb93be72ae2c8329621d76779f06608d8ee28",
+  "sealed_files_verified": 2483,
+  "source_sha": "7846069a2e79668ae6b2418595ff6f843d6e1108",
+  "python_source_included": true,
+  "win7_machine_validated": false
+}
