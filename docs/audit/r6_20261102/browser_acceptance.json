@@ -27,7 +27,8 @@
     "business_labels_in_top5": true,
     "main_navigation_at_top": true,
     "controlled_publish_guidance": true,
-    "unknown_legacy_sample_count_not_fabricated": true
+    "unknown_legacy_sample_count_not_fabricated": true,
+    "mechanism_is_explicitly_disabled": true
   },
   "observations": {
     "price": "16.4894",
