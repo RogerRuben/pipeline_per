@@ -109,6 +109,7 @@ class OfflineImportanceTests(unittest.TestCase):
             self.assertEqual(result,repeated)
             value=result['feature_importance']
             self.assertEqual(value['sample_ids'],['S0','S1','S2','S3'])
+            self.assertEqual(value['scope'],'selected_search_validation_not_independent_test')
             self.assertGreater(value['items'][0]['importance'],0)
             self.assertEqual(value['items'][1]['importance'],0)
             self.assertEqual(value['items'][0]['ratio'],1)

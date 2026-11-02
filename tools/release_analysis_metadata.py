@@ -25,7 +25,9 @@ def enrich(model, business, report):
     # Prefer the exact search-validation IDs; full refit may include them.
     validation_ids=set(report.get('validation_record_ids') or [])
     matched=[r for r in rows if r['agreement_id'] in validation_ids]
-    scope='selected_search_validation_after_refit_not_independent_test' if len(matched)>=4 else 'released_reference_rows_not_independent_test'
+    scope='selected_search_validation_not_independent_test' if len(matched)>=4 else 'released_reference_rows_not_independent_test'
+    if len(matched)>=4 and (report.get('full_data_deployment') is True or report.get('deployment_scope')=='full_data'):
+        scope='selected_search_validation_after_refit_not_independent_test'
     rows=(matched if len(matched)>=4 else rows)[:64]
     if len(rows)<4:return result
     keys=bundle.get('source_feature_order') or bundle['feature_order']
