@@ -1,0 +1,10 @@
+{
+  "status": "built",
+  "source_sha": "18baf0c63fd7b8b04f1b51a0d6ff5b56f5a92a08",
+  "kit": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\ClientBuilder_R6_Win7x64_20261102",
+  "archive": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\ClientBuilder_R6_Win7x64_20261102.zip",
+  "sha256": "71c77896963ef401b027b203294dbb8366453f8de43886038d31e55694086add",
+  "archive_bytes": 141607832,
+  "immutable_files": 5087,
+  "win7_machine_validated": false
+}

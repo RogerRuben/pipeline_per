@@ -1,0 +1,9 @@
+{
+  "status": "pass",
+  "csv_sha256": "b4856585f6c416eb14a89ec6f560b3f9a0d9945257eab2aa3188ea2e6d780f65",
+  "txt_sha256": "226f286a4be0fe6a8cf38105a00304732916c7f3953a150a84d60f5245ea202e",
+  "comparison_max_delta_wan": 0.0,
+  "same_model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc",
+  "csv_test_scope": "same HTTP export endpoint with a separate authenticated local test session",
+  "txt_test_scope": "actual browser-downloaded file"
+}

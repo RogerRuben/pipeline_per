@@ -1,0 +1,9 @@
+{
+  "status": "pass",
+  "download_file_sha256": "226f286a4be0fe6a8cf38105a00304732916c7f3953a150a84d60f5245ea202e",
+  "baseline_wan": 16.489381,
+  "scenario_wan": 15.642276,
+  "delta_wan": -0.8471050000000009,
+  "changed_field_count": 2,
+  "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc"
+}

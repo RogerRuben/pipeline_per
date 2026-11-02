@@ -1,0 +1,18 @@
+{
+  "configured_ports": {
+    "control": 64609,
+    "web": 64610,
+    "price": 64611,
+    "effectiveness": 64612
+  },
+  "status": "pass",
+  "startup_seconds": 21.704,
+  "prices_wan": [
+    16.489381,
+    16.489381,
+    16.489381
+  ],
+  "field_count": 60,
+  "model_sha256": "54f8f258856ee295f64ee2bce5461348ee5e4c5faebd87f007d92153739d24d8",
+  "portal_url": "http://127.0.0.1:64610/portal"
+}

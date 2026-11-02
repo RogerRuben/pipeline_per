@@ -1,0 +1,672 @@
+{
+  "schema_version": "price-model-evaluation-metadata-1.0",
+  "data_classification": "synthetic",
+  "price_model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc",
+  "source_training_report_sha256": "b4545994ab9deed43bfa71fec105e2ae5019b7d57551dfe1b5fa0bfab457f8b2",
+  "metrics": {
+    "selected_training_metrics": {
+      "mape_percent": 0.9117791883269746,
+      "r2": 0.9942884307272398,
+      "rows": 128,
+      "status": "ok"
+    },
+    "full_refit_training_metrics": {
+      "mape_percent": 0.9484748278305372,
+      "r2": 0.9944608309503966,
+      "rows": 160,
+      "status": "ok"
+    },
+    "deployed_training_metrics": {
+      "mape_percent": 0.9484748278305372,
+      "r2": 0.9944608309503966,
+      "rows": 160,
+      "status": "ok"
+    },
+    "validation_metrics": {
+      "r2": 0.9919903049570533,
+      "mape": 0.014959469147960622,
+      "mae": 0.21253472693235415,
+      "rmse": 0.24425074912831743
+    },
+    "validation_protocol": "joint_searched_split",
+    "deployment_scope": "full_data",
+    "business_accuracy_certified": false,
+    "training_rows": 160,
+    "feature_count": 60,
+    "member_count": 2,
+    "trials_completed": 40,
+    "trials_requested": 40
+  },
+  "metric_units": {
+    "selected_training_metrics": {
+      "mape_percent": "percent",
+      "r2": "dimensionless"
+    },
+    "full_refit_training_metrics": {
+      "mape_percent": "percent",
+      "r2": "dimensionless"
+    },
+    "deployed_training_metrics": {
+      "mape_percent": "percent",
+      "r2": "dimensionless"
+    },
+    "validation_metrics": {
+      "mape": "ratio",
+      "mae": "wan_yuan",
+      "rmse": "wan_yuan",
+      "r2": "dimensionless"
+    }
+  },
+  "active_members": [
+    {
+      "name": "lasso",
+      "weight": 0.2840568526713312
+    },
+    {
+      "name": "ridge",
+      "weight": 0.7159431473286688
+    }
+  ],
+  "search_candidates": [
+    "expert_tree",
+    "extratrees",
+    "gbdt",
+    "lasso",
+    "ridge",
+    "svr"
+  ],
+  "feature_importance": {
+    "business_data_sha256": "59ed2cc52cbd799963c2aff5e8266796543c6f673fe2ddd4586b22af2083fe76",
+    "kind": "permutation_mae_increase",
+    "scope": "selected_search_validation_after_refit_not_independent_test",
+    "scoring": "permutation MAE minus baseline MAE",
+    "unit": "万元",
+    "baseline_mae": 0.1340272187500003,
+    "seed": 20261102,
+    "repeats": 3,
+    "max_sample_rows": 64,
+    "sample_selection": "sorted matching validation IDs; fallback published reference rows only if fewer than four matches",
+    "sample_ids": [
+      "SYN-004",
+      "SYN-006",
+      "SYN-009",
+      "SYN-016",
+      "SYN-017",
+      "SYN-022",
+      "SYN-027",
+      "SYN-037",
+      "SYN-043",
+      "SYN-044",
+      "SYN-048",
+      "SYN-050",
+      "SYN-051",
+      "SYN-059",
+      "SYN-060",
+      "SYN-066",
+      "SYN-075",
+      "SYN-077",
+      "SYN-079",
+      "SYN-086",
+      "SYN-087",
+      "SYN-090",
+      "SYN-093",
+      "SYN-097",
+      "SYN-099",
+      "SYN-106",
+      "SYN-109",
+      "SYN-116",
+      "SYN-136",
+      "SYN-139",
+      "SYN-153",
+      "SYN-154"
+    ],
+    "sample_sha256": "338a7921166d107ceedd41f7291306347178fe0db39554a8f7e6bee7fe227ac4",
+    "business_package_sha256": "f68959a184fcee1840071fea72db45cffc804e41fb63bbe0f114957361e476e8",
+    "feature_schema_sha256": "7f5c68ee483a9460815a2d8652e777c59b4f9029afc6aecbf31931009de38360",
+    "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc",
+    "items": [
+      {
+        "field_id": "numeric_00",
+        "label_zh": "连续参数00",
+        "importance": 1.7255472708333328,
+        "std": 0.13420120551843684,
+        "rank": 1,
+        "ratio": 0.37542881546408535,
+        "cumulative_ratio": 0.37542881546408535
+      },
+      {
+        "field_id": "numeric_01",
+        "label_zh": "连续参数01",
+        "importance": 1.1194993854166666,
+        "std": 0.13113161941400525,
+        "rank": 2,
+        "ratio": 0.2435704516960439,
+        "cumulative_ratio": 0.6189992671601292
+      },
+      {
+        "field_id": "integer_00",
+        "label_zh": "部件数量00",
+        "importance": 0.7046243541666667,
+        "std": 0.06263191623549165,
+        "rank": 3,
+        "ratio": 0.1533057315226045,
+        "cumulative_ratio": 0.7723049986827337
+      },
+      {
+        "field_id": "category_00",
+        "label_zh": "部件配置00",
+        "importance": 0.5469510104166666,
+        "std": 0.06609345262887376,
+        "rank": 4,
+        "ratio": 0.11900060544759614,
+        "cumulative_ratio": 0.8913056041303299
+      },
+      {
+        "field_id": "flag_00",
+        "label_zh": "是否配置功能00",
+        "importance": 0.42887528124999985,
+        "std": 0.05600976338213774,
+        "rank": 5,
+        "ratio": 0.09331076670171717,
+        "cumulative_ratio": 0.984616370832047
+      },
+      {
+        "field_id": "optional_01",
+        "label_zh": "可选性能01",
+        "importance": 0.01446179166666639,
+        "std": 0.0029597138855083577,
+        "rank": 6,
+        "ratio": 0.0031464645487706004,
+        "cumulative_ratio": 0.9877628353808177
+      },
+      {
+        "field_id": "category_07",
+        "label_zh": "部件配置07",
+        "importance": 0.0064106562499999424,
+        "std": 0.004457890772037308,
+        "rank": 7,
+        "ratio": 0.0013947720372346592,
+        "cumulative_ratio": 0.9891576074180524
+      },
+      {
+        "field_id": "category_04",
+        "label_zh": "部件配置04",
+        "importance": 0.005930354166666522,
+        "std": 0.0017910429359437256,
+        "rank": 8,
+        "ratio": 0.0012902722966255738,
+        "cumulative_ratio": 0.990447879714678
+      },
+      {
+        "field_id": "numeric_14",
+        "label_zh": "连续参数14",
+        "importance": 0.005795072916666533,
+        "std": 0.0077677441929573125,
+        "rank": 9,
+        "ratio": 0.0012608390377977998,
+        "cumulative_ratio": 0.9917087187524758
+      },
+      {
+        "field_id": "category_03",
+        "label_zh": "部件配置03",
+        "importance": 0.005168697916666594,
+        "std": 0.004779962122323038,
+        "rank": 10,
+        "ratio": 0.0011245580860898086,
+        "cumulative_ratio": 0.9928332768385656
+      },
+      {
+        "field_id": "numeric_10",
+        "label_zh": "连续参数10",
+        "importance": 0.004006479166666595,
+        "std": 0.0020320334233350223,
+        "rank": 11,
+        "ratio": 0.000871693145211122,
+        "cumulative_ratio": 0.9937049699837767
+      },
+      {
+        "field_id": "numeric_09",
+        "label_zh": "连续参数09",
+        "importance": 0.0036818229166664476,
+        "std": 0.0018067057847182824,
+        "rank": 12,
+        "ratio": 0.0008010574034781793,
+        "cumulative_ratio": 0.9945060273872548
+      },
+      {
+        "field_id": "numeric_20",
+        "label_zh": "连续参数20",
+        "importance": 0.0034853020833332713,
+        "std": 0.002301873877349109,
+        "rank": 13,
+        "ratio": 0.0007583001954205535,
+        "cumulative_ratio": 0.9952643275826754
+      },
+      {
+        "field_id": "flag_01",
+        "label_zh": "是否配置功能01",
+        "importance": 0.00345913541666674,
+        "std": 0.0012432692057336163,
+        "rank": 14,
+        "ratio": 0.0007526070910719747,
+        "cumulative_ratio": 0.9960169346737473
+      },
+      {
+        "field_id": "numeric_21",
+        "label_zh": "连续参数21",
+        "importance": 0.00306035416666652,
+        "std": 0.0032323132382257153,
+        "rank": 15,
+        "ratio": 0.0006658439088355546,
+        "cumulative_ratio": 0.9966827785825828
+      },
+      {
+        "field_id": "integer_10",
+        "label_zh": "部件数量10",
+        "importance": 0.0020542499999999984,
+        "std": 0.00047054206675765535,
+        "rank": 16,
+        "ratio": 0.00044694495317687983,
+        "cumulative_ratio": 0.9971297235357597
+      },
+      {
+        "field_id": "flag_08",
+        "label_zh": "是否配置功能08",
+        "importance": 0.001842874999999781,
+        "std": 0.0008664431719290148,
+        "rank": 17,
+        "ratio": 0.0004009559112015311,
+        "cumulative_ratio": 0.9975306794469612
+      },
+      {
+        "field_id": "flag_06",
+        "label_zh": "是否配置功能06",
+        "importance": 0.0015631770833333114,
+        "std": 0.001582873497988304,
+        "rank": 18,
+        "ratio": 0.0003401017930230396,
+        "cumulative_ratio": 0.9978707812399842
+      },
+      {
+        "field_id": "numeric_08",
+        "label_zh": "连续参数08",
+        "importance": 0.0014183541666665984,
+        "std": 0.003542116831960672,
+        "rank": 19,
+        "ratio": 0.0003085925455076236,
+        "cumulative_ratio": 0.9981793737854918
+      },
+      {
+        "field_id": "numeric_12",
+        "label_zh": "连续参数12",
+        "importance": 0.0012781145833331193,
+        "std": 0.00022807949650814776,
+        "rank": 20,
+        "ratio": 0.00027808049779847084,
+        "cumulative_ratio": 0.9984574542832902
+      },
+      {
+        "field_id": "numeric_19",
+        "label_zh": "连续参数19",
+        "importance": 0.001198114583333354,
+        "std": 0.0016411264353424055,
+        "rank": 21,
+        "ratio": 0.00026067482845245867,
+        "cumulative_ratio": 0.9987181291117427
+      },
+      {
+        "field_id": "numeric_13",
+        "label_zh": "连续参数13",
+        "importance": 0.0010171249999998966,
+        "std": 0.002665172537801292,
+        "rank": 22,
+        "ratio": 0.0002212967679201597,
+        "cumulative_ratio": 0.9989394258796629
+      },
+      {
+        "field_id": "integer_04",
+        "label_zh": "部件数量04",
+        "importance": 0.0009885729166665598,
+        "std": 0.00025417379984861004,
+        "rank": 23,
+        "ratio": 0.0002150846663996434,
+        "cumulative_ratio": 0.9991545105460625
+      },
+      {
+        "field_id": "numeric_15",
+        "label_zh": "连续参数15",
+        "importance": 0.0009649687500000725,
+        "std": 0.0014069767665972276,
+        "rank": 24,
+        "ratio": 0.00020994908739731534,
+        "cumulative_ratio": 0.9993644596334599
+      },
+      {
+        "field_id": "optional_02",
+        "label_zh": "可选性能02",
+        "importance": 0.0006643645833331694,
+        "std": 0.000428590534859487,
+        "rank": 25,
+        "ratio": 0.00014454637828415282,
+        "cumulative_ratio": 0.9995090060117441
+      },
+      {
+        "field_id": "optional_03",
+        "label_zh": "可选性能03",
+        "importance": 0.0006240833333332659,
+        "std": 0.0014453224572479732,
+        "rank": 26,
+        "ratio": 0.00013578235180484744,
+        "cumulative_ratio": 0.999644788363549
+      },
+      {
+        "field_id": "flag_03",
+        "label_zh": "是否配置功能03",
+        "importance": 0.0005698854166665083,
+        "std": 0.00035196063782986207,
+        "rank": 27,
+        "ratio": 0.00012399046409550902,
+        "cumulative_ratio": 0.9997687788276445
+      },
+      {
+        "field_id": "integer_08",
+        "label_zh": "部件数量08",
+        "importance": 0.00048815624999990853,
+        "std": 0.0003544399640998974,
+        "rank": 28,
+        "ratio": 0.00010620857845890741,
+        "cumulative_ratio": 0.9998749874061034
+      },
+      {
+        "field_id": "flag_05",
+        "label_zh": "是否配置功能05",
+        "importance": 0.00021402083333319868,
+        "std": 0.0008964277137898196,
+        "rank": 29,
+        "ratio": 4.656469822708208e-05,
+        "cumulative_ratio": 0.9999215521043304
+      },
+      {
+        "field_id": "numeric_05",
+        "label_zh": "连续参数05",
+        "importance": 0.00019849999999995335,
+        "std": 0.00010945022413181526,
+        "rank": 30,
+        "ratio": 4.318781706490927e-05,
+        "cumulative_ratio": 0.9999647399213953
+      },
+      {
+        "field_id": "numeric_16",
+        "label_zh": "连续参数16",
+        "importance": 6.84479166665845e-05,
+        "std": 0.0004021210733583052,
+        "rank": 31,
+        "ratio": 1.4892272561568263e-05,
+        "cumulative_ratio": 0.9999796321939569
+      },
+      {
+        "field_id": "numeric_23",
+        "label_zh": "连续参数23",
+        "importance": 4.888541666640359e-05,
+        "std": 0.0006247905400748049,
+        "rank": 32,
+        "ratio": 1.0636042479249377e-05,
+        "cumulative_ratio": 0.9999902682364361
+      },
+      {
+        "field_id": "flag_09",
+        "label_zh": "是否配置功能09",
+        "importance": 4.472916666655354e-05,
+        "std": 0.00014227136797015355,
+        "rank": 33,
+        "ratio": 9.73176356403731e-06,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "optional_00",
+        "label_zh": "可选性能00",
+        "importance": -4.3239583333409826e-05,
+        "std": 0.0008830318511906408,
+        "rank": 34,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "category_06",
+        "label_zh": "部件配置06",
+        "importance": -8.318750000017398e-05,
+        "std": 0.0014859310688171156,
+        "rank": 35,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_22",
+        "label_zh": "连续参数22",
+        "importance": -9.339583333325037e-05,
+        "std": 0.0007641443950373318,
+        "rank": 36,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_07",
+        "label_zh": "部件数量07",
+        "importance": -9.802083333337874e-05,
+        "std": 6.070040592537755e-05,
+        "rank": 37,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_11",
+        "label_zh": "部件数量11",
+        "importance": -0.00010910416666676248,
+        "std": 0.00011986978974309648,
+        "rank": 38,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "optional_05",
+        "label_zh": "可选性能05",
+        "importance": -0.00029608333333328946,
+        "std": 0.0001968792862188098,
+        "rank": 39,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_11",
+        "label_zh": "连续参数11",
+        "importance": -0.0004192708333334294,
+        "std": 0.00019259825741337955,
+        "rank": 40,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_07",
+        "label_zh": "连续参数07",
+        "importance": -0.00042340625000012827,
+        "std": 0.001795338343119685,
+        "rank": 41,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_18",
+        "label_zh": "连续参数18",
+        "importance": -0.0004246041666668976,
+        "std": 0.0007945641495291125,
+        "rank": 42,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "category_01",
+        "label_zh": "部件配置01",
+        "importance": -0.00047394791666668007,
+        "std": 0.0021665381516873397,
+        "rank": 43,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_05",
+        "label_zh": "部件数量05",
+        "importance": -0.0005220833333334599,
+        "std": 0.0018518695255877557,
+        "rank": 44,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "flag_02",
+        "label_zh": "是否配置功能02",
+        "importance": -0.0008950937500000385,
+        "std": 0.0033132836481658367,
+        "rank": 45,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_02",
+        "label_zh": "连续参数02",
+        "importance": -0.0012834062500002297,
+        "std": 0.001624976476392257,
+        "rank": 46,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_02",
+        "label_zh": "部件数量02",
+        "importance": -0.0014107604166666565,
+        "std": 0.0005532102396263832,
+        "rank": 47,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "category_05",
+        "label_zh": "部件配置05",
+        "importance": -0.001837739583333368,
+        "std": 0.0010148309797866095,
+        "rank": 48,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_06",
+        "label_zh": "连续参数06",
+        "importance": -0.002037447916666879,
+        "std": 0.0010830226270183013,
+        "rank": 49,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "optional_04",
+        "label_zh": "可选性能04",
+        "importance": -0.0021596770833335146,
+        "std": 0.001493115445835289,
+        "rank": 50,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_04",
+        "label_zh": "连续参数04",
+        "importance": -0.0025078958333334587,
+        "std": 0.0016251576234317534,
+        "rank": 51,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_06",
+        "label_zh": "部件数量06",
+        "importance": -0.0025583020833333157,
+        "std": 0.0018800393606551796,
+        "rank": 52,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_01",
+        "label_zh": "部件数量01",
+        "importance": -0.002587427083333408,
+        "std": 0.0013648454550249946,
+        "rank": 53,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_03",
+        "label_zh": "连续参数03",
+        "importance": -0.002925520833333565,
+        "std": 0.005902700314060795,
+        "rank": 54,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "flag_07",
+        "label_zh": "是否配置功能07",
+        "importance": -0.0034230000000001017,
+        "std": 0.0010175369333872365,
+        "rank": 55,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "numeric_17",
+        "label_zh": "连续参数17",
+        "importance": -0.0036150000000000904,
+        "std": 0.0008160669209084855,
+        "rank": 56,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "category_02",
+        "label_zh": "部件配置02",
+        "importance": -0.003780291666666824,
+        "std": 0.003827317089009791,
+        "rank": 57,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "flag_04",
+        "label_zh": "是否配置功能04",
+        "importance": -0.0041667604166666745,
+        "std": 0.0017809358570452475,
+        "rank": 58,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_03",
+        "label_zh": "部件数量03",
+        "importance": -0.00449328125000024,
+        "std": 0.0007955285835302352,
+        "rank": 59,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      },
+      {
+        "field_id": "integer_09",
+        "label_zh": "部件数量09",
+        "importance": -0.004512385416666875,
+        "std": 0.0014538340510985017,
+        "rank": 60,
+        "ratio": 0.0,
+        "cumulative_ratio": 1.0000000000000002
+      }
+    ],
+    "normalization": "positive MAE increases / sum of all positive increases; negative values retained",
+    "note": "发布参考样本可能参与全数据重拟合，不是独立测试或因果贡献；正值占比仅作展示。"
+  }
+}

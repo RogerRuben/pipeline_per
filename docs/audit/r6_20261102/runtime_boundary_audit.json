@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "checks": [
+    {
+      "archive": "PipelinePer_R6_20261102.zip",
+      "sha256": "01e1ab329728a77b2c383453c6d1805a9cd0d59e57f02b4caab0d9b44796321e",
+      "files_verified": 909,
+      "source_files": [],
+      "exe_sha256": "d01a11fa4833ff0cc9dd93feea1326f8bf0b10cd4aafe963cf413afafcfd657b",
+      "configurable_files": [
+        "defaults/desktop.json"
+      ]
+    },
+    {
+      "archive": "client-v3-20261102_213304-6353.zip",
+      "sha256": "391e09401ac424efd4db3857689f775cd48b2dfb173511b7ed7090d01bea9374",
+      "files_verified": 909,
+      "source_files": [],
+      "exe_sha256": "d01a11fa4833ff0cc9dd93feea1326f8bf0b10cd4aafe963cf413afafcfd657b",
+      "configurable_files": [
+        "defaults/desktop.json"
+      ]
+    }
+  ]
+}

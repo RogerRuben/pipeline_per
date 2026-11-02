@@ -1,0 +1,69 @@
+{
+  "format": "pipeline-target-exercise-1.0",
+  "host": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+  "os_version": [
+    10,
+    0,
+    26200,
+    2,
+    ""
+  ],
+  "win7_sp1_workstation": false,
+  "checks": {
+    "frozen_verify": true,
+    "three_services": true,
+    "empty_path_start": true,
+    "duplicate_launch": true,
+    "native_v3_consistency": true,
+    "top10_under_30_seconds": true,
+    "real_saved_scheme_created": true,
+    "backup_created": true,
+    "worker_exit_recovery": true,
+    "parent_crash_cleans_all_workers": true,
+    "stale_instance_recovers": true,
+    "offline_restore_command": true,
+    "restored_saved_schemes_match": true,
+    "restored_rule_bytes_match": true,
+    "restored_prediction_matches": true,
+    "restored_sqlite_integrity": true,
+    "restore_never_overwrites_existing_data": true,
+    "rollback_package_starts_restored_data": true,
+    "return_to_current_after_rollback": true,
+    "delivery_files_unchanged": true
+  },
+  "timings": {
+    "startup_seconds": [
+      16.047,
+      6.906,
+      4.796,
+      6.031,
+      5.64
+    ],
+    "top10_seconds": 4.281
+  },
+  "win7_validated": false,
+  "manual_browser_acceptance": "pending",
+  "upload_performed": false,
+  "package_version": "r6-20261102",
+  "build_source_sha": "18baf0c63fd7b8b04f1b51a0d6ff5b56f5a92a08",
+  "classification": "synthetic",
+  "model_sha256": "d5190c2619d576a8bfc8abf447fe3b11d50b2445798605d89338c96c7db8e3fc",
+  "test_profile_ports": {
+    "control": 53475,
+    "web": 53476,
+    "price": 53477,
+    "effectiveness": 53478
+  },
+  "prices_wan": [
+    16.489381,
+    16.489381,
+    16.489381
+  ],
+  "saved_ids": [
+    1
+  ],
+  "status": "pass",
+  "win7_executable_checks_passed": false,
+  "gate": "not_a_win7_target_machine"
+}

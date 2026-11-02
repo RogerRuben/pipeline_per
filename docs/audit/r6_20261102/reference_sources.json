@@ -1,0 +1,27 @@
+{
+  "templates": {
+    "index.html": {
+      "original_sha256": "a3af7aac58035bbe4f2ee1f354cda5c3e5466d21b031c35a69d77d6a5505df0e",
+      "reference_sha256": "df1e38936c20c884f4c13225d510393fca85d13aca669cd70096df886d3034ff",
+      "same_template_ignoring_trailing_blank_lines": true
+    },
+    "factor_analysis.html": {
+      "original_sha256": "7d964e4dd1b9a7fef15983ce90a2c2afc0ca665bcc463de753f97991167d90bb",
+      "reference_sha256": "785588d85fd415b919a1b0a2bf03815958ac352688ddf2b23e607baa9a364921",
+      "same_template_ignoring_trailing_blank_lines": true
+    },
+    "model_evaluation.html": {
+      "original_sha256": "6bc6c887f42ba6a6fe2a219171cfdf2235fdc399080d620414a532906ea8f45c",
+      "reference_sha256": "8efc0918049c6822909638c0b41f689908c1e34d0276812b10287a1c4d0417e2",
+      "same_template_ignoring_trailing_blank_lines": true
+    },
+    "scenario_analysis.html": {
+      "original_sha256": "98258b4bb7d5c3d44ad16d67ed41b78220e906a9675eb9664877d8edaa216604",
+      "reference_sha256": "5c513551ecdf4e0c035546d9b893d67f269c195e639775ea8daad82ad0564f97",
+      "same_template_ignoring_trailing_blank_lines": true
+    }
+  },
+  "legacy_workbook_sha256": "ad000cd8d3c6de40217ee37b6094b0a6ecfa1b2e2be8da3e5a2860c0e2d94481",
+  "reference_fixture_sha256": "2060f2c2c71028a065ab9874cb3e30e9f39c4a4d756976c14a4e2d34f149325e",
+  "scope": "Static original templates; trailing blank lines normalized in reference mirror; read-only original Excel Top10 fixture; no old pickle or Flask execution"
+}
