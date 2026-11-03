@@ -39,5 +39,11 @@ class WorkbookExpertV3Tests(unittest.TestCase):
         self.workbook([['size',None,'A','number','性能']])
         cfg=workbook_config(self.source,load_config(),{'size'},loader=load_config)
         self.assertFalse(cfg['expert']['scores']);self.assertEqual(cfg['expert']['attribute_groups']['size'],'性能')
+    def test_other_engine_workbook_contract_is_unchanged(self):
+        from automl_pipeline.product_price_optuna_v4 import load_config as v4_config
+        self.workbook([['size',4,'A','number','功能']])
+        cfg=workbook_config(self.source,v4_config(),{'size'},loader=v4_config)
+        self.assertEqual(cfg['expert']['scores']['size'],4.)
+        self.assertFalse(cfg['expert']['attribute_groups'])
 
 if __name__=='__main__':unittest.main(verbosity=2)

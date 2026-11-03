@@ -67,7 +67,8 @@ def workbook_config(source,cfg,known,loader=load_config):
         cfg['expert']['scores'].update(scores)
         if records:cfg['expert']['records']=records
         cfg['expert']['field_types'].update(types)
-        cfg['expert']['attribute_groups'].update(groups)
+        if cfg['schema_version'] in ('price-optuna-v2-pipeline-1.0','price-optuna-v3-pipeline-1.0'):
+            cfg['expert']['attribute_groups'].update(groups)
     unknown=(set(cfg['expert']['scores'])|set(cfg['expert']['field_types'])|set(cfg['expert']['attribute_groups']))-set(known)
     if unknown:raise ValueError('价格专家配置引用未知英文代号：'+','.join(sorted(unknown)))
     return loader(overrides=cfg)
