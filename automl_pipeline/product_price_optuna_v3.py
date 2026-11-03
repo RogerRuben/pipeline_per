@@ -20,7 +20,7 @@ def load_config(path=None,overrides=None):
         if not isinstance(source,dict):raise ValueError('配置须为对象：'+prefix)
         for key,value in source.items():
             if key not in target:raise ValueError('未知Optuna V3配置：'+prefix+key)
-            if isinstance(target[key],dict) and key not in ('scores','field_types'):merge(target[key],value,prefix+key+'.')
+            if isinstance(target[key],dict) and key not in ('scores','field_types','attribute_groups'):merge(target[key],value,prefix+key+'.')
             else:target[key]=copy.deepcopy(value)
     if path:merge(cfg,json.loads(Path(path).read_text(encoding='utf-8-sig')))
     if overrides:merge(cfg,overrides)

@@ -38,7 +38,6 @@ from .price_output import PriceOutputNormalizer
 from .semantic_snapshot import SemanticSnapshotService
 from .requirement_versions import RequirementVersionService, demand_fingerprint
 from .generation_profiles import public_profiles
-from .ranking_explanation import annotate_ranking_explanations
 from .relaxation_advisor import build_relaxation_suggestions
 from .deep_price.http import handle_http as handle_deep_price_http, invalidate_session as invalidate_deep_price_session
 
@@ -1548,7 +1547,6 @@ class Application(object):
             rank_historical_products(candidates, ranking_request, tag_weights, definitions=definitions, tag_map=tag_map, constraint_rules=constraint_rules)
         )
         ranked = annotate_candidate_recommendations(ranked, scenario_policy, definitions=definitions)
-        ranked = annotate_ranking_explanations(ranked, request, definitions=definitions)
         for item in ranked:
             item["scenario"] = scenario_policy["scenario"]
         analysis_fields = (

@@ -189,6 +189,9 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             optuna_config=workbook_config(source,load_optuna_config(price_config,price_overrides),{p['parameter_id'] for p in data['parameters']},loader=load_optuna_config)
             restore_configurations(data,table,optuna_config['expert']['field_types'],optuna_config['input']['missing_tokens'])
             apply_types(data,optuna_config['expert']['field_types'])
+            if price_engine in ('optuna_v2','optuna_v3'):
+                from .product_price_optuna_v2 import apply_attribute_groups
+                apply_attribute_groups(data,optuna_config)
             if price_engine=='optuna_v7':
                 from .product_price_optuna_v7 import train_price_optuna_v7
                 price_bundle,price_report=train_price_optuna_v7(data,output/"price",price_config,progress,optuna_config,input_path=source)

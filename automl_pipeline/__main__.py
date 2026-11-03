@@ -32,10 +32,18 @@ def inspect_input(source,engine,cfg):
     analyzed=HistoricalProductOnboarding().analyze(source.name,raw,'SOURCE_PRODUCT','源码输入检查',cfg['input']['missing_tokens'],require_dual_header=True)
     if not analyzed['price_column_detected']:raise ValueError('成品表须包含价格列price_wan。')
     data=analyzed['data'];cfg=workbook_config(source,cfg,{p['parameter_id'] for p in data['parameters']},loader=config_loader(engine))
+    if engine in ('optuna_v2','optuna_v3'):
+        from .product_price_optuna_v2 import apply_attribute_groups
+        apply_attribute_groups(data,cfg)
     restore_configurations(data,table,cfg['expert']['field_types'],cfg['input']['missing_tokens'])
     frame,y,specs,mappings,groups,ids=dataset(data,cfg);_,split=training_split(len(y),cfg)
     result={'status':'PASS','engine':engine,'records':len(y),'attributes':len(specs),'validation_split':split,
             'attribute_types':{p['parameter_id']:('配置类型' if p['parameter_id'] in mappings else '数值') for p in specs},'diagnostics':table['diagnostics']}
+    result['expert_configuration']={'score_precedence':'workbook > JSON > supplied/default',
+        'enabled':cfg['expert']['enabled'],'explicit_scores':len(cfg['expert']['scores']),
+        'expert_records':len(cfg['expert']['records']),
+        'default_score_fields':[p['parameter_id'] for p in specs if p['parameter_id'] not in cfg['expert']['scores']],
+        'attribute_groups':{p['parameter_id']:p.get('parameter_group','其他') for p in data['parameters']}}
     if engine=='optuna_v7':
         from services.price_service.optuna_v7.review import make_folds
         _,plan=make_folds(frame,np.arange(len(frame)),cfg)

@@ -16,7 +16,7 @@ from tools.source_provenance import source_commit
 from tools.client_kit_paths import batch_entry,MAX_KIT_ROOT_CHARS
 
 SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
-TOOLS=('client_builder.py','client_kit_paths.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
+TOOLS=('client_builder.py','client_kit_paths.py','client_workbook.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py')
 
@@ -58,8 +58,12 @@ def build(out,runtime,bootstrap,example):
     copy_tree(runtime/'Lib/site-packages',embedded/'Lib/site-packages')
     (embedded/'python38._pth').write_bytes(b'python38.zip\n.\nLib/site-packages\n../../project\nimport site\n')
     for directory in ('input','examples','settings','logs','deliverables'): (out/directory).mkdir()
-    shutil.copy2(str(example),str(out/'input/products.xlsx'))
-    shutil.copy2(str(example),str(out/'examples/products_example.xlsx'))
+    from tools.client_workbook import example_with_scores
+    sample=example_with_scores(example.read_bytes())
+    (out/'input/products.xlsx').write_bytes(sample)
+    (out/'examples/products_example.xlsx').write_bytes(sample)
+    (out/'examples/产品与评分空白模板.xlsx').write_bytes(example_with_scores(example.read_bytes(),blank=True))
+    example=out/'examples/products_example.xlsx'
     write_json(out/'examples/PROVENANCE.json',{'classification':'synthetic','source_sha256':sha(example),
                'purpose':'Offline pipeline software acceptance; no real business accuracy certification'})
     write_json(out/'settings/project.json',{'product_code':'CLIENT_PRODUCT','product_name':'甲方成品',
