@@ -400,7 +400,32 @@ class Store(object):
                 item.get("artifact_sha256"), "valid" if manifest.get("contract_valid") else "invalid", now_iso()
             ))
 
-    def runtime_parameters(self, params):
+    def _evaluation_metadata(self):
+        """Read shared business definitions once for one historical batch.
+
+        This is a request-local snapshot, never a cache of model predictions.
+        Close the read transaction before calling either HTTP model service.
+        """
+        conn = self.connect()
+        try:
+            conn.execute("BEGIN")
+            definitions = dict((row["parameter_id"], dict(row)) for row in
+                               conn.execute("SELECT * FROM parameter_definitions"))
+            tags = dict((row["tag_id"], dict(row)) for row in
+                        conn.execute("SELECT * FROM tags WHERE enabled=1"))
+            grouped = {}
+            for row in conn.execute("SELECT * FROM tag_rules WHERE enabled=1 ORDER BY tag_id,rule_group,rule_id"):
+                rule = dict(row)
+                grouped.setdefault(rule["tag_id"], {}).setdefault(rule.get("rule_group") or "default", []).append(rule)
+        finally:
+            conn.close()
+        return {
+            "definitions": definitions, "tags": tags, "tag_rule_groups": grouped,
+            "value_mappings": dict((key, _json_mapping(row.get("model_value_mapping_json")))
+                                   for key, row in definitions.items() if row.get("enabled")),
+        }
+
+    def runtime_parameters(self, params, metadata=None):
         """Prepare business parameters for a model call.
 
         Field roles (shared / effectiveness-only / price-only) are derived from
@@ -410,16 +435,18 @@ class Store(object):
         "model field binding" table is consulted.
         """
         merged = dict(params or {})
-        conn = self.connect()
-        try:
-            rows = conn.execute("SELECT parameter_id,model_value_mapping_json FROM parameter_definitions WHERE enabled=1").fetchall()
-        finally:
-            conn.close()
-        for row in rows:
-            key = row["parameter_id"]
+        if metadata is None:
+            conn = self.connect()
+            try:
+                mappings = dict((row["parameter_id"], _json_mapping(row["model_value_mapping_json"])) for row in
+                                conn.execute("SELECT parameter_id,model_value_mapping_json FROM parameter_definitions WHERE enabled=1"))
+            finally:
+                conn.close()
+        else:
+            mappings = metadata["value_mappings"]
+        for key, mapping in mappings.items():
             if key not in merged or merged[key] in (None, ""):
                 continue
-            mapping = _json_mapping(row["model_value_mapping_json"])
             if not mapping:
                 continue
             lookup = str(merged[key]).strip()
@@ -428,14 +455,17 @@ class Store(object):
                 merged[key] = normalized[lookup.lower()]
         return merged
 
-    def business_parameters(self, model_params, source_params=None):
+    def business_parameters(self, model_params, source_params=None, metadata=None):
         result = dict(source_params or {})
-        conn = self.connect()
-        try:
-            rows = conn.execute("SELECT parameter_id,model_value_mapping_json FROM parameter_definitions WHERE enabled=1").fetchall()
-        finally:
-            conn.close()
-        mappings = dict((row["parameter_id"], _json_mapping(row["model_value_mapping_json"])) for row in rows)
+        if metadata is None:
+            conn = self.connect()
+            try:
+                mappings = dict((row["parameter_id"], _json_mapping(row["model_value_mapping_json"])) for row in
+                                conn.execute("SELECT parameter_id,model_value_mapping_json FROM parameter_definitions WHERE enabled=1"))
+            finally:
+                conn.close()
+        else:
+            mappings = metadata["value_mappings"]
         for key, value in dict(model_params or {}).items():
             if key in result and result[key] not in (None, ""):
                 continue
@@ -488,7 +518,7 @@ class Store(object):
             "value2": rule.get("value2"),
         }, definitions.get(rule.get("parameter_id")))
 
-    def derive_tags(self, params, evaluation=None, inherited_tags=None):
+    def derive_tags(self, params, evaluation=None, inherited_tags=None, metadata=None):
         """Derive generated-scheme tags from DataMaster rules, never code constants."""
         evaluation = evaluation or {}
         values = dict(params or {})
@@ -497,12 +527,17 @@ class Store(object):
             "__capability_score": evaluation.get("capability_score"),
             "__feasibility_probability": evaluation.get("feasibility_probability"),
         })
-        tags = self.tag_map()
         inherited = set(inherited_tags or [])
-        definitions = self.parameter_map()
-        grouped = {}
-        for rule in self.tag_rule_rows():
-            grouped.setdefault(rule["tag_id"], {}).setdefault(rule.get("rule_group") or "default", []).append(rule)
+        if metadata is None:
+            tags = self.tag_map()
+            definitions = self.parameter_map()
+            grouped = {}
+            for rule in self.tag_rule_rows():
+                grouped.setdefault(rule["tag_id"], {}).setdefault(rule.get("rule_group") or "default", []).append(rule)
+        else:
+            tags = metadata["tags"]
+            definitions = metadata["definitions"]
+            grouped = metadata["tag_rule_groups"]
         result = []
         for tag_id, tag in tags.items():
             mode = str(tag.get("derivation_mode") or "rule").lower()
@@ -738,10 +773,11 @@ class Store(object):
             conn.close()
         if not items or not recalculate:
             return items
+        metadata = self._evaluation_metadata()
         requests = [
             {
                 "candidate_id": item["agreement_id"],
-                "parameters": self.runtime_parameters(item["params"]),
+                "parameters": self.runtime_parameters(item["params"], metadata=metadata),
                 "target_protocol": target_protocol,
                 "historical_price_wan": item.get("historical_price_wan"),
             }
@@ -764,7 +800,7 @@ class Store(object):
                 ]
             if len(evaluations) != len(items):
                 raise ValueError("历史成品批量评价返回数量与请求数量不一致。")
-            return [self._apply_agreement_evaluation(item, evaluation) for item, evaluation in zip(items, evaluations)]
+            return [self._apply_agreement_evaluation(item, evaluation, metadata=metadata) for item, evaluation in zip(items, evaluations)]
         except Exception as batch_error:
             # One incomplete legacy row must not hide the rest of the historical
             # catalog. Retry independently and keep failures as model-free rows.
@@ -775,7 +811,7 @@ class Store(object):
                         request["parameters"], target_protocol=target_protocol,
                         historical_price_wan=request.get("historical_price_wan"),
                     )
-                    result.append(self._apply_agreement_evaluation(item, evaluation))
+                    result.append(self._apply_agreement_evaluation(item, evaluation, metadata=metadata))
                 except Exception as exc:
                     preserved = dict(item)
                     preserved["model_evaluation_available"] = False
@@ -893,10 +929,10 @@ class Store(object):
             item = self._apply_agreement_evaluation(item, evaluation)
         return item
 
-    def _apply_agreement_evaluation(self, item, evaluation):
+    def _apply_agreement_evaluation(self, item, evaluation, metadata=None):
         model_parameters = dict(evaluation.get("parameters") or {})
         evaluation["model_parameters"] = model_parameters
-        evaluation["parameters"] = self.business_parameters(model_parameters, item["params"])
+        evaluation["parameters"] = self.business_parameters(model_parameters, item["params"], metadata=metadata)
         item["params"] = dict(evaluation["parameters"])
         item["predicted_price_wan"] = evaluation["predicted_price_wan"]
         item["price_interval_wan"] = evaluation["price_interval_wan"]
@@ -912,7 +948,7 @@ class Store(object):
         item["price_source"] = evaluation.get("price_source", "predicted")
         item["evaluation"] = evaluation
         item["model_evaluation_available"] = True
-        item["tags"] = self.derive_tags(item["params"], evaluation, item.get("tags") or [])
+        item["tags"] = self.derive_tags(item["params"], evaluation, item.get("tags") or [], metadata=metadata)
         return item
 
     def save_scheme(self, scheme_name, base_agreement_id, source_type, params, evaluation,
