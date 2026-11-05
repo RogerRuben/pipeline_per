@@ -18,8 +18,15 @@ import webbrowser
 
 from product.common import InstanceLock,data_directory,read_json,verify_package,write_json
 from product.windows import WorkerJob
-from product.compatibility import validate_data,check_data_root
-from product.recovery import backup_data,restore_backup
+from product.compatibility import check_data_root
+from product.recovery import backup_data, restore_backup
+from product.startup import prepare_existing
+
+
+def ask_yes_no(message):
+    """Yes continues after a backup. No leaves the userdata directory untouched."""
+    import ctypes
+    return ctypes.windll.user32.MessageBoxW(None, str(message), 'PipelinePer 启动确认', 0x24) == 6
 
 HTTP = build_opener(ProxyHandler({}))  # Loopback never goes through a system proxy.
 
@@ -122,7 +129,8 @@ def main(argv=None):
         manifest = verify_package(package,full=True)
         check_data_root(data)
         if (data/'data/protocol_demo.db').exists():
-            validate_data(package,data,manifest)
+            confirm = (lambda _message: False) if args.no_browser else ask_yes_no
+            prepare_existing(package,data,manifest,confirm)
         if args.launcher_pid:
             from product.windows import watch_parent
             watch_parent(args.launcher_pid)

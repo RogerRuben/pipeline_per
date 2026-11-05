@@ -20,8 +20,10 @@ sys.path.insert(0,str(ROOT))
 from product.common import InstanceLock,contained,data_directory,read_json,sha,verify_package,write_json
 from product.launcher import Supervisor,backup_data,fetch
 from product.worker import initialize_data
-from product.compatibility import make_contract,accept_initial,validate_data,fingerprint,check_data_root
+from product.compatibility import StartupConfirmation,make_contract,accept_initial,validate_data,fingerprint,check_data_root
 from product.recovery import restore_backup
+from product.startup import prepare_existing,run_guarded_migration
+from app.store import omit_presentation_fields
 
 
 class DesktopTests(unittest.TestCase):
@@ -155,6 +157,8 @@ class DesktopTests(unittest.TestCase):
         self.manifest['files']['release/model.pkl']='b'*64;self.seal_contract()
         state=validate_data(self.package,self.data,self.manifest)
         self.assertEqual(state['model_sha256'],'b'*64)
+        self.assertEqual(state['change_class'],'model_weights')
+        self.assertEqual(state['startup_action'],'start')
         self.assertEqual(sha(database),before)
 
     def test_same_product_changed_model_schema_is_rejected_before_database_write(self):
@@ -259,6 +263,105 @@ class DesktopTests(unittest.TestCase):
             self.assertTrue(supervisor.stopping.wait(timeout=2))
         finally:
             supervisor.server.shutdown();supervisor.server.server_close();worker.join();supervisor.job.close()
+
+
+    def _edit(self, sql, params=()):
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute(sql, params); connection.commit()
+
+    def test_display_edits_do_not_block_restart(self):
+        database=self.database(); before=database.read_bytes()
+        self._edit('ALTER TABLE parameter_definitions ADD COLUMN label TEXT')
+        self._edit('ALTER TABLE parameter_definitions ADD COLUMN display_value_mapping_json TEXT')
+        self._edit("UPDATE parameter_definitions SET label='外径', display_value_mapping_json=?", ('{"0":"无"}',))
+        with closing(sqlite3.connect(str(database))) as connection:
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['label']='外径'
+            document['parameters'][0]['display_value_mapping']={'0':'无'}
+            connection.execute("UPDATE product_releases SET release_id='REL-2', data_json=?",
+                               (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        edited=sha(database)
+        state=validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(state['change_class'],'presentation')
+        self.assertEqual(state['startup_action'],'start')
+        self.assertEqual(sha(database),edited)
+        self.assertNotEqual(database.read_bytes(),before)
+
+    def test_search_range_change_keeps_rows_and_is_backed_up_before_accept(self):
+        database=self.database()
+        self._edit('UPDATE parameter_definitions SET max_value=80')
+        edited=sha(database)
+        state=validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(state['change_class'],'generation')
+        self.assertEqual(state['startup_action'],'backup')
+        self.assertEqual(sha(database),edited)
+        prepared=prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        self.assertTrue(str(prepared['backup']).endswith('.zip'))
+        self.assertEqual(sha(database),edited)
+        self.assertEqual(validate_data(self.package,self.data,self.manifest)['change_class'],'none')
+
+    def test_english_field_rename_without_a_rule_does_not_rewrite_the_database(self):
+        database=self.database()
+        with closing(sqlite3.connect(str(database))) as connection:
+            connection.execute("UPDATE parameter_definitions SET parameter_id='diameter'")
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['parameter_id']='diameter'
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        edited=sha(database)
+        with self.assertRaisesRegex(ValueError,'不兼容'):
+            validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(sha(database),edited)
+        with closing(sqlite3.connect(str(database))) as connection:
+            self.assertEqual(connection.execute('SELECT value FROM user_sentinel').fetchone()[0],'用户保存的方案')
+
+    def test_unclassified_payload_requires_confirmation_and_can_be_declined(self):
+        database=self.database(); before=sha(database)
+        state=read_json(self.data/'delivery_state.json'); state.pop('content_snapshot')
+        write_json(self.data/'delivery_state.json',state)
+        with closing(sqlite3.connect(str(database))) as connection:
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['label']='只改了中文'
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        edited=sha(database)
+        with self.assertRaises(StartupConfirmation):
+            validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(sha(database),edited)
+        with self.assertRaisesRegex(ValueError,'已取消启动'):
+            prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        self.assertEqual(sha(database),edited)
+        accepted=prepare_existing(self.package,self.data,self.manifest,lambda _message: True)
+        self.assertEqual(accepted['change_class'],'unclassified')
+        self.assertEqual(sha(database),edited)
+        self.assertEqual(validate_data(self.package,self.data,self.manifest)['startup_action'],'start')
+
+    def test_migration_does_not_start_when_backup_fails(self):
+        self.database(); before=sha(self.data/'data/protocol_demo.db')
+        with patch('product.startup.backup_data',side_effect=ValueError('disk full')):
+            with self.assertRaisesRegex(ValueError,'disk full'):
+                run_guarded_migration(self.data,lambda connection: connection.execute("UPDATE user_sentinel SET value='x'"))
+        self.assertEqual(sha(self.data/'data/protocol_demo.db'),before)
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            self.assertEqual(connection.execute('SELECT value FROM user_sentinel').fetchone()[0],'用户保存的方案')
+
+    def test_failed_migration_restores_the_original_database(self):
+        self.database()
+        def mutate(connection):
+            connection.execute("UPDATE user_sentinel SET value='临时'")
+            raise RuntimeError('migration stopped')
+        with self.assertRaisesRegex(RuntimeError,'migration stopped'):
+            run_guarded_migration(self.data,mutate)
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            self.assertEqual(connection.execute('SELECT value FROM user_sentinel').fetchone()[0],'用户保存的方案')
+            self.assertEqual(connection.execute('PRAGMA quick_check').fetchone()[0],'ok')
+
+    def test_presentation_fields_do_not_change_the_generation_fingerprint_input(self):
+        base={'parameter_id':'size','label':'外径','description':'说明','search_type':'continuous','min_value':0}
+        renamed=dict(base,label='直径',description='另一句')
+        self.assertEqual(omit_presentation_fields(base),omit_presentation_fields(renamed))
+        self.assertNotEqual(omit_presentation_fields(base),omit_presentation_fields(dict(base,search_type='integer')))
 
 
 if __name__=='__main__':

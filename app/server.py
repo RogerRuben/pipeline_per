@@ -919,6 +919,37 @@ class Application(object):
         return {"title": self.portal_config.get("title") or "工业技术协议智能系统",
                 "services": services, "config_path": self.portal_config.get("config_path")}
 
+    def cost_effectiveness_app(self):
+        """Read-only analysis on this web server, using the current price unit."""
+        from cost_effectiveness_analysis.app import CostEffectivenessApplication
+        from cost_effectiveness_analysis.db_reader import ReadOnlySchemeRepository
+        from cost_effectiveness_analysis.embed import mount_config
+        from cost_effectiveness_analysis.model_client import CostEffectivenessModelClient
+        from app.price_output import PriceOutputNormalizer
+        contract = self._current_price_output_contract()
+        config = mount_config(self.model_config, contract, self.store.db_path)
+        if getattr(self, "_cost_effectiveness", None) is None:
+            self._cost_effectiveness = CostEffectivenessApplication(
+                self.root,
+                ReadOnlySchemeRepository(config["database"]["path"]),
+                CostEffectivenessModelClient(
+                    config["services"]["price"]["url"],
+                    config["services"]["effectiveness"]["url"],
+                    config["timeout_seconds"],
+                    config["price_output"],
+                ),
+                config,
+            )
+            return self._cost_effectiveness
+        client = self._cost_effectiveness.model_client
+        client.price_url = config["services"]["price"]["url"]
+        client.effectiveness_url = config["services"]["effectiveness"]["url"]
+        client.timeout = config["timeout_seconds"]
+        client.price_normalizer = PriceOutputNormalizer(config["price_output"])
+        self._cost_effectiveness.config["price_output"] = config["price_output"]
+        self._cost_effectiveness.config["recommendation_url"] = "/portal"
+        return self._cost_effectiveness
+
     def save_portal_config(self, request):
         """Validate and atomically replace navigation config without touching model config."""
         if not isinstance(request, dict) or not isinstance(request.get("services"), dict):
@@ -2383,12 +2414,46 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Disposition", disposition)
         self.end_headers(); self.wfile.write(data)
 
+    def _serve_cost_effectiveness(self, method, path, query=None, body=None):
+        from urllib.parse import unquote
+        from cost_effectiveness_analysis.embed import classify, content_type, read_static
+        route = classify(method, path)
+        if route is None:
+            return False
+        if route[0] == "redirect":
+            self._redirect(route[1]); return True
+        if route[0] == "missing":
+            self._json({"error": "not_found", "message": "接口不存在"}, 404); return True
+        try:
+            work = self.app.cost_effectiveness_app()
+            if route[0] == "static":
+                data = read_static(route[1])
+                self.send_response(200)
+                self.send_header("Content-Type", content_type(route[1]))
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers(); self.wfile.write(data); return True
+            if route[0] == "health":
+                payload = work.health()
+                link = payload.get("recommendation_url") or ""
+                if link.startswith("/"):
+                    host = self.headers.get("Host") or "127.0.0.1"
+                    payload["recommendation_url"] = "http://%s%s" % (host, link)
+                self._json(payload); return True
+            if route[0] == "schemes":
+                query = query or {}
+                self._json(work.list_schemes((query.get("source") or [None])[0], (query.get("search") or [None])[0])); return True
+            if route[0] == "scheme":
+                scheme = work.scheme_detail(unquote(route[1]))
+                self._json({"scheme": scheme}, 200 if scheme else 404); return True
+            request = body if isinstance(body, dict) else {}
+            self._json(work.analyze(request)); return True
+        except Exception as exc:
+            status = 400 if isinstance(exc, ValueError) else 404 if isinstance(exc, KeyError) else 503 if exc.__class__.__name__ == "DatabaseUnavailable" else 500
+            self._json({"success": False, "error": exc.__class__.__name__, "message": str(exc).strip("'\"")}, status)
+            return True
+
     def _static(self, path):
-        if path.rstrip("/") in ("/cost-effectiveness", "/cost-analysis", "/cost_effectiveness"):
-            item = (self.app.portal_config.get("services") or {}).get("cost_effectiveness_analysis") or {}
-            if item.get("enabled") and item.get("url"):
-                self._redirect(item["url"]); return
-            self._json({"error":"analysis_unavailable", "message":"效费分析台未启动，请使用统一START入口。"},503); return
         if path in ("/admin","/admin/") and self.app.disable_admin:
             self._admin_forbidden(); return
         if path in ("/login", "/login.html"): rel = "login.html"
@@ -2418,6 +2483,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._redirect(self._safe_next((query.get("next") or [""])[0]) or "/portal"); return
             if self._auth_required(path):
                 return
+            if path == "/cost-effectiveness" or path.startswith("/cost-effectiveness/"):
+                self._serve_cost_effectiveness("GET", path, query); return
             if path == "/api/auth/status":
                 self._json({
                     "auth_enabled": self.app.auth_enabled,
@@ -2526,6 +2593,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers(); self.wfile.write(data); return
             if self._auth_required(path):
                 return
+            if path == "/cost-effectiveness/api/analyze":
+                self._serve_cost_effectiveness("POST", path, body=request); return
             if self.app.demo_read_only and path in self.WRITE_PATHS:
                 self._demo_forbidden(); return
             if self.app.demo_read_only and path.startswith("/api/saved/"):

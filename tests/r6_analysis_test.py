@@ -80,6 +80,23 @@ class R6Tests(unittest.TestCase):
         self.assertEqual(result['items'][1]['change_rate_pct'],308)
         self.assertEqual(len(result['items'][1]['changed_fields']),2)
 
+    def test_importance_follows_encoded_samples_not_chinese_labels(self):
+        from app.deep_price.schema import analysis_binding_signature,bound_metadata
+        parameters=[{'parameter_id':'x','label':'旧名'}]
+        agreements=[{'agreement_id':'S0','params':{'x':1},'historical_price_wan':2}]
+        signature=analysis_binding_signature(parameters,agreements,['S0'],['x'],'abc')
+        meta={'feature_importance':{'kind':'permutation_mae_increase','model_sha256':'abc','analysis_signature':signature,
+            'analysis_keys':['x'],'sample_ids':['S0'],'items':[{'field_id':'x','label_zh':'旧名','importance':1}]}}
+        renamed={'parameters':[{'parameter_id':'x','label':'新名'}],'agreements':agreements}
+        kept=bound_metadata(meta,SimpleNamespace(release={'data_json':json.dumps(renamed)}),'abc')
+        self.assertEqual(kept['feature_importance']['items'][0]['label_zh'],'新名')
+        self.assertEqual(kept['feature_importance']['items'][0]['importance'],1)
+        moved={'parameters':[{'parameter_id':'x','label':'新名','model_value_mapping_json':{'1':0}}],'agreements':agreements}
+        self.assertIsNone(bound_metadata(meta,SimpleNamespace(release={'data_json':json.dumps(moved)}),'abc')['feature_importance'])
+        changed={'parameters':renamed['parameters'],'agreements':[{'agreement_id':'S0','params':{'x':9},'historical_price_wan':2}]}
+        self.assertIsNone(bound_metadata(meta,SimpleNamespace(release={'data_json':json.dumps(changed)}),'abc')['feature_importance'])
+        self.assertIsNone(bound_metadata(meta,SimpleNamespace(release={'data_json':json.dumps(renamed)}),'other')['feature_importance'])
+
     def test_unbound_importance_is_unavailable(self):
         snapshot=BusinessSnapshot(self.app.store)
         try:

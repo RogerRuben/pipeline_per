@@ -20,6 +20,20 @@ from .value_semantics import is_special_value, normalize_numeric
 from .recommender import filter_match
 
 
+PRESENTATION_ONLY_FIELDS = (
+    "label", "description", "adjustment_hint", "display_order", "parameter_group",
+    "decimal_places", "display_value_mapping_json",
+)
+
+
+def omit_presentation_fields(row):
+    """Drop names and layout so a display edit does not look like a new generator."""
+    item = dict(row)
+    for key in PRESENTATION_ONLY_FIELDS:
+        item.pop(key, None)
+    return item
+
+
 def now_iso():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -656,8 +670,7 @@ class Store(object):
             for table in ("parameter_definitions", "parameter_groups", "tags", "tag_rules", "indicator_couplings", "constraint_rules", "agreements"):
                 rows = [dict(row) for row in conn.execute("SELECT * FROM %s ORDER BY 1" % table)]
                 if table == "parameter_definitions":
-                    for row in rows:
-                        row.pop("display_value_mapping_json", None)
+                    rows = [omit_presentation_fields(row) for row in rows]
                 payload[table] = rows
             raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
             return hashlib.sha256(raw.encode("utf-8")).hexdigest()

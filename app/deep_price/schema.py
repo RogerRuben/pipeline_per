@@ -1,8 +1,11 @@
+import hashlib
 import json
 import math
 import re
 
 from .errors import DeepPriceError
+
+ANALYSIS_PROTOCOL = 'permutation-mae-20261102'
 
 
 def parsed(value, default):
@@ -88,14 +91,71 @@ def encode(snapshot, parameters, fields, specs):
     encoded = snapshot.codec.runtime_parameters(business)
     return business, {key: value for key, value in encoded.items() if key in specs}
 
+def _as_mapping(value):
+    if isinstance(value, str) and value:
+        value = json.loads(value)
+    return value if isinstance(value, dict) else {}
+
+
+def document_tables(data):
+    """Accept either a release document or a wrapped business package."""
+    if isinstance(data, dict) and 'parameters' not in data and isinstance(data.get('data'), dict):
+        data = data['data']
+    data = data or {}
+    return data.get('parameters') or [], data.get('agreements') or []
+
+
+def analysis_binding_signature(parameters, agreements, sample_ids, field_ids, model_sha):
+    """Bind importance to encoded sample inputs, not Chinese display names."""
+    definitions = {row.get('parameter_id'): row for row in parameters or []}
+    wanted = set(sample_ids or [])
+    rows = [row for row in agreements or [] if row.get('agreement_id') in wanted]
+    if len(rows) != len(wanted):
+        return None
+    rows.sort(key=lambda row: str(row.get('agreement_id')))
+    encoded = []
+    for row in rows:
+        values = dict(row.get('params') or {})
+        coded = {}
+        for key in field_ids or []:
+            definition = definitions.get(key) or {}
+            mapping = _as_mapping(definition.get('model_value_mapping_json') or definition.get('model_value_mapping') or {})
+            value = values.get(key)
+            if mapping:
+                value = mapping.get(str(value), value)
+            coded[key] = value
+        encoded.append({'agreement_id': row.get('agreement_id'),
+                        'historical_price_wan': row.get('historical_price_wan'), 'inputs': coded})
+    payload = {'protocol': ANALYSIS_PROTOCOL, 'model_sha256': model_sha, 'samples': encoded}
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _overlay_labels(importance, parameters):
+    definitions = {row.get('parameter_id'): row for row in parameters or []}
+    for item in importance.get('items') or []:
+        label = (definitions.get(item.get('field_id')) or {}).get('label')
+        if label:
+            item['label_zh'] = label
+
+
 def bound_metadata(metadata,snapshot,model_sha):
-    import copy,hashlib
+    import copy
     result=copy.deepcopy(metadata or {})
     value=result.get("feature_importance")
     if isinstance(value,dict) and value.get("kind")=="permutation_mae_increase":
         data=json.loads(snapshot.release["data_json"])
-        observed=hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(",",":")).encode("utf-8")).hexdigest()
-        if value.get("model_sha256")!=model_sha or value.get("business_data_sha256")!=observed:
+        parameters, agreements = document_tables(data)
+        if value.get('analysis_signature'):
+            keys = value.get('analysis_keys') or [item.get('field_id') for item in value.get('items') or []]
+            observed = analysis_binding_signature(parameters, agreements, value.get('sample_ids'), keys, model_sha)
+            mismatched = value.get('model_sha256') != model_sha or observed != value.get('analysis_signature')
+        else:
+            observed=hashlib.sha256(json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(",",":")).encode("utf-8")).hexdigest()
+            mismatched = value.get("model_sha256")!=model_sha or value.get("business_data_sha256")!=observed
+        if mismatched:
             result["feature_importance"]=None
-            result["analysis_unavailable_reason"]="重要度与当前模型或业务发布不匹配"
+            result["analysis_unavailable_reason"]="重要度与当前模型或分析样本不匹配"
+        else:
+            _overlay_labels(value, parameters)
     return result

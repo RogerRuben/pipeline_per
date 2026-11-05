@@ -94,7 +94,8 @@ def main():
         # Capture the post-sync binding state only after a successful startup.
         write_json(data/'delivery_state.json',accept_initial(data,manifest,load_contract(package,manifest)))
         # Runtime-only links: persisted configuration and prices remain untouched.
-        app.portal_config['services']['cost_effectiveness_analysis'].update(visible=False,enabled=False)
+        app.portal_config['services']['cost_effectiveness_analysis'].update(
+            visible=True, enabled=True, url='/cost-effectiveness/')
         app.portal_config['services']['desktop_control'] = {
             'label':'软件运行管理','description':'查看运行状态、重启或停止软件',
             'url':read_json(data/'runtime/control.json')['url'],'visible':True,'enabled':True}

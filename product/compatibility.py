@@ -9,6 +9,21 @@ import sqlite3
 from product.common import read_json,write_json,contained
 
 
+class StartupConfirmation(ValueError):
+    """A business publication changed in a way the saved snapshot cannot classify."""
+
+    def __init__(self, prompt, report):
+        super(StartupConfirmation, self).__init__(prompt)
+        self.prompt = prompt
+        self.report = report
+
+
+_PRESERVED = '\n现有用户数据未修改，也不会被删除。'
+_PRESENTATION_KEYS = ('label', 'description', 'adjustment_hint', 'display_order', 'parameter_group',
+                      'decimal_places', 'display_value_mapping', 'display_value_mapping_json')
+_PRODUCT_PRESENTATION = ('product_name', 'product_description')
+
+
 def fingerprint(value):
     return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,
                                     separators=(',',':'),allow_nan=False).encode('utf-8')).hexdigest()
@@ -33,6 +48,86 @@ def business_schema(snapshot):
             field[key]=decoded(row.get(key+'_json',row.get(key)),default)
         fields.append(field)
     return sorted(fields,key=lambda row:row['parameter_id'])
+
+
+def _selected(fields, model_ids):
+    rows = list(fields or [])
+    if model_ids is None:
+        return rows
+    return [row for row in rows if row.get('parameter_id') in model_ids]
+
+
+def calculation_schema(fields, model_ids=None):
+    """Model-input identity: English id, type, unit and business-to-model encoding."""
+    rows = []
+    for row in _selected(fields, model_ids):
+        rows.append({'parameter_id': row.get('parameter_id'), 'value_type': row.get('value_type'),
+                     'unit': row.get('unit') or '', 'model_value_mapping': row.get('model_value_mapping') or {}})
+    return sorted(rows, key=lambda row: str(row['parameter_id']))
+
+
+def generation_schema(fields):
+    """Search space. A change invalidates generation, but does not block startup."""
+    rows = []
+    for row in fields or []:
+        rows.append({'parameter_id': row.get('parameter_id'), 'search_type': row.get('search_type') or 'auto',
+                     'min_value': row.get('min_value'), 'max_value': row.get('max_value'),
+                     'required': bool(row.get('required', False)),
+                     'allowed_values': row.get('allowed_values') or [],
+                     'special_value_keys': row.get('special_value_keys') or []})
+    return sorted(rows, key=lambda row: str(row['parameter_id']))
+
+
+def _whole(value):
+    if value in (None, ''):
+        return None
+    return int(value)
+
+
+def presentation_parameters(rows):
+    fields = []
+    for row in rows or []:
+        if not row.get('enabled', 1):
+            continue
+        fields.append({'parameter_id': row.get('parameter_id'), 'label': row.get('label') or '',
+                       'description': row.get('description') or '', 'adjustment_hint': row.get('adjustment_hint') or '',
+                       'parameter_group': row.get('parameter_group') or '', 'display_order': _whole(row.get('display_order')),
+                       'decimal_places': _whole(row.get('decimal_places')),
+                       'display_value_mapping': decoded(row.get('display_value_mapping_json', row.get('display_value_mapping')), {})})
+    return sorted(fields, key=lambda row: str(row['parameter_id']))
+
+
+def presentation_products(rows):
+    fields = [{'product_code': row.get('product_code') or '', 'product_name': row.get('product_name') or '',
+               'product_description': row.get('product_description') or ''} for row in rows or []]
+    return sorted(fields, key=lambda row: row['product_code'])
+
+
+def substantive_document(document):
+    """Release content with display names removed, so a rename is not a data change."""
+    if not isinstance(document, dict):
+        return document
+    result = {}
+    for key, value in document.items():
+        if key == 'parameters' and isinstance(value, list):
+            result[key] = [dict((item_key, item_value) for item_key, item_value in dict(item).items()
+                                if item_key not in _PRESENTATION_KEYS) for item in value]
+        elif key == 'products' and isinstance(value, list):
+            result[key] = [dict((item_key, item_value) for item_key, item_value in dict(item).items()
+                                if item_key not in _PRODUCT_PRESENTATION) for item in value]
+        elif key in _PRODUCT_PRESENTATION:
+            continue
+        else:
+            result[key] = value
+    return result
+
+
+def model_field_ids(contract):
+    return set(row.get('field_name') for row in (contract.get('model_schema') or {}).get('fields') or [] if row.get('field_name'))
+
+
+def binding_ids(rows):
+    return set(row.get('parameter_id') for row in rows or [] if row.get('enabled', 1) != 0 and row.get('parameter_id'))
 
 
 def model_schema(schema):
@@ -108,7 +203,20 @@ def load_contract(package,manifest):
     return contract
 
 
-def inspect_database(database):
+def _snapshot_from(release_id, document, live_rows, published_schema, live_schema, model_ids):
+    return {'release_id': release_id,
+            'payload_sha256': fingerprint(document),
+            'calculation': calculation_schema(live_schema, model_ids),
+            'generation': generation_schema(live_schema),
+            'presentation': {'parameters': presentation_parameters(live_rows),
+                             'products': presentation_products(document.get('products') if isinstance(document, dict) else [])},
+            'release_presentation': {'parameters': presentation_parameters(document.get('parameters') if isinstance(document, dict) else []),
+                                     'products': presentation_products(document.get('products') if isinstance(document, dict) else [])},
+            'substantive_sha256': fingerprint(substantive_document(document)),
+            'published_calculation': calculation_schema(published_schema, model_ids)}
+
+
+def inspect_database(database, model_ids=None):
     database=Path(database).resolve()
     with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True)) as conn:
         conn.row_factory=sqlite3.Row
@@ -120,42 +228,127 @@ def inspect_database(database):
         if len(releases)!=1 or len(products)!=1 or releases[0]['product_code']!=products[0]['product_code']:
             raise ValueError('Exactly one matching active business release is required')
         release=releases[0]
-        snapshot=json.loads(release['data_json'])
-        live={'parameters':[dict(row) for row in conn.execute('SELECT * FROM parameter_definitions')]}
-        live_schema=business_schema(live)
-        if live_schema!=business_schema(snapshot):
-            raise ValueError('Live business schema differs from the activated release; explicit migration required')
+        document=json.loads(release['data_json'])
+        if not isinstance(document, dict):
+            raise ValueError('Activated release payload is not a business document')
+        live_rows=[dict(row) for row in conn.execute('SELECT * FROM parameter_definitions')]
+        live_schema=business_schema({'parameters': live_rows})
+        published_schema=business_schema(document)
         bindings=[dict(row) for row in conn.execute('SELECT * FROM model_input_bindings')]
+        compared=model_ids if model_ids else binding_ids(bindings) or None
+        if calculation_schema(live_schema, compared)!=calculation_schema(published_schema, compared):
+            raise ValueError('Live business schema differs from the activated release; explicit migration required'+_PRESERVED)
+    snapshot=_snapshot_from(release['release_id'], document, live_rows, published_schema, live_schema, compared)
     return {'product_code':products[0]['product_code'],'active_release_id':release['release_id'],
-            'active_release_payload_sha256':fingerprint(snapshot),
-            'business_schema_sha256':fingerprint(live_schema),'binding_schema_sha256':fingerprint(binding_schema(bindings))}
+            'active_release_payload_sha256':fingerprint(document),
+            'business_schema_sha256':fingerprint(live_schema),'binding_schema_sha256':fingerprint(binding_schema(bindings)),
+            'live_schema':live_schema,'content_snapshot':snapshot}
+
+
+def _incompatible(contract, current, data):
+    raise ValueError('当前运行包与已有用户数据不兼容，已停止启动以保护数据。'
+                     '\n运行包产品：'+str(contract['product_code'])+
+                     '\n已有数据产品：'+str(current['product_code'])+
+                     '\n用户数据目录：'+str(data)+
+                     '\n请使用匹配的原版本；独立测试请通过 --data-dir 指定新的空目录。'
+                     '\n模型输入字段、类型、单位或编码不一致时不能继续计算。'+_PRESERVED)
+
+
+def _calculation_changed(previous, current, model_ids):
+    stored=(previous.get('content_snapshot') or {}).get('calculation')
+    if stored is None:
+        return False
+    return stored!=calculation_schema(current['live_schema'], model_ids)
+
+
+def _classify(previous, current):
+    stored=previous.get('content_snapshot') or {}
+    current_snapshot=current['content_snapshot']
+    substantive=stored.get('substantive_sha256')!=current_snapshot['substantive_sha256']
+    generation=stored.get('generation')!=current_snapshot['generation']
+    presentation=(stored.get('presentation')!=current_snapshot['presentation'] or
+                  stored.get('release_presentation')!=current_snapshot['release_presentation'])
+    payload_changed=stored.get('payload_sha256')!=current_snapshot['payload_sha256']
+    explained=substantive or generation or presentation or not payload_changed
+    release_changed=stored.get('release_id')!=current_snapshot['release_id']
+    if release_changed and not (substantive or generation or presentation):
+        raise ValueError('Accepted business release/binding changed: active_release_id'+_PRESERVED)
+    if payload_changed and not explained:
+        report={'change_class':'unclassified','release_id':current_snapshot['release_id'],
+                'payload_sha256':current_snapshot['payload_sha256']}
+        raise StartupConfirmation('检测到业务发布内容变化，但保存的契约快照无法把它分成展示、生成或业务内容。'
+                                  '\n可以选择先备份，再把当前数据库记为新的已接受基线。'
+                                  '\n不会删除用户数据，也不能用删除整个目录作为修复。', report)
+    if substantive:
+        change_class='substantive'
+    elif generation:
+        change_class='generation'
+    elif presentation:
+        change_class='presentation'
+    elif previous.get('model_sha256') and previous.get('model_sha256')!=current.get('model_sha256'):
+        change_class='model_weights'
+    else:
+        change_class='none'
+    action='backup' if change_class in ('generation','substantive') else 'start'
+    return change_class, action
+
+
+def _legacy_state(previous, current):
+    if current['active_release_id']!=previous.get('active_release_id'):
+        raise ValueError('Accepted business release/binding changed: active_release_id'+_PRESERVED)
+    if current['business_schema_sha256']!=previous.get('business_schema_sha256'):
+        raise ValueError('Accepted business release/binding changed: business_schema_sha256'+_PRESERVED)
+    if current['binding_schema_sha256']!=previous.get('binding_schema_sha256'):
+        raise ValueError('Accepted business release/binding changed: binding_schema_sha256'+_PRESERVED)
+    if current['active_release_payload_sha256']!=previous.get('active_release_payload_sha256'):
+        report={'change_class':'unclassified','release_id':current['active_release_id'],
+                'payload_sha256':current['active_release_payload_sha256']}
+        raise StartupConfirmation('检测到业务发布指纹变化。旧的启动状态只保存了整包指纹，不能判断是中文名称还是历史协议被修改。'
+                                  '\n可以先备份，再把当前数据库记为新的已接受基线。不会删除用户数据。', report)
+
+
+def _public_state(current, manifest, contract, change_class, action):
+    return {'product_code':current['product_code'],'active_release_id':current['active_release_id'],
+            'active_release_payload_sha256':current['active_release_payload_sha256'],
+            'business_schema_sha256':current['business_schema_sha256'],
+            'binding_schema_sha256':current['binding_schema_sha256'],
+            'content_snapshot':current['content_snapshot'],
+            'format':'pipeline-userdata-contract-1.0','model_schema_sha256':contract['model_schema_sha256'],
+            'model_sha256':contract['model_sha256'],'model_version':contract['model_version'],
+            'price_basis':contract['price_basis'],'package_version':manifest['version'],
+            'change_class':change_class,'startup_action':action}
 
 
 def validate_data(package,data,manifest,contract=None):
-    """Reject before Application/Store can migrate or sync an existing database."""
+    """Reject unsafe model use before Application/Store can sync an existing database."""
     package,data=Path(package),Path(data)
     check_data_root(data)
     contract=contract or load_contract(package,manifest)
-    current=inspect_database(data/'data/protocol_demo.db')
-    if current['product_code']!=contract['product_code'] or current['business_schema_sha256']!=contract['business_schema_sha256']:
-        raise ValueError('当前运行包与已有用户数据不兼容，已停止启动以保护数据。'
-                         '\n运行包产品：'+str(contract['product_code'])+
-                         '\n已有数据产品：'+str(current['product_code'])+
-                         '\n用户数据目录：'+str(data)+
-                         '\n请使用匹配的原版本；独立测试请通过 --data-dir 指定新的空目录。'
-                         '\n同一产品的字段或价格口径变更需要明确迁移，不能覆盖旧数据库。')
+    ids=model_field_ids(contract)
+    current=inspect_database(data/'data/protocol_demo.db', ids or None)
+    if current['product_code']!=contract['product_code'] or calculation_schema(current['live_schema'], ids or None)!=calculation_schema(contract['business_schema'], ids or None):
+        _incompatible(contract, current, data)
     settings=read_json(data/'config/model_services.json')
     output=price_output(settings.get('price_output') or {})
     if output!=contract['price_basis']['raw_output']:
-        raise ValueError('Price output unit/scale differs from the delivery contract; explicit migration required')
+        raise ValueError('Price output unit/scale differs from the delivery contract; explicit migration required'+_PRESERVED)
     state_path=data/'delivery_state.json'
+    change_class, action='none', 'start'
     if state_path.exists():
         previous=read_json(state_path)
-        for key in ('active_release_id','active_release_payload_sha256','business_schema_sha256','binding_schema_sha256'):
-            if current[key]!=previous[key]:
-                raise ValueError('Accepted business release/binding changed: '+key)
-        if previous['model_schema_sha256']!=contract['model_schema_sha256'] or previous['price_basis']!=contract['price_basis']:
-            raise ValueError('Replacement model schema or price basis is incompatible')
+        if previous.get('model_schema_sha256')!=contract['model_schema_sha256'] or previous.get('price_basis')!=contract['price_basis']:
+            raise ValueError('Replacement model schema or price basis is incompatible'+_PRESERVED)
+        if current['binding_schema_sha256']!=previous.get('binding_schema_sha256'):
+            raise ValueError('Accepted business release/binding changed: binding_schema_sha256'+_PRESERVED)
+        if _calculation_changed(previous, current, ids or None):
+            raise ValueError('模型输入契约与上次接受的用户数据不一致。'+_PRESERVED+
+                             '\n没有可靠迁移规则时不会改写数据库。请保留该目录，或用 --data-dir 指定另一个空目录做独立试验。')
+        if previous.get('content_snapshot'):
+            change_class, action=_classify(dict(previous, model_sha256=previous.get('model_sha256')), dict(current, model_sha256=contract['model_sha256']))
+        else:
+            _legacy_state(previous, current)
+            if previous.get('model_sha256') and previous.get('model_sha256')!=contract['model_sha256']:
+                change_class='model_weights'
     else:
         # Legacy P4 has no model-schema state. Adopt only an explicitly checked
         # predecessor package, never infer compatibility from product_code.
@@ -167,15 +360,12 @@ def validate_data(package,data,manifest,contract=None):
                      for item in contract['compatible_legacy'])
         if not approved:
             raise ValueError('Legacy userdata has no approved predecessor; validate its original package first')
-    return dict(current,format='pipeline-userdata-contract-1.0',model_schema_sha256=contract['model_schema_sha256'],
-                model_sha256=contract['model_sha256'],model_version=contract['model_version'],
-                price_basis=contract['price_basis'],package_version=manifest['version'])
+    return _public_state(current, manifest, contract, change_class, action)
 
 
 def accept_initial(data,manifest,contract):
-    current=inspect_database(Path(data)/'data/protocol_demo.db')
-    if current['business_schema_sha256']!=contract['business_schema_sha256']:
-        raise ValueError('Seeded database differs from its delivery contract')
-    return dict(current,format='pipeline-userdata-contract-1.0',model_schema_sha256=contract['model_schema_sha256'],
-                model_sha256=contract['model_sha256'],model_version=contract['model_version'],
-                price_basis=contract['price_basis'],package_version=manifest['version'])
+    ids=model_field_ids(contract)
+    current=inspect_database(Path(data)/'data/protocol_demo.db', ids or None)
+    if calculation_schema(current['live_schema'], ids or None)!=calculation_schema(contract['business_schema'], ids or None):
+        raise ValueError('Seeded database differs from its delivery contract'+_PRESERVED)
+    return _public_state(current, manifest, contract, 'none', 'start')

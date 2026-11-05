@@ -71,5 +71,11 @@ def enrich(model, business, report):
         'model_sha256':hashlib.sha256(Path(model).read_bytes()).hexdigest(),
         'items':items,'normalization':'positive MAE increases / sum of all positive increases; negative values retained',
         'note':'发布参考样本可能参与全数据重拟合，不是独立测试或因果贡献；正值占比仅作展示。'}
+    from app.deep_price.schema import ANALYSIS_PROTOCOL, analysis_binding_signature
+    model_sha256=result['feature_importance']['model_sha256']
+    result['feature_importance'].update(
+        analysis_protocol=ANALYSIS_PROTOCOL, analysis_keys=list(keys),
+        analysis_signature=analysis_binding_signature(
+            published.get('parameters'), rows, result['feature_importance']['sample_ids'], list(keys), model_sha256))
     return result
 

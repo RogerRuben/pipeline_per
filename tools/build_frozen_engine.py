@@ -32,7 +32,7 @@ def build(out,tools):
     work=out.parent/(out.name+'_work');work.mkdir()
     memory=io.BytesIO()
     with zipfile.ZipFile(memory,'w',zipfile.ZIP_DEFLATED) as bundle:
-        for folder in ('app/static','app/defaults','product/defaults'):
+        for folder in ('app/static','app/defaults','product/defaults','cost_effectiveness_analysis/static'):
             for path in sorted((ROOT/folder).rglob('*')):
                 if path.is_file():bundle.writestr(path.relative_to(ROOT).as_posix(),path.read_bytes())
         bundle.writestr('product/control.html',(ROOT/'product/control.html').read_bytes())
@@ -43,7 +43,9 @@ def build(out,tools):
     args=['--additional-hooks-dir',str(hooks),'--noconfirm','--clean','--onedir','--windowed','--name','product','--distpath',str(work/'dist'),
           '--workpath',str(work/'cache'),'--specpath',str(work),'--paths',str(ROOT),
           '--icon',str(ROOT/'app/static/launcher.ico')]
-    for module in ('product._frozen_resources','services.price_service.optuna_v2.typed_features',
+    for module in ('product._frozen_resources','cost_effectiveness_analysis.app','cost_effectiveness_analysis.embed',
+                   'cost_effectiveness_analysis.db_reader','cost_effectiveness_analysis.model_client',
+                   'cost_effectiveness_analysis.analysis','services.price_service.optuna_v2.typed_features',
                    'services.price_service.optuna_v2.native_member','services.price_service.optuna_v2.price_automl_core',
                    'sklearn.ensemble._forest','sklearn.tree._tree','sklearn.neighbors._typedefs',
                    'sklearn.utils._weight_vector','sklearn.utils._cython_blas','sklearn.svm._libsvm',
