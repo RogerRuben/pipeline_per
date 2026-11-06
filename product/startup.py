@@ -9,7 +9,7 @@ import sqlite3
 from pathlib import Path
 
 from product.common import write_json
-from product.compatibility import StartupConfirmation, accept_initial, load_contract, validate_data
+from product.compatibility import StartupBlocked, StartupConfirmation, accept_initial, load_contract, validate_data
 from product.recovery import backup_data
 
 
@@ -25,6 +25,12 @@ def prepare_existing(package, data, manifest, confirm):
     data = Path(data)
     try:
         state = validate_data(package, data, manifest)
+    except StartupBlocked as exc:
+        if confirm(exc.prompt + '\n\n是否先备份现有数据？备份后仍不会启动，也不会改用新模型。'):
+            archive = backup_data(data)
+            record_change(data, dict(exc.report, backup=str(archive), accepted=False))
+            raise StartupBlocked(str(exc) + '\n已备份到：' + str(archive), exc.report)
+        raise
     except StartupConfirmation as exc:
         if not confirm(exc.prompt):
             raise ValueError('已取消启动，用户数据未修改。\n' + exc.prompt)
@@ -46,12 +52,26 @@ def prepare_existing(package, data, manifest, confirm):
     return state
 
 
+def _restore_database(archive, database):
+    """Put back the checkpointed database and drop a half-written WAL."""
+    import zipfile
+    with zipfile.ZipFile(str(archive)) as bundle:
+        database.write_bytes(bundle.read('data/protocol_demo.db'))
+    for suffix in ('-wal', '-shm'):
+        extra = Path(str(database) + suffix)
+        if extra.exists():
+            extra.unlink()
+
+
 def run_guarded_migration(data, mutator):
-    """Back up first. Restore the original database file if mutator fails."""
+    """Back up first. This is not the desktop startup path.
+
+    Incompatible models are refused before any migration. Restoration uses the
+    checkpoint inside the backup, then removes WAL sidecars.
+    """
     data = Path(data)
     archive = backup_data(data)
     database = data/'data/protocol_demo.db'
-    original = database.read_bytes()
     try:
         with closing(sqlite3.connect(str(database))) as connection:
             mutator(connection)
@@ -59,6 +79,6 @@ def run_guarded_migration(data, mutator):
             if connection.execute('PRAGMA quick_check').fetchone()[0] != 'ok':
                 raise ValueError('Migration left the database unreadable')
     except Exception:
-        database.write_bytes(original)
+        _restore_database(archive, database)
         raise
     return archive

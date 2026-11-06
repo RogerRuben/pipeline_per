@@ -157,5 +157,6 @@ def bound_metadata(metadata,snapshot,model_sha):
             result["feature_importance"]=None
             result["analysis_unavailable_reason"]="重要度与当前模型或分析样本不匹配"
         else:
-            _overlay_labels(value, parameters)
+            live = getattr(snapshot, 'definitions', None)
+            _overlay_labels(value, live or parameters)
     return result

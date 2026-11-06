@@ -90,6 +90,10 @@ class R6Tests(unittest.TestCase):
         renamed={'parameters':[{'parameter_id':'x','label':'新名'}],'agreements':agreements}
         kept=bound_metadata(meta,SimpleNamespace(release={'data_json':json.dumps(renamed)}),'abc')
         self.assertEqual(kept['feature_importance']['items'][0]['label_zh'],'新名')
+        live=SimpleNamespace(release={'data_json':json.dumps({'parameters':[{'parameter_id':'x','label':'旧名'}],'agreements':agreements})},
+                             definitions=[{'parameter_id':'x','label':'现在的名称'}])
+        shown=bound_metadata(meta,live,'abc')
+        self.assertEqual(shown['feature_importance']['items'][0]['label_zh'],'现在的名称')
         self.assertEqual(kept['feature_importance']['items'][0]['importance'],1)
         moved={'parameters':[{'parameter_id':'x','label':'新名','model_value_mapping_json':{'1':0}}],'agreements':agreements}
         self.assertIsNone(bound_metadata(meta,SimpleNamespace(release={'data_json':json.dumps(moved)}),'abc')['feature_importance'])

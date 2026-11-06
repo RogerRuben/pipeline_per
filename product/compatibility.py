@@ -18,6 +18,15 @@ class StartupConfirmation(ValueError):
         self.report = report
 
 
+class StartupBlocked(ValueError):
+    """The new model cannot use this database. Data stays unchanged."""
+
+    def __init__(self, prompt, report=None):
+        super(StartupBlocked, self).__init__(prompt)
+        self.prompt = prompt
+        self.report = report or {'change_class': 'incompatible'}
+
+
 _PRESERVED = '\n现有用户数据未修改，也不会被删除。'
 _PRESENTATION_KEYS = ('label', 'description', 'adjustment_hint', 'display_order', 'parameter_group',
                       'decimal_places', 'display_value_mapping', 'display_value_mapping_json')
@@ -122,8 +131,36 @@ def substantive_document(document):
     return result
 
 
+def _schema_field_names(schema):
+    return set(row.get('field_name') for row in (schema or {}).get('fields') or [] if row.get('field_name'))
+
+
 def model_field_ids(contract):
-    return set(row.get('field_name') for row in (contract.get('model_schema') or {}).get('fields') or [] if row.get('field_name'))
+    """Price inputs and effectiveness-only inputs. Display-only fields stay out."""
+    return _schema_field_names(contract.get('model_schema')) | _schema_field_names(contract.get('effectiveness_schema'))
+
+
+def effectiveness_schema_from_document(raw):
+    """Read field identity from an effectiveness bundle without loading the model."""
+    if not isinstance(raw, dict):
+        return None
+    features = ((raw.get('schema') or {}).get('features') or raw.get('features') or [])
+    fields = []
+    seen = set()
+    for spec in features:
+        if not isinstance(spec, dict):
+            continue
+        key = spec.get('key') or spec.get('field_name')
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        fields.append({'field_name': key, 'dtype': spec.get('dtype') or spec.get('type') or 'number',
+                       'unit': spec.get('unit') or '', 'allowed_values': spec.get('allowed_values') or [],
+                       'required': bool(spec.get('required', True))})
+    if not fields:
+        return None
+    return {'feature_order': [row['field_name'] for row in fields],
+            'fields': sorted(fields, key=lambda row: row['field_name'])}
 
 
 def binding_ids(rows):
@@ -163,21 +200,25 @@ def check_data_root(data):
         raise ValueError('Initialized installation has lost its database; restore a backup instead of reseeding')
 
 
-def make_contract(schema,business,model_sha,price_output):
+def _check_model_fields(model, definitions):
+    numeric = {'number', 'integer', 'boolean', 'ip_grade'}
+    for row in model['fields']:
+        definition = definitions.get(row['field_name'])
+        if not definition:
+            raise ValueError('Model field missing from published business: ' + row['field_name'])
+        if row.get('unit') and definition['unit'] and row['unit'] != definition['unit']:
+            raise ValueError('Model/business unit mismatch: ' + row['field_name'])
+        actual, expected = definition['value_type'], row.get('dtype')
+        if expected and actual != expected and not {actual, expected} <= numeric:
+            raise ValueError('Model/business type mismatch: ' + row['field_name'])
+
+
+def make_contract(schema,business,model_sha,price_output,effectiveness_schema=None):
     model=model_schema(schema)
     fields=business_schema(business['data'])
     definitions={row['parameter_id']:row for row in fields}
-    for row in model['fields']:
-        definition=definitions.get(row['field_name'])
-        if not definition:
-            raise ValueError('Model field missing from published business: '+row['field_name'])
-        if row['unit'] and definition['unit'] and row['unit']!=definition['unit']:
-            raise ValueError('Model/business unit mismatch: '+row['field_name'])
-        actual,expected=definition['value_type'],row['dtype']
-        numeric={'number','integer','boolean','ip_grade'}
-        if actual!=expected and not {actual,expected}<=numeric:
-            raise ValueError('Model/business type mismatch: '+row['field_name'])
-    return {'format':'pipeline-delivery-contract-1.0','product_code':business['product_code'],
+    _check_model_fields(model, definitions)
+    contract={'format':'pipeline-delivery-contract-1.0','product_code':business['product_code'],
             'model_sha256':model_sha,'model_version':schema['model_version'],
             'model_schema':model,'model_schema_sha256':fingerprint(model),
             'business_schema_sha256':fingerprint(fields),'business_schema':fields,
@@ -185,6 +226,13 @@ def make_contract(schema,business,model_sha,price_output):
             'business_package_payload_sha256':business['payload_sha256'],
             'price_basis':{'kind':'model_unit_price','raw_output':price_output,'normalized_unit':'wan_yuan'},
             'compatible_legacy':[]}
+    if effectiveness_schema:
+        effect=effectiveness_schema if 'fields' in effectiveness_schema and 'feature_order' in effectiveness_schema else effectiveness_schema_from_document(effectiveness_schema)
+        if effect:
+            _check_model_fields(effect, definitions)
+            contract['effectiveness_schema']=effect
+            contract['effectiveness_schema_sha256']=fingerprint(effect)
+    return contract
 
 
 def load_contract(package,manifest):
@@ -199,6 +247,8 @@ def load_contract(package,manifest):
     if (fingerprint(contract['model_schema'])!=contract['model_schema_sha256'] or
         fingerprint(contract['business_schema'])!=contract['business_schema_sha256'] or
         contract['product_code']!=manifest['release']['product_code']):
+        raise ValueError('Delivery contract fingerprints/product are inconsistent')
+    if contract.get('effectiveness_schema') is not None and fingerprint(contract['effectiveness_schema'])!=contract.get('effectiveness_schema_sha256'):
         raise ValueError('Delivery contract fingerprints/product are inconsistent')
     return contract
 
@@ -238,15 +288,88 @@ def inspect_database(database, model_ids=None):
         compared=model_ids if model_ids else binding_ids(bindings) or None
         if calculation_schema(live_schema, compared)!=calculation_schema(published_schema, compared):
             raise ValueError('Live business schema differs from the activated release; explicit migration required'+_PRESERVED)
+        audited=_release_audited(conn, release['release_id'])
     snapshot=_snapshot_from(release['release_id'], document, live_rows, published_schema, live_schema, compared)
     return {'product_code':products[0]['product_code'],'active_release_id':release['release_id'],
             'active_release_payload_sha256':fingerprint(document),
             'business_schema_sha256':fingerprint(live_schema),'binding_schema_sha256':fingerprint(binding_schema(bindings)),
-            'live_schema':live_schema,'content_snapshot':snapshot}
+            'live_schema':live_schema,'content_snapshot':snapshot,
+            'release_document':document,'release_audited':audited,
+            'integrity_errors':release_integrity_errors(document, compared)}
+
+
+def _release_audited(conn, release_id):
+    names=set(row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))
+    if 'audit_log' not in names:
+        return False
+    row=conn.execute("SELECT 1 FROM audit_log WHERE object_type=? AND object_id=? AND action IN ('activate','update') LIMIT 1",
+                     ('product_release', str(release_id))).fetchone()
+    return row is not None
+
+
+def release_integrity_errors(document, model_ids):
+    """Structure only. A matching hash is not proof that the publication is valid."""
+    errors=[]
+    parameters=document.get('parameters') if isinstance(document, dict) else None
+    if not isinstance(parameters, list):
+        return ['missing-parameters']
+    ids=[]
+    for row in parameters:
+        if not isinstance(row, dict) or not row.get('parameter_id'):
+            errors.append('missing-parameter-id')
+            continue
+        ids.append(row['parameter_id'])
+    if len(ids)!=len(set(ids)):
+        errors.append('duplicate-parameter-id')
+    known=set(ids)
+    for key in sorted(model_ids or []):
+        if key not in known:
+            errors.append('model-field-missing:'+str(key))
+    for item in document.get('agreements') or []:
+        params=item.get('params') if isinstance(item, dict) else None
+        if not isinstance(params, dict):
+            errors.append('bad-agreement')
+            continue
+        if any(key not in known for key in params):
+            errors.append('unknown-agreement-field')
+    return errors
+
+
+def _mapped(mapping, value):
+    if not mapping:
+        return False
+    text=str(value).strip()
+    return text in mapping or str(value) in mapping
+
+
+def encoding_gaps(live_fields, contract, model_ids):
+    """A new business value must already have a model code. Otherwise prediction is unsafe."""
+    specs={}
+    for source in (contract.get('effectiveness_schema'), contract.get('model_schema')):
+        for row in (source or {}).get('fields') or []:
+            specs.setdefault(row.get('field_name'), []).append(row)
+    by_id={row.get('parameter_id'): row for row in live_fields or []}
+    gaps=[]
+    for key in sorted(model_ids or []):
+        business=by_id.get(key) or {}
+        mapping=business.get('model_value_mapping') or {}
+        allowed=business.get('allowed_values') or []
+        for spec in specs.get(key) or []:
+            model_allowed=spec.get('allowed_values') or []
+            categories=spec.get('category_mapping') or {}
+            accepted=set(str(item).strip() for item in list(model_allowed)+list(categories))
+            for value in allowed:
+                if _mapped(mapping, value):
+                    continue
+                if mapping or (accepted and str(value).strip() not in accepted and value not in model_allowed):
+                    gaps.append('%s:%s'%(key, value))
+        if any(bool(spec.get('required')) for spec in specs.get(key) or []) and not business.get('required'):
+            gaps.append(key+':required')
+    return gaps
 
 
 def _incompatible(contract, current, data):
-    raise ValueError('当前运行包与已有用户数据不兼容，已停止启动以保护数据。'
+    raise StartupBlocked('当前运行包与已有用户数据不兼容，已停止启动以保护数据。'
                      '\n运行包产品：'+str(contract['product_code'])+
                      '\n已有数据产品：'+str(current['product_code'])+
                      '\n用户数据目录：'+str(data)+
@@ -280,6 +403,14 @@ def _classify(previous, current):
                                   '\n可以选择先备份，再把当前数据库记为新的已接受基线。'
                                   '\n不会删除用户数据，也不能用删除整个目录作为修复。', report)
     if substantive:
+        if current.get('integrity_errors'):
+            raise StartupBlocked('业务发布内容不完整或引用了未知字段，不能接受为新的启动基线。'+_PRESERVED+
+                                 '\n'+'、'.join(current.get('integrity_errors') or []),
+                                 {'change_class':'substantive_invalid','errors':current.get('integrity_errors')})
+        if not current.get('release_audited'):
+            raise StartupConfirmation('业务发布内容有变化，但没有管理界面的保存记录。请先确认这是你自己的修改。'
+                                      '\n确认后会先备份，再把它记为新的基线。不会删除用户数据。',
+                                      {'change_class':'substantive_unreviewed','release_id':current_snapshot['release_id']})
         change_class='substantive'
     elif generation:
         change_class='generation'
@@ -331,18 +462,21 @@ def validate_data(package,data,manifest,contract=None):
     settings=read_json(data/'config/model_services.json')
     output=price_output(settings.get('price_output') or {})
     if output!=contract['price_basis']['raw_output']:
-        raise ValueError('Price output unit/scale differs from the delivery contract; explicit migration required'+_PRESERVED)
+        raise StartupBlocked('Price output unit/scale differs from the delivery contract; explicit migration required'+_PRESERVED)
     state_path=data/'delivery_state.json'
     change_class, action='none', 'start'
     if state_path.exists():
         previous=read_json(state_path)
         if previous.get('model_schema_sha256')!=contract['model_schema_sha256'] or previous.get('price_basis')!=contract['price_basis']:
-            raise ValueError('Replacement model schema or price basis is incompatible'+_PRESERVED)
+            raise StartupBlocked('Replacement model schema or price basis is incompatible'+_PRESERVED)
         if current['binding_schema_sha256']!=previous.get('binding_schema_sha256'):
-            raise ValueError('Accepted business release/binding changed: binding_schema_sha256'+_PRESERVED)
+            raise StartupBlocked('Accepted business release/binding changed: binding_schema_sha256'+_PRESERVED)
         if _calculation_changed(previous, current, ids or None):
-            raise ValueError('模型输入契约与上次接受的用户数据不一致。'+_PRESERVED+
+            raise StartupBlocked('模型输入契约与上次接受的用户数据不一致。'+_PRESERVED+
                              '\n没有可靠迁移规则时不会改写数据库。请保留该目录，或用 --data-dir 指定另一个空目录做独立试验。')
+        gaps=encoding_gaps(current['live_schema'], contract, ids)
+        if gaps:
+            raise StartupBlocked('新增的业务取值还不能交给当前模型计算：'+'、'.join(gaps)+_PRESERVED)
         if previous.get('content_snapshot'):
             change_class, action=_classify(dict(previous, model_sha256=previous.get('model_sha256')), dict(current, model_sha256=contract['model_sha256']))
         else:

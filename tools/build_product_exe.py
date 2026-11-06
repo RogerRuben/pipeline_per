@@ -12,7 +12,7 @@ from tools.verify_v3_release import preflight
 from tools.bind_price_evaluation_metadata import bind
 from tools.build_frozen_engine import engine_sources
 from tools.source_provenance import source_commit
-from product.compatibility import make_contract
+from product.compatibility import effectiveness_schema_from_document, make_contract
 from product.desktop_config import template_config,validate_config
 
 FORBIDDEN={'.py','.pyw','.ipynb','.pdb','.spec','.c','.cpp','.h','.bat','.ps1'}
@@ -61,7 +61,8 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     observed={'health':service.health(),'schema':service.schema()}
     write_json(stamp/'model_preflight.json',observed)
     contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
-                           {'unit':'wan_yuan','scale':1.0})
+                           {'unit':'wan_yuan','scale':1.0},
+                           effectiveness_schema=effectiveness_schema_from_document(read_json(artifacts['effectiveness_model'])))
     for legacy_dir in legacy_packages:
         old=verify_package(legacy_dir,True)
         if old['files'][old['release']['price_model']]!=contract['model_sha256'] or old['files'][old['release']['business_package']]!=sha(artifacts['business_package']):
