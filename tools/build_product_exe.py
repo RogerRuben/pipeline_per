@@ -60,9 +60,11 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     service=PriceService(release/'price_native_bundle.pkl',None,evaluation_metadata=release/'evaluation_metadata.json')
     observed={'health':service.health(),'schema':service.schema()}
     write_json(stamp/'model_preflight.json',observed)
+    effect_raw=read_json(artifacts['effectiveness_model'])
     contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
                            {'unit':'wan_yuan','scale':1.0},
-                           effectiveness_schema=effectiveness_schema_from_document(read_json(artifacts['effectiveness_model'])))
+                           effectiveness_schema=effectiveness_schema_from_document(effect_raw),
+                           effectiveness_model_sha=sha(artifacts['effectiveness_model']))
     for legacy_dir in legacy_packages:
         old=verify_package(legacy_dir,True)
         if old['files'][old['release']['price_model']]!=contract['model_sha256'] or old['files'][old['release']['business_package']]!=sha(artifacts['business_package']):

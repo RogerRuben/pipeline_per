@@ -436,6 +436,77 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(read_json(self.data/'delivery_state.json')['model_schema_sha256'],accepted)
         self.assertTrue(any(self.data.joinpath('backups').glob('backup-*.zip')))
 
+    def test_v4_effectiveness_bundle_is_part_of_the_contract(self):
+        from product.compatibility import effectiveness_schema_from_document
+        raw=json.loads((ROOT/'tests/fixtures/contract4_model_pair/effectiveness_bundle.json').read_text(encoding='utf-8'))
+        schema=effectiveness_schema_from_document(raw)
+        fields=dict((row['field_name'], row) for row in schema['fields'])
+        self.assertIn('retention_force', fields)
+        self.assertEqual(fields['retention_force']['unit'], 'kN')
+        self.assertEqual(fields['retention_force']['missing_policy'], 'reject')
+        self.assertGreater(len(schema['fields']), 1)
+        with self.assertRaisesRegex(ValueError, '没有可校验的输入字段'):
+            effectiveness_schema_from_document({})
+
+    def test_old_price_only_snapshot_accepts_unchanged_effectiveness_fields(self):
+        self.database()
+        duty={'parameter_id':'duty','unit':'%','value_type':'number','search_type':'continuous','required':1,'enabled':1,'min_value':0,'max_value':100}
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('INSERT INTO parameter_definitions VALUES(?,?,?,?,?,?,?,?)',
+                               tuple(duty[key] for key in ('parameter_id','unit','value_type','search_type','required','enabled','min_value','max_value')))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'].append(duty)
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        self.business['data']['parameters'].append(duty)
+        effect={'feature_order':['duty'],'fields':[{'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}]}
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0}, effectiveness_schema=effect)
+        self.seal_contract()
+        state=accept_initial(self.data, self.manifest, self.contract)
+        state['content_snapshot']['calculation']=[row for row in state['content_snapshot']['calculation'] if row['parameter_id']=='size']
+        state['content_snapshot'].pop('calculation_version', None)
+        state['content_snapshot'].pop('price_calculation', None)
+        state['content_snapshot'].pop('effectiveness_calculation', None)
+        state.pop('effectiveness_schema_sha256', None)
+        write_json(self.data/'delivery_state.json', state)
+        result=validate_data(self.package, self.data, self.manifest)
+        self.assertEqual(result['startup_action'], 'start')
+        self.assertIn(result['change_class'], ('none', 'model_weights'))
+
+    def test_direct_legal_values_survive_an_alias_map_but_bad_codes_do_not(self):
+        from product.compatibility import encoding_gaps
+        contract={'model_schema':{'fields':[{'field_name':'flag','dtype':'integer','allowed_values':[0,1],'required':True,
+                                             'category_mapping':{}}]},
+                  'effectiveness_schema':{'fields':[{'field_name':'flag','dtype':'integer','allowed_values':[0,1],'required':True}]}}
+        bad=[{'parameter_id':'flag','required':True,'allowed_values':['有','无'],'model_value_mapping':{'有':1,'无':99}}]
+        gaps=encoding_gaps(bad, contract, {'flag'})
+        self.assertTrue(any('无' in item and '99' in item for item in gaps))
+        good=[{'parameter_id':'flag','required':True,'allowed_values':[0,1],'model_value_mapping':{'有':1}}]
+        self.assertEqual(encoding_gaps(good, contract, {'flag'}), [])
+
+    def test_old_activation_does_not_approve_a_later_database_edit(self):
+        self.database()
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute("CREATE TABLE audit_log(id INTEGER PRIMARY KEY, action TEXT, object_type TEXT, object_id TEXT, detail_json TEXT, created_at TEXT)")
+            connection.execute("INSERT INTO audit_log(action,object_type,object_id,detail_json,created_at) VALUES('activate','product_release','REL-1','{}','2026-01-01')")
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['agreements']=[{'agreement_id':'S1','params':{'size':1}}]
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        with self.assertRaises(StartupConfirmation):
+            validate_data(self.package, self.data, self.manifest)
+        from product.compatibility import substantive_document
+        digest=fingerprint(substantive_document(document))
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute("INSERT INTO audit_log(action,object_type,object_id,detail_json,created_at) VALUES('update','product_release','REL-1',?,'2026-01-02')",
+                               (json.dumps({'substantive_sha256':digest}),))
+            connection.commit()
+        result=validate_data(self.package, self.data, self.manifest)
+        self.assertEqual(result['change_class'], 'substantive')
+        self.assertEqual(result['startup_action'], 'backup')
+
     def test_presentation_fields_do_not_change_the_generation_fingerprint_input(self):
         base={'parameter_id':'size','label':'外径','description':'说明','search_type':'continuous','min_value':0}
         renamed=dict(base,label='直径',description='另一句')

@@ -140,27 +140,60 @@ def model_field_ids(contract):
     return _schema_field_names(contract.get('model_schema')) | _schema_field_names(contract.get('effectiveness_schema'))
 
 
+def _effect_sources(raw):
+    features = []
+    schema = raw.get('schema') if isinstance(raw.get('schema'), dict) else {}
+    for source in (schema.get('features'), raw.get('features'), raw.get('feature_schema')):
+        if isinstance(source, list) and source:
+            features = source
+            break
+    bindings = {}
+    for row in raw.get('model_input_bindings') or []:
+        if isinstance(row, dict) and row.get('field_name'):
+            bindings[row['field_name']] = row
+    return features, bindings
+
+
+def _effect_field(spec, binding):
+    key = spec.get('field_name') or spec.get('key') or binding.get('field_name')
+    return {'field_name': key,
+            'dtype': spec.get('dtype') or spec.get('type') or binding.get('dtype') or 'number',
+            'unit': spec.get('unit') if spec.get('unit') not in (None, '') else binding.get('unit') or '',
+            'required': bool(spec.get('required', binding.get('required', True))),
+            'missing_policy': spec.get('missing_policy') or binding.get('missing_policy') or 'reject',
+            'allowed_values': spec.get('allowed_values') or binding.get('allowed_values') or [],
+            'category_mapping': spec.get('category_mapping') or binding.get('category_mapping') or {},
+            'source': spec.get('source') or binding.get('source_type') or '',
+            'parser': spec.get('parser') or binding.get('parser') or ''}
+
+
 def effectiveness_schema_from_document(raw):
-    """Read field identity from an effectiveness bundle without loading the model."""
+    """Read V3 features or a V4 feature_schema. A bundle with no fields is an error."""
     if not isinstance(raw, dict):
-        return None
-    features = ((raw.get('schema') or {}).get('features') or raw.get('features') or [])
+        raise ValueError('效能模型没有可校验的输入字段')
+    features, bindings = _effect_sources(raw)
     fields = []
     seen = set()
     for spec in features:
         if not isinstance(spec, dict):
             continue
-        key = spec.get('key') or spec.get('field_name')
+        key = spec.get('field_name') or spec.get('key')
         if not key or key in seen:
             continue
         seen.add(key)
-        fields.append({'field_name': key, 'dtype': spec.get('dtype') or spec.get('type') or 'number',
-                       'unit': spec.get('unit') or '', 'allowed_values': spec.get('allowed_values') or [],
-                       'required': bool(spec.get('required', True))})
+        fields.append(_effect_field(spec, bindings.get(key) or {}))
     if not fields:
-        return None
-    return {'feature_order': [row['field_name'] for row in fields],
-            'fields': sorted(fields, key=lambda row: row['field_name'])}
+        for key, binding in sorted(bindings.items()):
+            if key in seen:
+                continue
+            seen.add(key)
+            fields.append(_effect_field(binding, binding))
+    if not fields:
+        raise ValueError('效能模型没有可校验的输入字段')
+    order = [row['field_name'] for row in fields]
+    if len(order) != len(set(order)):
+        raise ValueError('Effectiveness schema has duplicate fields')
+    return {'feature_order': order, 'fields': sorted(fields, key=lambda row: row['field_name'])}
 
 
 def binding_ids(rows):
@@ -213,7 +246,7 @@ def _check_model_fields(model, definitions):
             raise ValueError('Model/business type mismatch: ' + row['field_name'])
 
 
-def make_contract(schema,business,model_sha,price_output,effectiveness_schema=None):
+def make_contract(schema,business,model_sha,price_output,effectiveness_schema=None,effectiveness_model_sha=None):
     model=model_schema(schema)
     fields=business_schema(business['data'])
     definitions={row['parameter_id']:row for row in fields}
@@ -225,13 +258,18 @@ def make_contract(schema,business,model_sha,price_output,effectiveness_schema=No
             'business_source_release_id':business['source_release_id'],
             'business_package_payload_sha256':business['payload_sha256'],
             'price_basis':{'kind':'model_unit_price','raw_output':price_output,'normalized_unit':'wan_yuan'},
+            'calculation_version':2,
             'compatible_legacy':[]}
-    if effectiveness_schema:
-        effect=effectiveness_schema if 'fields' in effectiveness_schema and 'feature_order' in effectiveness_schema else effectiveness_schema_from_document(effectiveness_schema)
-        if effect:
-            _check_model_fields(effect, definitions)
-            contract['effectiveness_schema']=effect
-            contract['effectiveness_schema_sha256']=fingerprint(effect)
+    if effectiveness_schema is not None:
+        if isinstance(effectiveness_schema, dict) and 'fields' in effectiveness_schema and 'feature_order' in effectiveness_schema:
+            effect=effectiveness_schema
+        else:
+            effect=effectiveness_schema_from_document(effectiveness_schema)
+        _check_model_fields(effect, definitions)
+        contract['effectiveness_schema']=effect
+        contract['effectiveness_schema_sha256']=fingerprint(effect)
+        if effectiveness_model_sha:
+            contract['effectiveness_model_sha256']=effectiveness_model_sha
     return contract
 
 
@@ -253,20 +291,25 @@ def load_contract(package,manifest):
     return contract
 
 
-def _snapshot_from(release_id, document, live_rows, published_schema, live_schema, model_ids):
+def _snapshot_from(release_id, document, live_rows, published_schema, live_schema, price_ids, effect_ids):
+    union=set(price_ids or [])|set(effect_ids or [])
+    compared=union or None
     return {'release_id': release_id,
             'payload_sha256': fingerprint(document),
-            'calculation': calculation_schema(live_schema, model_ids),
+            'calculation_version': 2,
+            'calculation': calculation_schema(live_schema, compared),
+            'price_calculation': calculation_schema(live_schema, price_ids or None),
+            'effectiveness_calculation': calculation_schema(live_schema, effect_ids) if effect_ids else [],
             'generation': generation_schema(live_schema),
             'presentation': {'parameters': presentation_parameters(live_rows),
                              'products': presentation_products(document.get('products') if isinstance(document, dict) else [])},
             'release_presentation': {'parameters': presentation_parameters(document.get('parameters') if isinstance(document, dict) else []),
                                      'products': presentation_products(document.get('products') if isinstance(document, dict) else [])},
             'substantive_sha256': fingerprint(substantive_document(document)),
-            'published_calculation': calculation_schema(published_schema, model_ids)}
+            'published_calculation': calculation_schema(published_schema, compared)}
 
 
-def inspect_database(database, model_ids=None):
+def inspect_database(database, model_ids=None, price_ids=None, effect_ids=None):
     database=Path(database).resolve()
     with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True)) as conn:
         conn.row_factory=sqlite3.Row
@@ -285,11 +328,17 @@ def inspect_database(database, model_ids=None):
         live_schema=business_schema({'parameters': live_rows})
         published_schema=business_schema(document)
         bindings=[dict(row) for row in conn.execute('SELECT * FROM model_input_bindings')]
-        compared=model_ids if model_ids else binding_ids(bindings) or None
+        if price_ids is None and effect_ids is None:
+            price_ids=model_ids if model_ids else binding_ids(bindings)
+            effect_ids=set()
+        price_ids=set(price_ids or [])
+        effect_ids=set(effect_ids or [])
+        compared=price_ids|effect_ids or None
         if calculation_schema(live_schema, compared)!=calculation_schema(published_schema, compared):
             raise ValueError('Live business schema differs from the activated release; explicit migration required'+_PRESERVED)
-        audited=_release_audited(conn, release['release_id'])
-    snapshot=_snapshot_from(release['release_id'], document, live_rows, published_schema, live_schema, compared)
+        digest=fingerprint(substantive_document(document))
+        audited=_release_audited(conn, release['release_id'], digest)
+    snapshot=_snapshot_from(release['release_id'], document, live_rows, published_schema, live_schema, price_ids, effect_ids)
     return {'product_code':products[0]['product_code'],'active_release_id':release['release_id'],
             'active_release_payload_sha256':fingerprint(document),
             'business_schema_sha256':fingerprint(live_schema),'binding_schema_sha256':fingerprint(binding_schema(bindings)),
@@ -298,13 +347,21 @@ def inspect_database(database, model_ids=None):
             'integrity_errors':release_integrity_errors(document, compared)}
 
 
-def _release_audited(conn, release_id):
+def _release_audited(conn, release_id, substantive_sha256):
+    """An old activate row does not approve content that was edited afterwards."""
     names=set(row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))
     if 'audit_log' not in names:
         return False
-    row=conn.execute("SELECT 1 FROM audit_log WHERE object_type=? AND object_id=? AND action IN ('activate','update') LIMIT 1",
-                     ('product_release', str(release_id))).fetchone()
-    return row is not None
+    rows=conn.execute("SELECT detail_json FROM audit_log WHERE object_type=? AND object_id=? AND action IN ('activate','update')",
+                      ('product_release', str(release_id))).fetchall()
+    for row in rows:
+        try:
+            detail=json.loads(row[0] or '{}')
+        except (TypeError, ValueError):
+            detail={}
+        if isinstance(detail, dict) and detail.get('substantive_sha256')==substantive_sha256:
+            return True
+    return False
 
 
 def release_integrity_errors(document, model_ids):
@@ -335,15 +392,52 @@ def release_integrity_errors(document, model_ids):
     return errors
 
 
-def _mapped(mapping, value):
-    if not mapping:
-        return False
-    text=str(value).strip()
-    return text in mapping or str(value) in mapping
+def _runtime_code(value, mapping):
+    """Map a business value when a code exists. Otherwise the value itself is the input."""
+    if isinstance(mapping, dict) and mapping:
+        text=str(value).strip()
+        if text in mapping:
+            return mapping[text]
+        if str(value) in mapping:
+            return mapping[str(value)]
+    return value
+
+
+def _accepted_codes(spec):
+    codes=set()
+    for item in spec.get('allowed_values') or []:
+        codes.add(item)
+        codes.add(str(item).strip())
+    categories=spec.get('category_mapping') or {}
+    if isinstance(categories, dict):
+        for key, val in categories.items():
+            codes.add(key)
+            codes.add(str(key).strip())
+            codes.add(val)
+            codes.add(str(val).strip())
+    return codes
+
+
+def _code_accepted(code, spec):
+    accepted=_accepted_codes(spec)
+    if accepted:
+        return code in accepted or str(code).strip() in accepted
+    dtype=str(spec.get('dtype') or '')
+    if dtype in ('number', 'integer', 'float', 'boolean', 'ip_grade'):
+        if isinstance(code, bool):
+            return dtype in ('boolean', 'integer', 'number')
+        if isinstance(code, (int, float)):
+            return True
+        try:
+            float(str(code).strip())
+            return True
+        except (TypeError, ValueError):
+            return False
+    return True
 
 
 def encoding_gaps(live_fields, contract, model_ids):
-    """A new business value must already have a model code. Otherwise prediction is unsafe."""
+    """Check the value each model will actually receive, for price and effectiveness separately."""
     specs={}
     for source in (contract.get('effectiveness_schema'), contract.get('model_schema')):
         for row in (source or {}).get('fields') or []:
@@ -355,14 +449,10 @@ def encoding_gaps(live_fields, contract, model_ids):
         mapping=business.get('model_value_mapping') or {}
         allowed=business.get('allowed_values') or []
         for spec in specs.get(key) or []:
-            model_allowed=spec.get('allowed_values') or []
-            categories=spec.get('category_mapping') or {}
-            accepted=set(str(item).strip() for item in list(model_allowed)+list(categories))
             for value in allowed:
-                if _mapped(mapping, value):
-                    continue
-                if mapping or (accepted and str(value).strip() not in accepted and value not in model_allowed):
-                    gaps.append('%s:%s'%(key, value))
+                code=_runtime_code(value, mapping)
+                if not _code_accepted(code, spec):
+                    gaps.append('%s:%s->%s'%(key, value, code))
         if any(bool(spec.get('required')) for spec in specs.get(key) or []) and not business.get('required'):
             gaps.append(key+':required')
     return gaps
@@ -377,11 +467,24 @@ def _incompatible(contract, current, data):
                      '\n模型输入字段、类型、单位或编码不一致时不能继续计算。'+_PRESERVED)
 
 
-def _calculation_changed(previous, current, model_ids):
-    stored=(previous.get('content_snapshot') or {}).get('calculation')
+def _calculation_changed(previous, current, contract):
+    """Old startup files listed only price fields. Adding effectiveness fields is a rule upgrade."""
+    snapshot=previous.get('content_snapshot') or {}
+    stored=snapshot.get('calculation')
     if stored is None:
         return False
-    return stored!=calculation_schema(current['live_schema'], model_ids)
+    price_ids=_schema_field_names(contract.get('model_schema'))
+    effect_ids=_schema_field_names(contract.get('effectiveness_schema'))
+    current_price=calculation_schema(current['live_schema'], price_ids or None)
+    current_effect=calculation_schema(current['live_schema'], effect_ids) if effect_ids else []
+    if int(snapshot.get('calculation_version') or 1)<2:
+        stored_ids=set(row.get('parameter_id') for row in stored if isinstance(row, dict))
+        return calculation_schema(current['live_schema'], stored_ids)!=stored
+    if snapshot.get('price_calculation') not in (None, current_price):
+        return True
+    if effect_ids and snapshot.get('effectiveness_calculation') not in (None, current_effect):
+        return True
+    return False
 
 
 def _classify(previous, current):
@@ -416,7 +519,9 @@ def _classify(previous, current):
         change_class='generation'
     elif presentation:
         change_class='presentation'
-    elif previous.get('model_sha256') and previous.get('model_sha256')!=current.get('model_sha256'):
+    elif ((previous.get('model_sha256') and previous.get('model_sha256')!=current.get('model_sha256')) or
+          (previous.get('effectiveness_model_sha256') and current.get('effectiveness_model_sha256') and
+           previous.get('effectiveness_model_sha256')!=current.get('effectiveness_model_sha256'))):
         change_class='model_weights'
     else:
         change_class='none'
@@ -446,6 +551,8 @@ def _public_state(current, manifest, contract, change_class, action):
             'content_snapshot':current['content_snapshot'],
             'format':'pipeline-userdata-contract-1.0','model_schema_sha256':contract['model_schema_sha256'],
             'model_sha256':contract['model_sha256'],'model_version':contract['model_version'],
+            'effectiveness_schema_sha256':contract.get('effectiveness_schema_sha256'),
+            'effectiveness_model_sha256':contract.get('effectiveness_model_sha256'),
             'price_basis':contract['price_basis'],'package_version':manifest['version'],
             'change_class':change_class,'startup_action':action}
 
@@ -455,8 +562,10 @@ def validate_data(package,data,manifest,contract=None):
     package,data=Path(package),Path(data)
     check_data_root(data)
     contract=contract or load_contract(package,manifest)
-    ids=model_field_ids(contract)
-    current=inspect_database(data/'data/protocol_demo.db', ids or None)
+    price_ids=_schema_field_names(contract.get('model_schema'))
+    effect_ids=_schema_field_names(contract.get('effectiveness_schema'))
+    ids=price_ids|effect_ids
+    current=inspect_database(data/'data/protocol_demo.db', price_ids=price_ids, effect_ids=effect_ids)
     if current['product_code']!=contract['product_code'] or calculation_schema(current['live_schema'], ids or None)!=calculation_schema(contract['business_schema'], ids or None):
         _incompatible(contract, current, data)
     settings=read_json(data/'config/model_services.json')
@@ -469,16 +578,21 @@ def validate_data(package,data,manifest,contract=None):
         previous=read_json(state_path)
         if previous.get('model_schema_sha256')!=contract['model_schema_sha256'] or previous.get('price_basis')!=contract['price_basis']:
             raise StartupBlocked('Replacement model schema or price basis is incompatible'+_PRESERVED)
+        if previous.get('effectiveness_schema_sha256') not in (None, contract.get('effectiveness_schema_sha256')):
+            raise StartupBlocked('Effectiveness model schema is incompatible'+_PRESERVED)
         if current['binding_schema_sha256']!=previous.get('binding_schema_sha256'):
             raise StartupBlocked('Accepted business release/binding changed: binding_schema_sha256'+_PRESERVED)
-        if _calculation_changed(previous, current, ids or None):
+        if _calculation_changed(previous, current, contract):
             raise StartupBlocked('模型输入契约与上次接受的用户数据不一致。'+_PRESERVED+
                              '\n没有可靠迁移规则时不会改写数据库。请保留该目录，或用 --data-dir 指定另一个空目录做独立试验。')
         gaps=encoding_gaps(current['live_schema'], contract, ids)
         if gaps:
             raise StartupBlocked('新增的业务取值还不能交给当前模型计算：'+'、'.join(gaps)+_PRESERVED)
         if previous.get('content_snapshot'):
-            change_class, action=_classify(dict(previous, model_sha256=previous.get('model_sha256')), dict(current, model_sha256=contract['model_sha256']))
+            change_class, action=_classify(
+                previous,
+                dict(current, model_sha256=contract['model_sha256'],
+                     effectiveness_model_sha256=contract.get('effectiveness_model_sha256')))
         else:
             _legacy_state(previous, current)
             if previous.get('model_sha256') and previous.get('model_sha256')!=contract['model_sha256']:
@@ -498,8 +612,10 @@ def validate_data(package,data,manifest,contract=None):
 
 
 def accept_initial(data,manifest,contract):
-    ids=model_field_ids(contract)
-    current=inspect_database(Path(data)/'data/protocol_demo.db', ids or None)
+    price_ids=_schema_field_names(contract.get('model_schema'))
+    effect_ids=_schema_field_names(contract.get('effectiveness_schema'))
+    ids=price_ids|effect_ids
+    current=inspect_database(Path(data)/'data/protocol_demo.db', price_ids=price_ids, effect_ids=effect_ids)
     if calculation_schema(current['live_schema'], ids or None)!=calculation_schema(contract['business_schema'], ids or None):
         raise ValueError('Seeded database differs from its delivery contract'+_PRESERVED)
     return _public_state(current, manifest, contract, 'none', 'start')
