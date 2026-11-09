@@ -65,11 +65,13 @@ class DSPriceService(ServiceApplication):
                          'details':result['details'],'status':result['status'],'warnings':result['warnings']},
           'ds_result':result}
     def handle_post(self,path,payload):
+        if not isinstance(payload,dict):raise JsonServiceError('请求必须为对象',400,'invalid_input')
         self._identity(payload)
         if path=='/api/v1/predict':return self._one(payload)
         if path=='/api/v1/predict/batch':
             items=payload.get('items') or []
             if not isinstance(items,list) or len(items)>100:raise JsonServiceError('单批最多100条',400,'batch_too_large')
+            if any(not isinstance(i,dict) for i in items):raise JsonServiceError('批量条目必须为对象',400,'invalid_input')
             results=[self._one(i) for i in items]
             return {'success':True,'items':results,'model':self.health(),'request_id':payload.get('request_id')}
         raise JsonServiceError('接口不存在',404,'not_found')

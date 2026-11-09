@@ -83,7 +83,7 @@ def build(out,runtime,bootstrap,example):
         content=path.read_text(encoding='utf-8');path.write_text(content,encoding='utf-8-sig')
     shutil.copy2(str(ROOT/'docs/CLIENT_BUILD_KIT.md'),str(out/'先读我.md'))
     (out/'先读我.txt').write_text((ROOT/'docs/CLIENT_BUILD_KIT.md').read_text(encoding='utf-8'),encoding='utf-8-sig')
-    commands={'CHECK_ENVIRONMENT.bat':'check','CHECK_INPUT.bat':'inspect','TRAIN_AND_PACKAGE.bat':'build',
+    commands={'CHECK_ENVIRONMENT.bat':'check','CHECK_INPUT.bat':'inspect','TRAIN_AND_PACKAGE.bat':'build','BUILD_AND_PACKAGE.bat':'build',
               'SELF_TEST.bat':'self-test','SELF_TEST_DS.bat':'self-test-ds','REPACK_LAST.bat':'repack'}
     for filename,command in commands.items():
         (out/filename).write_bytes(batch_entry(command))

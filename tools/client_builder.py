@@ -80,16 +80,16 @@ def environment_check():
 
 def settings():
     raw=read_json(KIT/'settings/project.json')
-    if set(raw)-{'product_code','product_name','input_file','data_kind','price_backend'} or not {'product_code','product_name','input_file','data_kind'}<=set(raw):raise ValueError('project.json 配置项不完整或存在未知项目')
+    if set(raw)-{'product_code','product_name','input_file','data_kind','price_backend'} or not {'product_code','input_file','data_kind'}<=set(raw):raise ValueError('project.json 配置项不完整或存在未知项目')
     if not re.fullmatch('[A-Za-z][A-Za-z0-9_]*',raw['product_code']):raise ValueError('产品编码须使用英文字母、数字和下划线，以字母开头')
-    if not raw['product_name'].strip():raise ValueError('产品名称不能为空')
     if raw['data_kind'] not in ('synthetic','customer'):raise ValueError('data_kind 只能是 synthetic 或 customer')
     source=Path(raw['input_file']);source=source if source.is_absolute() else KIT/source
     if not source.is_file() or source.suffix.lower() not in ('.xlsx','.csv'):raise ValueError('请提供存在的双行表头 products.xlsx 或 CSV')
     raw['price_backend']=raw.get('price_backend','optuna_v3')
     if raw['price_backend'] not in ('optuna_v3','ds_three_layer'):raise ValueError('price_backend 只能是 optuna_v3 或 ds_three_layer')
     from tools.product_identity import workbook_product_name
-    raw['product_name']=workbook_product_name(source,raw['product_name'])
+    raw['product_name']=workbook_product_name(source,raw.get('product_name') or '')
+    if not isinstance(raw['product_name'],str) or not raw['product_name'].strip():raise ValueError('请在产品信息表填写产品名称，或配置 product_name')
     raw['source']=source.resolve()
     return raw
 
