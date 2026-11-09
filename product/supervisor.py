@@ -98,7 +98,9 @@ class Supervisor:
                     self.send_response(status);self.send_header('Content-Type',content_type)
                     self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store')
                     self.send_header('X-Content-Type-Options','nosniff')
-                    self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors 'none'")
+                    trusted_web=supervisor.service_url('web')
+                    ancestors="'self'"+((' '+trusted_web) if trusted_web else '')
+                    self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors "+ancestors)
                     self.end_headers();self.wfile.write(raw)
                 except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):self.close_connection=True
             def host_valid(self):return self.headers.get('Host')==urlparse(supervisor.url).netloc

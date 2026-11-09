@@ -248,6 +248,11 @@ class DesktopTests(unittest.TestCase):
         worker=threading.Thread(target=supervisor.server.serve_forever,daemon=True);worker.start()
         opener=build_opener(ProxyHandler({}))
         try:
+            supervisor.ports['web']=12345
+            with opener.open(supervisor.url+'/api/status') as response:
+                policy=response.headers['Content-Security-Policy']
+            self.assertIn("frame-ancestors 'self' http://127.0.0.1:12345",policy)
+            self.assertNotIn('attacker',policy)
             status=fetch(supervisor.url+'/api/status')
             self.assertNotIn('token',status)
             for headers in ({},{'X-Product-Token':supervisor.token,'Origin':'https://attacker.example'},
