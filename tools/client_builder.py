@@ -150,7 +150,7 @@ def smoke(package,job):
 
 def package_release(train,job,desktop_file):
     from tools.build_product_exe import build
-    version='client-v3-'+datetime.now().strftime('%Y%m%d_%H%M%S')+'-'+uuid.uuid4().hex[:4]
+    version=('client-ds-' if read_json(train/'prototype_manifest.json')['price_engine']=='ds_three_layer' else 'client-v3-')+datetime.now().strftime('%Y%m%d_%H%M%S')+'-'+uuid.uuid4().hex[:4]
     package=ROOT/'deliverables'/version
     report=build(train,KIT/'runtime/python38',KIT/'bootstrap',package,version,KIT/'bootstrap',(),desktop_file)
     smoke(package,job)
