@@ -31,7 +31,7 @@ def sha(path):
 def preflight(build,classification):
     build=Path(build).resolve()
     manifest=json.loads((build/'prototype_manifest.json').read_text(encoding='utf-8-sig'))
-    if manifest.get('price_engine')!='optuna_v3' or manifest.get('status')!='ready':
+    if manifest.get('price_engine') not in ('optuna_v3','ds_three_layer') or manifest.get('status')!='ready':
         raise ValueError('必须为已完成的显式optuna_v3构建，不能使用默认V7或未完成目录')
     if classification=='formal' and manifest.get('virtual_data') is not False:
         raise ValueError('正式数据验收要求构建清单明确virtual_data=false；不能将虚拟构建改标正式')
@@ -44,6 +44,10 @@ def preflight(build,classification):
     source=(build/'input'/manifest['source_filename']).resolve()
     if build not in source.parents or sha(source)!=manifest['source_sha256']:
         raise ValueError('products源文件与构建清单SHA不一致')
+    if manifest['price_engine']=='ds_three_layer':
+        from services.price_service.ds_backend import DSPriceService
+        DSPriceService(paths['price_model'])
+        return manifest,paths,source,{'python':platform.python_version(),'backend':'ds_three_layer'}
     from services.price_service.native_bundle import environment_versions
     recorded=json.loads(Path(str(paths['price_model'])+'.manifest.json').read_text(encoding='utf-8-sig'))
     if recorded.get('bundle_sha256',recorded.get('sha256'))!=sha(paths['price_model']):
@@ -82,7 +86,7 @@ def verify(build,output,classification='unconfirmed',repeats=3,replacement_build
     from app.model_service_client import ModelServiceGateway,DegradedServiceRuntime
     from app.deep_price import DeepPriceAnalysis
     from app.deep_price.features import AnalysisFeatures,IDENTITY
-    from services.price_service.app import PriceService
+    from services.price_service.ds_backend import load_price_service as PriceService
     from services.effectiveness_service.app import EffectivenessService,SnapshotBackend
     runtime=DegradedServiceRuntime(None,manifest['product_code'],manifest['product_name'])
     store=Store(output/'workspace/data/protocol_demo.db',output/'unused.csv',runtime)
@@ -107,7 +111,7 @@ def verify(build,output,classification='unconfirmed',repeats=3,replacement_build
         finally:
             report['timings'].setdefault(label,[]).append(round(time.monotonic()-started,6));save()
     from tools.bind_price_evaluation_metadata import bind
-    metadata=bind(paths['price_model'],paths['price_model'].parent/'training_report.json',output/'evaluation_metadata.local.json','synthetic' if manifest.get('virtual_data') else classification)
+    metadata=(paths['price_model'].parent/'evaluation_metadata.json') if manifest['price_engine']=='ds_three_layer' else bind(paths['price_model'],paths['price_model'].parent/'training_report.json',output/'evaluation_metadata.local.json','synthetic' if manifest.get('virtual_data') else classification)
     price=timed('model_load',lambda:PriceService(paths['price_model'],None,evaluation_metadata=metadata))
     report['model']={k:price.health().get(k) for k in ('model_version','model_count','model_names','backend','exact_mode')}
     report['runtime_workspace_contains_training_products']=False

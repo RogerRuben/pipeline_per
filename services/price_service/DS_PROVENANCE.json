@@ -1,0 +1,7 @@
+{
+  "source_archive": "DS_SystemIntegration_V1_Py38_NoRuntime_20261101.zip",
+  "algorithm_source": "ds_model.py",
+  "algorithm_sha256": "deb15fad91ba6bb3acea34a6f22bc360d2d6114cd66c8c01dfc6c4852c8bf101",
+  "algorithm_modified": false,
+  "role": "SDK frozen inference; no training"
+}

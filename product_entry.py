@@ -10,7 +10,7 @@ def main():
     if '--model-check' in sys.argv:
         from pathlib import Path
         from product.common import write_json
-        from services.price_service.app import PriceService
+        from services.price_service.ds_backend import load_price_service as PriceService
         index=sys.argv.index('--model-check')
         model,metadata,report=sys.argv[index+1:index+4]
         service=PriceService(Path(model),None,evaluation_metadata=Path(metadata))

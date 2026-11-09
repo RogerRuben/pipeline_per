@@ -150,6 +150,8 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             config = load_config(source, effect_config,allow_legacy=price_engine not in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'))
         else:
             raise ValueError("请提供双行表头CSV/XLSX，或使用--demo。")
+        from tools.product_identity import workbook_product_name
+        product_name=workbook_product_name(source,product_name)
         raw = source.read_bytes()
         if price_engine in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7') and missing_tokens is None:
             from .product_price_optuna_v2 import load_config as load_optuna_config
@@ -421,9 +423,10 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
         if hashlib.sha256(artifact.read_bytes()).hexdigest() != manifest["artifact_sha256"][key]:
             raise ValueError("初版产物发生变更，摘要不一致：%s" % key)
         paths[key] = artifact
-    ports = [available_port(p) for p in (price_port, effect_port, app_port, cost_port)]
-    if len(set(ports)) != 4:
-        raise ValueError("价格、效能、推荐系统和效费分析台端口须不同。")
+    del cost_port
+    ports = [available_port(p) for p in (price_port, effect_port, app_port)]
+    if len(set(ports)) != 3:
+        raise ValueError("价格、效能和推荐系统端口须不同。")
     workspace = output / "recommendation"
     if Path(manifest.get("workspace", "recommendation")) != Path("recommendation"):
         raise ValueError("推荐工作区位置无效。")
@@ -435,7 +438,7 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
               "effectiveness_service_url": "http://127.0.0.1:%d" % ports[1], "timeout_seconds": 180 if is_tabpfn else 20, "batch_size": 64 if is_tabpfn else 100,
               "price_output": {"unit":"wan_yuan","scale":1.0}}
     write_json(workspace / "config" / "model_services.json", config)
-    analysis_url="http://127.0.0.1:%d/" % ports[3]
+    analysis_url="http://127.0.0.1:%d/cost-effectiveness" % ports[2]
     portal_path=workspace/'config/service_portal.json'
     portal=json.loads(portal_path.read_text(encoding='utf-8')) if portal_path.is_file() else {}
     service_links=portal.setdefault('services',{})
@@ -455,31 +458,25 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
         child_env = dict(os.environ)
         child_env.update({"PYTHONIOENCODING": "utf-8", "PRICE_ALLOW_DEGRADED": "0", "PRICE_ALLOW_MODEL_FALLBACK": "0",
                           "EFFECT_SOURCE_ROOT": "", "EFFECT_WORKBOOK": "", "EFFECT_RUNTIME_PACKAGE": ""})
-        child_env.update(COST_EFFECTIVENESS_DATABASE=str(workspace/'data/protocol_demo.db'),
-                         COST_EFFECTIVENESS_RECOMMENDATION_URL='http://127.0.0.1:%d/portal'%ports[2],
-                         COST_EFFECTIVENESS_PRICE_URL=config['price_service_url'],
-                         COST_EFFECTIVENESS_EFFECTIVENESS_URL=config['effectiveness_service_url'],
-                         COST_EFFECTIVENESS_PRICE_OUTPUT_UNIT='wan_yuan',COST_EFFECTIVENESS_PRICE_OUTPUT_SCALE='1')
         price_module = "services.tabpfn_price_service.app" if is_tabpfn else "services.price_service.app"
         effect_args=['--package',str(paths['effectiveness_model']),'--snapshot',''] if manifest.get('effectiveness_backend')=='expert_package' else ['--package','','--snapshot',str(paths['effectiveness_model'])]
         commands = [[sys.executable, "-m", price_module, "--model", str(paths["price_model"]), "--port", str(ports[0])],
-                    [sys.executable, "-m", "services.effectiveness_service.app"]+effect_args+["--port",str(ports[1])],
-                    [sys.executable,"-m","cost_effectiveness_analysis.app","--host","127.0.0.1","--port",str(ports[3])]]
+                    [sys.executable, "-m", "services.effectiveness_service.app"]+effect_args+["--port",str(ports[1])]]
         for i, command in enumerate(commands):
             command=command[:1]+[str(ROOT/'automl_pipeline/service_runner.py')]+command[2:]
-            handle = (output / ("price_service.log","effectiveness_service.log","cost_effectiveness_service.log")[i]).open("ab")
+            handle = (output / ("price_service.log","effectiveness_service.log")[i]).open("ab")
             handles.append(handle)
             managed.spawn(command,cwd=str(ROOT),env=child_env,stdout=handle,stderr=handle,
                           creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
         deadline = time.monotonic() + 45
-        for i, url in enumerate((config["price_service_url"], config["effectiveness_service_url"],analysis_url.rstrip('/'))):
+        for i, url in enumerate((config["price_service_url"], config["effectiveness_service_url"])):
             while True:
                 if children[i].poll() is not None:
                     raise RuntimeError("模型服务启动失败，详情见输出目录的服务日志。")
                 try:
                     with opener.open(url + "/health", timeout=2) as response:
                         health = json.loads(response.read().decode("utf-8"))
-                    if (i < 2 and health.get("product_code") == manifest["product_code"]) or (i == 2 and health.get('service')=='cost-effectiveness-analysis' and health.get('status')=='ok'):
+                    if health.get("product_code") == manifest["product_code"]:
                         break
                 except Exception:
                     pass
@@ -509,7 +506,7 @@ def serve(output_dir, activate_draft=False, no_browser=False, price_port=18701, 
                                             "effectiveness_url": config["effectiveness_service_url"], "workspace": str(workspace),
                                             'portal_url':portal_url,'cost_effectiveness_url':analysis_url,
                                             'child_pids':[p.pid for p in children],'process_group_managed':os.name=='nt'})
-        print("统一门户：%s\n推荐系统（V21.6）：%s\n效费分析台：%s\n数据中心：%sadmin\n关闭启动窗口或按Ctrl+C会一并停止四个服务。" % (portal_url,url,analysis_url,url), flush=True)
+        print("统一门户：%s\n推荐系统（V21.6）：%s\n效费分析台：%s\n数据中心：%sadmin\n关闭启动窗口或按Ctrl+C会一并停止价格、效能和推荐服务。" % (portal_url,url,analysis_url,url), flush=True)
         if not no_browser:
             webbrowser.open(portal_url)
         server.serve_forever(poll_interval=.25)

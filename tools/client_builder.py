@@ -80,12 +80,16 @@ def environment_check():
 
 def settings():
     raw=read_json(KIT/'settings/project.json')
-    if set(raw)!={'product_code','product_name','input_file','data_kind'}:raise ValueError('project.json 配置项不完整或存在未知项目')
+    if set(raw)-{'product_code','product_name','input_file','data_kind','price_backend'} or not {'product_code','product_name','input_file','data_kind'}<=set(raw):raise ValueError('project.json 配置项不完整或存在未知项目')
     if not re.fullmatch('[A-Za-z][A-Za-z0-9_]*',raw['product_code']):raise ValueError('产品编码须使用英文字母、数字和下划线，以字母开头')
     if not raw['product_name'].strip():raise ValueError('产品名称不能为空')
     if raw['data_kind'] not in ('synthetic','customer'):raise ValueError('data_kind 只能是 synthetic 或 customer')
     source=Path(raw['input_file']);source=source if source.is_absolute() else KIT/source
     if not source.is_file() or source.suffix.lower() not in ('.xlsx','.csv'):raise ValueError('请提供存在的双行表头 products.xlsx 或 CSV')
+    raw['price_backend']=raw.get('price_backend','optuna_v3')
+    if raw['price_backend'] not in ('optuna_v3','ds_three_layer'):raise ValueError('price_backend 只能是 optuna_v3 或 ds_three_layer')
+    from tools.product_identity import workbook_product_name
+    raw['product_name']=workbook_product_name(source,raw['product_name'])
     raw['source']=source.resolve()
     return raw
 
@@ -160,7 +164,7 @@ def package_release(train,job,desktop_file):
     return report
 
 
-def build_job(quick=False,self_test=False,repack=False):
+def build_job(quick=False,self_test=False,repack=False,backend_override=None):
     environment_check();job=new_job('selftest' if self_test else 'repack' if repack else 'build')
     status={'status':'running','stage':'input','job':str(job),'engine':'optuna_v3','win7_machine_validated':False}
     def save(stage=None):
@@ -168,33 +172,49 @@ def build_job(quick=False,self_test=False,repack=False):
         write_json(job/'client_build_status.json',status)
     try:
         if repack:
-            previous=read_json(KIT/'LAST_TRAINED.json');train=(KIT/previous['release']).resolve()
+            previous=read_json(KIT/'LAST_TRAINED.json');status['engine']=previous.get('price_backend','optuna_v3');train=(KIT/previous['release']).resolve()
             if ROOT/'outputs' not in train.parents:raise ValueError('已保存模型目录必须属于本包 outputs')
             save('reuse_trained_release')
         else:
             raw=settings()
-            if self_test:raw.update(source=KIT/'examples/products_example.xlsx',product_code='KIT_SELF_TEST',product_name='离线构建包验收产品',data_kind='synthetic')
+            if backend_override:raw['price_backend']=backend_override
+            if self_test:
+                ds_test=raw['price_backend']=='ds_three_layer'
+                raw.update(source=KIT/('examples/ds/products.xlsx' if ds_test else 'examples/products_example.xlsx'),product_code='DS_SELF_TEST' if ds_test else 'KIT_SELF_TEST',product_name='构建演练',data_kind='synthetic')
             known=read_json(KIT/'KIT_MANIFEST.json')['example_sha256']
             if raw['data_kind']=='customer' and sha(raw['source'])==known:
                 raise ValueError('当前仍是虚拟示例表，请替换为甲方真实数据或标记为 synthetic')
             snapshot=job/'input'/raw['source'].name;snapshot.parent.mkdir();shutil.copy2(str(raw['source']),str(snapshot))
-            cfg=configuration(quick or self_test);write_json(job/'training_config.json',cfg)
-            from automl_pipeline.__main__ import inspect_input
-            inspected=inspect_input(snapshot,'optuna_v3',cfg);write_json(job/'input_inspection.json',inspected)
+            backend=raw.get('price_backend','optuna_v3')
             status.update(product_code=raw['product_code'],product_name=raw['product_name'],source_sha256=sha(snapshot),
-                          classification='synthetic' if raw['data_kind']=='synthetic' else 'unconfirmed')
-            save('optuna_v3_training')
-            from automl_pipeline.product_pipeline import build
+                          classification='synthetic' if raw['data_kind']=='synthetic' else 'unconfirmed',engine=backend)
             train=job/'trained_release'
-            manifest=build(snapshot,train,raw['product_code'],raw['product_name'],virtual_data=raw['data_kind']=='synthetic',
-                           price_engine='optuna_v3',price_overrides=cfg)
+            if backend=='ds_three_layer':
+                save('import_frozen_ds_model')
+                from tools.build_ds_release import build
+                ds=read_json(KIT/('examples/ds/ds.json' if self_test else 'settings/ds.json'));model=Path(ds['model_file'])
+                model=model if model.is_absolute() else KIT/model
+                if not model.is_file():raise ValueError('请配置已训练 DS 模型文件')
+                # Snapshot imported assets; subsequent source edits cannot mix a build.
+                saved_model=job/'input/DS_model.json';shutil.copy2(str(model),str(saved_model));ds['model_file']=str(saved_model)
+                write_json(job/'ds_import_config.json',ds)
+                manifest=build(snapshot,train,raw['product_code'],raw['product_name'],ds,virtual_data=raw['data_kind']=='synthetic')
+            else:
+                cfg=configuration(quick or self_test);write_json(job/'training_config.json',cfg)
+                from automl_pipeline.__main__ import inspect_input
+                inspected=inspect_input(snapshot,'optuna_v3',cfg);write_json(job/'input_inspection.json',inspected)
+                save('optuna_v3_training')
+                from automl_pipeline.product_pipeline import build
+                manifest=build(snapshot,train,raw['product_code'],raw['product_name'],virtual_data=raw['data_kind']=='synthetic',
+                               price_engine='optuna_v3',price_overrides=cfg)
+            status['product_name']=manifest['product_name']
             save('http_consistency_validation')
             from tools.verify_v3_release import verify
             verification=verify(train,job/'api_validation',status['classification'],repeats=1)
             if verification['status']!='pass':raise ValueError('统一价格接口验收失败')
             status['targets_met']=manifest['targets_met']
             write_json(KIT/'LAST_TRAINED.json',{'release':train.relative_to(KIT).as_posix(),
-                       'source_sha256':manifest['source_sha256'],'model_sha256':manifest['artifact_sha256']['price_model']})
+                       'source_sha256':manifest['source_sha256'],'model_sha256':manifest['artifact_sha256']['price_model'],'price_backend':backend})
         desktop_file=KIT/'settings/desktop.json'
         validate_config(read_json(desktop_file))
         if self_test:
@@ -214,16 +234,21 @@ def build_job(quick=False,self_test=False,repack=False):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('command',choices=['check','inspect','build','self-test','repack']);p.add_argument('--quick',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('command',choices=['check','inspect','build','self-test','self-test-ds','repack']);p.add_argument('--quick',action='store_true');a=p.parse_args()
     try:
         if a.command=='check':print(json.dumps(environment_check(),ensure_ascii=False,indent=2));return 0
         if a.command=='inspect':
             environment_check();raw=settings()
             from automl_pipeline.__main__ import inspect_input
-            print(json.dumps(inspect_input(raw['source'],'optuna_v3',configuration(a.quick)),ensure_ascii=False,indent=2));return 0
+            if raw['price_backend']=='ds_three_layer':
+                from tools.ds_client_config import inspect_ds
+                result=inspect_ds(KIT,raw)
+            else:result=inspect_input(raw['source'],'optuna_v3',configuration(a.quick))
+            result['product_name']=raw['product_name']
+            print(json.dumps(result,ensure_ascii=False,indent=2));return 0
         (KIT/'logs').mkdir(exist_ok=True)
         lock=InstanceLock(KIT/'builder_state')
-        try:build_job(a.quick,a.command=='self-test',a.command=='repack')
+        try:build_job(a.quick,a.command in ('self-test','self-test-ds'),a.command=='repack','ds_three_layer' if a.command=='self-test-ds' else 'optuna_v3' if a.command=='self-test' else None)
         finally:lock.close()
         return 0
     except Exception as exc:

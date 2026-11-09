@@ -6,6 +6,26 @@
 
 ## 现场顺序
 
+### 统一 Portal 与产品名称（R8）
+
+软件启动后进入同一个 Portal，不区分锁、泵版本。门户加载价格、效能、效费和推荐服务；“服务管理”内提供单服务启停、重启和整体退出，也可打开独立管理窗口。地址来自实际启动配置，不需要在门户中手工填写固定端口。
+
+在 `products.xlsx` 的“产品信息”工作表填写两列“字段、值”，例如一行 `产品名称、某型号产品`。构建时该名称优先于 `settings/project.json` 的 `product_name`；没有此表时兼容原 JSON 名称。每行样本的成品名称仍用于参考产品列表。产品编码继续由 project.json 的 product_code 指定。
+
+### 选择价格后端
+
+`settings/project.json` 新增 `price_backend`，默认 `optuna_v3`。AutoML 流程继续使用产品表和评分训练。
+
+已有三层模型时将其改为 `ds_three_layer`，在 `settings/ds.json` 配置 `model_file`，相对路径从开发包根目录计算。模型可为对方交付的 DS_model.json，或内嵌有效 model 的报告。此模式只导入、验证和封装，不运行 AutoML 训练。
+
+DS 配置中的 `field_map` 是“本系统英文属性代号 → DS 属性名称”，必须覆盖模型全部已计价字段；留空时按成品表的中文属性名称自动匹配。若业务枚举有别名，可在 `value_aliases` 按英文代号声明“输入值字符串 → DS 取值”。布尔 false 和数值 0 是有效值，已计价属性不能省略。模型输出为元，系统统一转换为万元，三层金额及原始状态仍可查看。
+
+运行 `CHECK_INPUT.bat` 会根据所选后端检查产品名称、字段、模型和样本。运行 `TRAIN_AND_PACKAGE.bat`：AutoML 模式执行训练，DS 模式执行导入。`REPACK_LAST.bat` 复用上一次成功验证的发布资产，原模型文件后续改变不会悄悄进入这次重封装；导入新模型要重新执行导入流程。
+
+`SELF_TEST.bat` 固定验收虚拟 V3 流程；`SELF_TEST_DS.bat` 固定验收随包虚拟 DS 流程，两者都不使用客户数据。`examples/ds` 内含配套 DS 模型、产品表和配置。真实导入示例：将 project.json 的 input_file 设为真实产品表，将 price_backend 设为 ds_three_layer，并填写 settings/ds.json，然后先检查输入再构建。
+
+DS 运行包不包含训练脚本；算法冻结到 EXE，模型 JSON 和字段映射为随包模型资产。DS 没有提供的 AutoML 训练指标或重要度保持不可用。Win7 仍需实际目标机验证。
+
 1. 完整解压到较短且可写的路径，推荐直接解压到 `C:\` 或 `D:\`，使开发包根目录为 `C:\CB6` 或 `D:\CB6`。根目录最多 100 个字符；过长时所有入口会在启动 Python 前明确提示。保留整个目录结构，不要在压缩软件内直接运行 BAT，也不要只复制单个 DLL。Windows 7 无法依赖较新系统的长路径策略，深层 DLL 可能存在但仍无法被 Python／数值库读取。
 2. 双击 `CHECK_ENVIRONMENT.bat`。通过后双击 `SELF_TEST.bat`，以包内虚拟表执行 40 次试验的完整训练、HTTP 验证、EXE 封装及启动检查。
 3. 用甲方产品表替换 `input\products.xlsx`，编辑外部 `settings\project.json`：填写产品编码和名称，真实数据将 `data_kind` 改为 `customer`。仍使用虚拟数据时保留 `synthetic`。

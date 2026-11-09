@@ -65,8 +65,7 @@ def portal_and_login_contracts():
     assert portal["services"]["advanced_price"]["url"] == "/price/deep"
     assert portal["services"]["advanced_price"]["enabled"] is True
     assert portal["services"]["advanced_price"]["visible"] is True
-    assert portal["services"]["cost_effectiveness_analysis"]["url"].endswith(":17000")
-    assert portal["services"]["cost_effectiveness_analysis"]["url"].startswith("http://")  # Portal derives external/new-window from URL.
+    assert portal["services"]["cost_effectiveness_analysis"]["url"] == "/cost-effectiveness/"
     assert "advanced_price" not in models
     assert models["price_service_url"].endswith(":18101")
     assert models["effectiveness_service_url"].endswith(":18102")

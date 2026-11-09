@@ -20,6 +20,26 @@ from .value_semantics import is_special_value, normalize_numeric
 from .recommender import filter_match
 
 
+PRESENTATION_ONLY_FIELDS = (
+    "label", "description", "adjustment_hint", "display_order", "parameter_group",
+    "decimal_places", "display_value_mapping_json",
+)
+
+
+def _publication_digest(data):
+    """Bind an admin save to the publication content, not merely to the release id."""
+    from product.compatibility import fingerprint, substantive_document
+    return fingerprint(substantive_document(data if isinstance(data, dict) else {}))
+
+
+def omit_presentation_fields(row):
+    """Drop names and layout so a display edit does not look like a new generator."""
+    item = dict(row)
+    for key in PRESENTATION_ONLY_FIELDS:
+        item.pop(key, None)
+    return item
+
+
 def now_iso():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -449,10 +469,8 @@ class Store(object):
                 continue
             if not mapping:
                 continue
-            lookup = str(merged[key]).strip()
-            normalized = dict((str(source).strip().lower(), target) for source, target in mapping.items())
-            if lookup.lower() in normalized:
-                merged[key] = normalized[lookup.lower()]
+            from product.compatibility import apply_model_value_mapping
+            merged[key] = apply_model_value_mapping(merged[key], mapping)
         return merged
 
     def business_parameters(self, model_params, source_params=None, metadata=None):
@@ -691,8 +709,7 @@ class Store(object):
             for table in ("parameter_definitions", "parameter_groups", "tags", "tag_rules", "indicator_couplings", "constraint_rules", "agreements"):
                 rows = [dict(row) for row in conn.execute("SELECT * FROM %s ORDER BY 1" % table)]
                 if table == "parameter_definitions":
-                    for row in rows:
-                        row.pop("display_value_mapping_json", None)
+                    rows = [omit_presentation_fields(row) for row in rows]
                 payload[table] = rows
             raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
             return hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -1599,6 +1616,7 @@ class Store(object):
                 self._audit(conn, "update", "product_release", str(release_id), {
                     "status": status,
                     "counts": dict((key, len(value)) for key, value in data.items() if isinstance(value, list)),
+                    "substantive_sha256": _publication_digest(data),
                 })
                 conn.commit()
             finally:
@@ -1612,7 +1630,11 @@ class Store(object):
                 stamp = now_iso()
                 conn.execute("UPDATE product_releases SET status='superseded',updated_at=? WHERE status='active' AND release_id<>?", (stamp, str(release_id)))
                 conn.execute("UPDATE product_releases SET status='active',activated_at=?,updated_at=? WHERE release_id=?", (stamp, stamp, str(release_id)))
-                self._audit(conn, "activate", "product_release", str(release_id), {})
+                payload=conn.execute("SELECT data_json FROM product_releases WHERE release_id=?", (str(release_id),)).fetchone()
+                published=json.loads(payload[0]) if payload and payload[0] else {}
+                self._audit(conn, "activate", "product_release", str(release_id), {
+                    "substantive_sha256": _publication_digest(published),
+                })
                 conn.commit()
             finally:
                 conn.close()

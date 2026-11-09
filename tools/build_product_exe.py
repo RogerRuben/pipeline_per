@@ -12,7 +12,7 @@ from tools.verify_v3_release import preflight
 from tools.bind_price_evaluation_metadata import bind
 from tools.build_frozen_engine import engine_sources
 from tools.source_provenance import source_commit
-from product.compatibility import make_contract
+from product.compatibility import effectiveness_schema_from_document, make_contract
 from product.desktop_config import template_config,validate_config
 
 FORBIDDEN={'.py','.pyw','.ipynb','.pdb','.spec','.c','.cpp','.h','.bat','.ps1'}
@@ -47,28 +47,35 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
         else:shutil.copy2(str(p),str(out/p.name))
     release=out/'release';release.mkdir();paths={}
     for key,path in artifacts.items():
-        name={'price_model':'price_native_bundle.pkl','effectiveness_model':'effectiveness_bundle.json',
+        name={'price_model':('ds_release.json' if manifest['price_engine']=='ds_three_layer' else 'price_native_bundle.pkl'),'effectiveness_model':'effectiveness_bundle.json',
               'business_package':'business_release.iprelease.json'}[key]
         shutil.copy2(str(path),str(release/name));paths[key]='release/'+name
-    for name,src in [('training_report.json',artifacts['price_model'].parent/'training_report.json'),
-                     ('price_native_bundle.pkl.manifest.json',Path(str(artifacts['price_model'])+'.manifest.json'))]:
-        shutil.copy2(str(src),str(release/name))
+    if manifest['price_engine']=='ds_three_layer':
+        shutil.copy2(str(artifacts['price_model'].parent/'evaluation_metadata.json'),str(release/'evaluation_metadata.json'))
+    else:
+        for name,src in [('training_report.json',artifacts['price_model'].parent/'training_report.json'),
+                         ('price_native_bundle.pkl.manifest.json',Path(str(artifacts['price_model'])+'.manifest.json'))]:
+            shutil.copy2(str(src),str(release/name))
+        classification='synthetic' if manifest.get('virtual_data') else 'unconfirmed'
+        bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification,business=artifacts['business_package'])
     classification='synthetic' if manifest.get('virtual_data') else 'unconfirmed'
-    bind(release/'price_native_bundle.pkl',release/'training_report.json',release/'evaluation_metadata.json',classification,business=artifacts['business_package'])
     # No optimizer: inspect the already-trained model using the pinned builder.
-    from services.price_service.app import PriceService
-    service=PriceService(release/'price_native_bundle.pkl',None,evaluation_metadata=release/'evaluation_metadata.json')
+    from services.price_service.ds_backend import load_price_service as PriceService
+    service=PriceService(out/paths['price_model'],None,evaluation_metadata=release/'evaluation_metadata.json')
     observed={'health':service.health(),'schema':service.schema()}
     write_json(stamp/'model_preflight.json',observed)
+    effect_raw=read_json(artifacts['effectiveness_model'])
     contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
-                           {'unit':'wan_yuan','scale':1.0})
+                           {'unit':'wan_yuan','scale':1.0},
+                           effectiveness_schema=effectiveness_schema_from_document(effect_raw),
+                           effectiveness_model_sha=sha(artifacts['effectiveness_model']))
     for legacy_dir in legacy_packages:
         old=verify_package(legacy_dir,True)
         if old['files'][old['release']['price_model']]!=contract['model_sha256'] or old['files'][old['release']['business_package']]!=sha(artifacts['business_package']):
             raise ValueError('Legacy predecessor must use the same model and business package')
         contract['compatible_legacy'].append({'version':old['version'],'business_package_sha256':old['files'][old['release']['business_package']]})
     write_json(release/'delivery_contract.json',contract)
-    paths.update(evaluation_metadata='release/evaluation_metadata.json',product_code=manifest['product_code'],
+    paths.update(price_backend=manifest['price_engine'],evaluation_metadata='release/evaluation_metadata.json',product_code=manifest['product_code'],
                  product_name=manifest['product_name'],classification=classification,
                  effectiveness='trial_snapshot',virtual_data=manifest.get('virtual_data'),
                  delivery_contract='release/delivery_contract.json')

@@ -13,13 +13,13 @@ from product.common import sha,write_json
 
 def engine_sources():
     records={}
-    for folder in ('app','product','services/common','services/price_service','services/effectiveness_service'):
+    for folder in ('app','product','cost_effectiveness_analysis','services/common','services/price_service','services/effectiveness_service'):
         for path in sorted((ROOT/folder).rglob('*')):
             rel=path.relative_to(ROOT).as_posix()
             if folder.startswith('services/') and '/' in path.relative_to(ROOT/folder).as_posix() and not rel.startswith('services/price_service/optuna_v2/'):
                 continue
             if not path.is_file() or '__pycache__' in path.parts or path.name=='_frozen_resources.py':continue
-            if path.suffix=='.py' or rel.startswith('app/static/') or '/defaults/' in rel or rel=='product/control.html':
+            if path.suffix=='.py' or rel.startswith(('app/static/','cost_effectiveness_analysis/static/')) or '/defaults/' in rel or rel=='product/control.html':
                 records[rel]=sha(path)
     records['product_entry.py']=sha(ROOT/'product_entry.py')
     records['services/__init__.py']=sha(ROOT/'services/__init__.py')
@@ -32,7 +32,7 @@ def build(out,tools):
     work=out.parent/(out.name+'_work');work.mkdir()
     memory=io.BytesIO()
     with zipfile.ZipFile(memory,'w',zipfile.ZIP_DEFLATED) as bundle:
-        for folder in ('app/static','app/defaults','product/defaults'):
+        for folder in ('app/static','app/defaults','product/defaults','cost_effectiveness_analysis/static'):
             for path in sorted((ROOT/folder).rglob('*')):
                 if path.is_file():bundle.writestr(path.relative_to(ROOT).as_posix(),path.read_bytes())
         bundle.writestr('product/control.html',(ROOT/'product/control.html').read_bytes())
@@ -43,7 +43,9 @@ def build(out,tools):
     args=['--additional-hooks-dir',str(hooks),'--noconfirm','--clean','--onedir','--windowed','--name','product','--distpath',str(work/'dist'),
           '--workpath',str(work/'cache'),'--specpath',str(work),'--paths',str(ROOT),
           '--icon',str(ROOT/'app/static/launcher.ico')]
-    for module in ('product._frozen_resources','services.price_service.optuna_v2.typed_features',
+    for module in ('services.price_service.ds_backend','services.price_service.ds_engine','product._frozen_resources','cost_effectiveness_analysis.app','cost_effectiveness_analysis.embed',
+                   'cost_effectiveness_analysis.db_reader','cost_effectiveness_analysis.model_client',
+                   'cost_effectiveness_analysis.analysis','services.price_service.optuna_v2.typed_features',
                    'services.price_service.optuna_v2.native_member','services.price_service.optuna_v2.price_automl_core',
                    'sklearn.ensemble._forest','sklearn.tree._tree','sklearn.neighbors._typedefs',
                    'sklearn.utils._weight_vector','sklearn.utils._cython_blas','sklearn.svm._libsvm',

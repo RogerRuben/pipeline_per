@@ -1,0 +1,70 @@
+{
+  "success": true,
+  "api_version": "ds-api-v1.0",
+  "model_version": "ds-price-v1.2",
+  "sample_id": "格式示例_请替换实际属性",
+  "total_price": 45000.0,
+  "unit": "元",
+  "layers": {
+    "stage1": 20000.0,
+    "stage2": 0.0,
+    "stage3": 25000.0
+  },
+  "details": [
+    {
+      "layer": 1,
+      "name": "核心部件:型号1",
+      "quantity": 1,
+      "unit_price": 20000.0,
+      "amount": 20000.0
+    },
+    {
+      "layer": 2,
+      "name": "报警功能",
+      "quantity": 0,
+      "unit_price": 1000.0,
+      "amount": 0.0,
+      "input_value": 0,
+      "pricing_method": "开关加价"
+    },
+    {
+      "layer": 2,
+      "name": "接口数量",
+      "quantity": 0.0,
+      "unit_price": 200.0,
+      "amount": 0.0,
+      "input_value": 0.0,
+      "pricing_method": "按单位计价"
+    },
+    {
+      "layer": 2,
+      "name": "增强采集功能",
+      "quantity": 0,
+      "unit_price": 50000.0,
+      "amount": 0.0,
+      "input_value": 0,
+      "pricing_method": "按部件计价",
+      "pricing_note": "未启用，不计附加费",
+      "component_type": "型号1",
+      "component_count": 1
+    },
+    {
+      "layer": 3,
+      "name": "第三层综合金额",
+      "amount": 25000.0
+    }
+  ],
+  "status": "可试用（非精度认证）",
+  "warnings": [
+    "数量超训练范围，配套电子系统未验证"
+  ],
+  "model_issues": [],
+  "unpriced_field_count": 0,
+  "recorded_weight_kg": null,
+  "assumptions": {
+    "platform": "相同",
+    "overlap": "已核对无重复",
+    "platform_source": "模型",
+    "overlap_source": "模型"
+  }
+}

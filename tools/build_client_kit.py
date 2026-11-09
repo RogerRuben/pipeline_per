@@ -16,7 +16,7 @@ from tools.source_provenance import source_commit
 from tools.client_kit_paths import batch_entry,MAX_KIT_ROOT_CHARS
 
 SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
-TOOLS=('client_builder.py','client_kit_paths.py','client_workbook.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
+TOOLS=('ds_examples.py','build_ds_release.py','ds_client_config.py','product_identity.py','client_builder.py','client_kit_paths.py','client_workbook.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py')
 
@@ -37,7 +37,7 @@ def build(out,runtime,bootstrap,example):
     if read_json(bootstrap/'BOOTSTRAP_META.json')['kind']!='pyinstaller-full-app-onedir':
         raise ValueError('Client kit requires a precompiled source-free software engine')
     out.mkdir(parents=True);project=out/'project'
-    for directory in ('app','product','automl_pipeline'):copy_tree(ROOT/directory,project/directory)
+    for directory in ('app','product','automl_pipeline','cost_effectiveness_analysis'):copy_tree(ROOT/directory,project/directory)
     for directory in ('services/common','services/price_service','services/effectiveness_service'):
         (project/directory).mkdir(parents=True,exist_ok=True)
         for path in (ROOT/directory).glob('*.py'):shutil.copy2(str(path),str(project/directory/path.name))
@@ -67,10 +67,16 @@ def build(out,runtime,bootstrap,example):
     write_json(out/'examples/PROVENANCE.json',{'classification':'synthetic','source_sha256':sha(example),
                'purpose':'Offline pipeline software acceptance; no real business accuracy certification'})
     write_json(out/'settings/project.json',{'product_code':'CLIENT_PRODUCT','product_name':'甲方成品',
-               'input_file':'input/products.xlsx','data_kind':'synthetic'})
+               'input_file':'input/products.xlsx','data_kind':'synthetic','price_backend':'optuna_v3'})
     cfg=read_json(ROOT/'automl_pipeline/configs/price_optuna_v3.json')
     cfg['v3']['warm_start'].update(auto_history=False,history_file=None,config_file=None)
     write_json(out/'settings/v3.json',cfg)
+    write_json(out/'settings/ds.json',{'model_file':'input/DS_model.json','field_map':{},'value_aliases':{}})
+    from tools.ds_examples import workbook as ds_workbook
+    ds_example=out/'examples/ds';ds_example.mkdir()
+    shutil.copy2(str(ROOT/'examples/ds/DEMO_model.json'),str(ds_example/'DS_model.json'))
+    (ds_example/'products.xlsx').write_bytes(ds_workbook(ds_example/'DS_model.json'))
+    write_json(ds_example/'ds.json',{'model_file':'examples/ds/DS_model.json','field_map':{},'value_aliases':{}})
     write_json(out/'settings/desktop.json',template_config())
     # Win7 Notepad reliably recognizes editable Chinese JSON with a UTF-8 BOM.
     for path in (out/'settings').glob('*.json'):
@@ -78,7 +84,7 @@ def build(out,runtime,bootstrap,example):
     shutil.copy2(str(ROOT/'docs/CLIENT_BUILD_KIT.md'),str(out/'先读我.md'))
     (out/'先读我.txt').write_text((ROOT/'docs/CLIENT_BUILD_KIT.md').read_text(encoding='utf-8'),encoding='utf-8-sig')
     commands={'CHECK_ENVIRONMENT.bat':'check','CHECK_INPUT.bat':'inspect','TRAIN_AND_PACKAGE.bat':'build',
-              'SELF_TEST.bat':'self-test','REPACK_LAST.bat':'repack'}
+              'SELF_TEST.bat':'self-test','SELF_TEST_DS.bat':'self-test-ds','REPACK_LAST.bat':'repack'}
     for filename,command in commands.items():
         (out/filename).write_bytes(batch_entry(command))
     source=source_commit(ROOT)

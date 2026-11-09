@@ -20,8 +20,10 @@ sys.path.insert(0,str(ROOT))
 from product.common import InstanceLock,contained,data_directory,read_json,sha,verify_package,write_json
 from product.launcher import Supervisor,backup_data,fetch
 from product.worker import initialize_data
-from product.compatibility import make_contract,accept_initial,validate_data,fingerprint,check_data_root
+from product.compatibility import StartupBlocked,StartupConfirmation,make_contract,accept_initial,validate_data,fingerprint,check_data_root
 from product.recovery import restore_backup
+from product.startup import prepare_existing,run_guarded_migration
+from app.store import omit_presentation_fields
 
 
 class DesktopTests(unittest.TestCase):
@@ -155,6 +157,8 @@ class DesktopTests(unittest.TestCase):
         self.manifest['files']['release/model.pkl']='b'*64;self.seal_contract()
         state=validate_data(self.package,self.data,self.manifest)
         self.assertEqual(state['model_sha256'],'b'*64)
+        self.assertEqual(state['change_class'],'model_weights')
+        self.assertEqual(state['startup_action'],'start')
         self.assertEqual(sha(database),before)
 
     def test_same_product_changed_model_schema_is_rejected_before_database_write(self):
@@ -259,6 +263,337 @@ class DesktopTests(unittest.TestCase):
             self.assertTrue(supervisor.stopping.wait(timeout=2))
         finally:
             supervisor.server.shutdown();supervisor.server.server_close();worker.join();supervisor.job.close()
+
+
+    def _edit(self, sql, params=()):
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute(sql, params); connection.commit()
+
+    def test_display_edits_do_not_block_restart(self):
+        database=self.database(); before=database.read_bytes()
+        self._edit('ALTER TABLE parameter_definitions ADD COLUMN label TEXT')
+        self._edit('ALTER TABLE parameter_definitions ADD COLUMN display_value_mapping_json TEXT')
+        self._edit("UPDATE parameter_definitions SET label='外径', display_value_mapping_json=?", ('{"0":"无"}',))
+        with closing(sqlite3.connect(str(database))) as connection:
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['label']='外径'
+            document['parameters'][0]['display_value_mapping']={'0':'无'}
+            connection.execute("UPDATE product_releases SET release_id='REL-2', data_json=?",
+                               (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        edited=sha(database)
+        state=validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(state['change_class'],'presentation')
+        self.assertEqual(state['startup_action'],'start')
+        self.assertEqual(sha(database),edited)
+        self.assertNotEqual(database.read_bytes(),before)
+
+    def test_search_range_change_keeps_rows_and_is_backed_up_before_accept(self):
+        database=self.database()
+        self._edit('UPDATE parameter_definitions SET max_value=80')
+        edited=sha(database)
+        state=validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(state['change_class'],'generation')
+        self.assertEqual(state['startup_action'],'backup')
+        self.assertEqual(sha(database),edited)
+        prepared=prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        self.assertTrue(str(prepared['backup']).endswith('.zip'))
+        self.assertEqual(sha(database),edited)
+        self.assertEqual(validate_data(self.package,self.data,self.manifest)['change_class'],'none')
+
+    def test_english_field_rename_without_a_rule_does_not_rewrite_the_database(self):
+        database=self.database()
+        with closing(sqlite3.connect(str(database))) as connection:
+            connection.execute("UPDATE parameter_definitions SET parameter_id='diameter'")
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['parameter_id']='diameter'
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        edited=sha(database)
+        with self.assertRaisesRegex(ValueError,'不兼容'):
+            validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(sha(database),edited)
+        with closing(sqlite3.connect(str(database))) as connection:
+            self.assertEqual(connection.execute('SELECT value FROM user_sentinel').fetchone()[0],'用户保存的方案')
+
+    def test_unclassified_payload_requires_confirmation_and_can_be_declined(self):
+        database=self.database(); before=sha(database)
+        state=read_json(self.data/'delivery_state.json'); state.pop('content_snapshot')
+        write_json(self.data/'delivery_state.json',state)
+        with closing(sqlite3.connect(str(database))) as connection:
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['label']='只改了中文'
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        edited=sha(database)
+        with self.assertRaises(StartupConfirmation):
+            validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(sha(database),edited)
+        with self.assertRaisesRegex(ValueError,'已取消启动'):
+            prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        self.assertEqual(sha(database),edited)
+        accepted=prepare_existing(self.package,self.data,self.manifest,lambda _message: True)
+        self.assertEqual(accepted['change_class'],'unclassified')
+        self.assertEqual(sha(database),edited)
+        self.assertEqual(validate_data(self.package,self.data,self.manifest)['startup_action'],'start')
+
+    def test_migration_does_not_start_when_backup_fails(self):
+        self.database(); before=sha(self.data/'data/protocol_demo.db')
+        with patch('product.startup.backup_data',side_effect=ValueError('disk full')):
+            with self.assertRaisesRegex(ValueError,'disk full'):
+                run_guarded_migration(self.data,lambda connection: connection.execute("UPDATE user_sentinel SET value='x'"))
+        self.assertEqual(sha(self.data/'data/protocol_demo.db'),before)
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            self.assertEqual(connection.execute('SELECT value FROM user_sentinel').fetchone()[0],'用户保存的方案')
+
+    def test_failed_migration_restores_the_original_database(self):
+        self.database()
+        def mutate(connection):
+            connection.execute("UPDATE user_sentinel SET value='临时'")
+            raise RuntimeError('migration stopped')
+        with self.assertRaisesRegex(RuntimeError,'migration stopped'):
+            run_guarded_migration(self.data,mutate)
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            self.assertEqual(connection.execute('SELECT value FROM user_sentinel').fetchone()[0],'用户保存的方案')
+            self.assertEqual(connection.execute('PRAGMA quick_check').fetchone()[0],'ok')
+
+    def test_effectiveness_only_unit_change_blocks_startup(self):
+        self.database()
+        duty={'parameter_id':'duty','unit':'%','value_type':'number','search_type':'continuous','required':1,'enabled':1,'min_value':0,'max_value':100}
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('INSERT INTO parameter_definitions VALUES(?,?,?,?,?,?,?,?)',
+                               tuple(duty[key] for key in ('parameter_id','unit','value_type','search_type','required','enabled','min_value','max_value')))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'].append(duty)
+            connection.execute('UPDATE product_releases SET data_json=?',(json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        self.business['data']['parameters'].append(duty)
+        effect={'feature_order':['duty'],'fields':[{'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True}]}
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'effect-unit')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business,sha(self.package/'release/model.pkl'),{'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema=effect, effectiveness_model_sha=sha(effect_file))
+        self.seal_contract()
+        write_json(self.data/'delivery_state.json',accept_initial(self.data,self.manifest,self.contract))
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute("UPDATE parameter_definitions SET unit='s' WHERE parameter_id='duty'")
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][1]['unit']='s'
+            connection.execute('UPDATE product_releases SET data_json=?',(json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        edited=sha(self.data/'data/protocol_demo.db')
+        with self.assertRaisesRegex(StartupBlocked,'不兼容'):
+            validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(sha(self.data/'data/protocol_demo.db'),edited)
+
+    def test_new_enum_without_model_code_is_not_accepted(self):
+        self.database()
+        self.contract['model_schema']['fields'][0]['allowed_values']=['A']
+        self.contract['model_schema_sha256']=fingerprint(self.contract['model_schema'])
+        self.business['data']['parameters'][0]['allowed_values']=['A']
+        self.contract['business_schema']=self.contract['business_schema']
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('ALTER TABLE parameter_definitions ADD COLUMN allowed_values_json TEXT')
+            connection.execute("UPDATE parameter_definitions SET allowed_values_json=?",('["A"]',))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['allowed_values']=['A']
+            connection.execute('UPDATE product_releases SET data_json=?',(json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        self.seal_contract()
+        write_json(self.data/'delivery_state.json',accept_initial(self.data,self.manifest,self.contract))
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute("UPDATE parameter_definitions SET allowed_values_json=?",('["A","B"]',))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['allowed_values']=['A','B']
+            connection.execute('UPDATE product_releases SET data_json=?',(json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        edited=sha(self.data/'data/protocol_demo.db')
+        with self.assertRaisesRegex(StartupBlocked,'不能交给当前模型'):
+            validate_data(self.package,self.data,self.manifest)
+        self.assertEqual(sha(self.data/'data/protocol_demo.db'),edited)
+
+    def test_unaudited_business_change_is_not_accepted_automatically(self):
+        self.database()
+        before=read_json(self.data/'delivery_state.json')['content_snapshot']['payload_sha256']
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['agreements']=[{'agreement_id':'S1','params':{'size':1}}]
+            connection.execute('UPDATE product_releases SET data_json=?',(json.dumps(document,ensure_ascii=False),))
+            connection.commit()
+        with self.assertRaises(StartupConfirmation):
+            validate_data(self.package,self.data,self.manifest)
+        with self.assertRaisesRegex(ValueError,'已取消启动'):
+            prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        self.assertEqual(read_json(self.data/'delivery_state.json')['content_snapshot']['payload_sha256'],before)
+
+    def test_incompatible_model_can_be_backed_up_without_being_accepted(self):
+        database=self.database(); before=sha(database)
+        accepted=read_json(self.data/'delivery_state.json')['model_schema_sha256']
+        self.contract['model_schema']['fields'][0]['missing_policy']='training_mean'
+        self.contract['model_schema_sha256']=fingerprint(self.contract['model_schema']);self.seal_contract()
+        with self.assertRaises(StartupBlocked):
+            prepare_existing(self.package,self.data,self.manifest,lambda _message: True)
+        self.assertEqual(sha(database),before)
+        self.assertEqual(read_json(self.data/'delivery_state.json')['model_schema_sha256'],accepted)
+        self.assertTrue(any(self.data.joinpath('backups').glob('backup-*.zip')))
+
+    def test_v4_effectiveness_bundle_is_part_of_the_contract(self):
+        from product.compatibility import effectiveness_schema_from_document
+        raw=json.loads((ROOT/'tests/fixtures/contract4_model_pair/effectiveness_bundle.json').read_text(encoding='utf-8'))
+        schema=effectiveness_schema_from_document(raw)
+        fields=dict((row['field_name'], row) for row in schema['fields'])
+        self.assertIn('retention_force', fields)
+        self.assertEqual(fields['retention_force']['unit'], 'kN')
+        self.assertEqual(fields['retention_force']['missing_policy'], 'reject')
+        self.assertGreater(len(schema['fields']), 1)
+        graded=effectiveness_schema_from_document({'feature_schema':[{'field_name':'guard','dtype':'ip_grade','parser':'ip_grade','categories':['IP54','IP67']}]})
+        self.assertEqual(graded['fields'][0]['allowed_values'], ['IP54','IP67'])
+        with self.assertRaisesRegex(ValueError, '没有可校验的输入字段'):
+            effectiveness_schema_from_document({})
+
+    def test_old_price_only_snapshot_accepts_unchanged_effectiveness_fields(self):
+        self.database()
+        duty={'parameter_id':'duty','unit':'%','value_type':'number','search_type':'continuous','required':1,'enabled':1,'min_value':0,'max_value':100}
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('INSERT INTO parameter_definitions VALUES(?,?,?,?,?,?,?,?)',
+                               tuple(duty[key] for key in ('parameter_id','unit','value_type','search_type','required','enabled','min_value','max_value')))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'].append(duty)
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        self.business['data']['parameters'].append(duty)
+        effect={'feature_order':['duty'],'fields':[{'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}]}
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'effect-old')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema=effect, effectiveness_model_sha=sha(effect_file))
+        self.seal_contract()
+        state=accept_initial(self.data, self.manifest, self.contract)
+        state['content_snapshot']['calculation']=[row for row in state['content_snapshot']['calculation'] if row['parameter_id']=='size']
+        state['content_snapshot'].pop('calculation_version', None)
+        state['content_snapshot'].pop('price_calculation', None)
+        state['content_snapshot'].pop('effectiveness_calculation', None)
+        state.pop('effectiveness_schema_sha256', None)
+        write_json(self.data/'delivery_state.json', state)
+        result=validate_data(self.package, self.data, self.manifest)
+        self.assertEqual(result['startup_action'], 'start')
+        self.assertIn(result['change_class'], ('none', 'model_weights'))
+
+    def test_direct_legal_values_survive_an_alias_map_but_bad_codes_do_not(self):
+        from product.compatibility import encoding_gaps
+        contract={'model_schema':{'fields':[{'field_name':'flag','dtype':'integer','allowed_values':[0,1],'required':True,
+                                             'category_mapping':{}}]},
+                  'effectiveness_schema':{'fields':[{'field_name':'flag','dtype':'integer','allowed_values':[0,1],'required':True}]}}
+        bad=[{'parameter_id':'flag','required':True,'allowed_values':['有','无'],'model_value_mapping':{'有':1,'无':99}}]
+        gaps=encoding_gaps(bad, contract, {'flag'})
+        self.assertTrue(any('无' in item and '99' in item for item in gaps))
+        good=[{'parameter_id':'flag','required':True,'allowed_values':[0,1],'model_value_mapping':{'有':1}}]
+        self.assertEqual(encoding_gaps(good, contract, {'flag'}), [])
+        folded=[{'parameter_id':'flag','required':True,'allowed_values':['A'],'model_value_mapping':{'a':1}}]
+        number_model={'model_schema':{'fields':[{'field_name':'flag','dtype':'integer','allowed_values':[1],'required':True}]}}
+        self.assertEqual(encoding_gaps(folded, number_model, {'flag'}), [])
+        special=[{'parameter_id':'level','required':True,'allowed_values':['IP54','nan','Infinity'],'model_value_mapping':{}}]
+        grade={'model_schema':{'fields':[{'field_name':'level','dtype':'ip_grade','parser':'ip_grade','required':True}]}}
+        grade_gaps=encoding_gaps(special, grade, {'level'})
+        self.assertFalse(any('IP54' in item for item in grade_gaps))
+        self.assertTrue(any('nan' in item for item in grade_gaps))
+        self.assertTrue(any('Infinity' in item for item in grade_gaps))
+
+    def test_old_activation_does_not_approve_a_later_database_edit(self):
+        self.database()
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute("CREATE TABLE audit_log(id INTEGER PRIMARY KEY, action TEXT, object_type TEXT, object_id TEXT, detail_json TEXT, created_at TEXT)")
+            connection.execute("INSERT INTO audit_log(action,object_type,object_id,detail_json,created_at) VALUES('activate','product_release','REL-1','{}','2026-01-01')")
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['agreements']=[{'agreement_id':'S1','params':{'size':1}}]
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        with self.assertRaises(StartupConfirmation):
+            validate_data(self.package, self.data, self.manifest)
+        from product.compatibility import substantive_document
+        digest=fingerprint(substantive_document(document))
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute("INSERT INTO audit_log(action,object_type,object_id,detail_json,created_at) VALUES('update','product_release','REL-1',?,'2026-01-02')",
+                               (json.dumps({'substantive_sha256':digest}),))
+            connection.commit()
+        result=validate_data(self.package, self.data, self.manifest)
+        self.assertEqual(result['change_class'], 'substantive')
+        self.assertEqual(result['startup_action'], 'backup')
+
+    def test_effectiveness_file_must_match_the_delivery_contract(self):
+        self.database()
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'effect-bound')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
+        effect={'feature_order':['size'],'fields':[{'field_name':'size','dtype':'number','unit':'mm','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}]}
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema=effect, effectiveness_model_sha=sha(effect_file))
+        self.seal_contract()
+        self.contract['effectiveness_model_sha256']='0'*64
+        write_json(self.package/'release/delivery_contract.json', self.contract)
+        self.manifest['files']['release/delivery_contract.json']=sha(self.package/'release/delivery_contract.json')
+        write_json(self.package/'PACKAGE_MANIFEST.json', self.manifest)
+        with self.assertRaisesRegex(ValueError, 'effectiveness model'):
+            validate_data(self.package, self.data, self.manifest)
+
+    def test_same_effectiveness_file_survives_an_empty_categories_field(self):
+        self.database()
+        duty={'parameter_id':'duty','unit':'%','value_type':'number','search_type':'continuous','required':1,'enabled':1,'min_value':0,'max_value':100}
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('INSERT INTO parameter_definitions VALUES(?,?,?,?,?,?,?,?)',
+                               tuple(duty[key] for key in ('parameter_id','unit','value_type','search_type','required','enabled','min_value','max_value')))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'].append(duty)
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        self.business['data']['parameters'].append(duty)
+        old_field={'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'same-effect-file')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema={'feature_order':['duty'],'fields':[old_field]},
+             effectiveness_model_sha=sha(effect_file))
+        self.seal_contract()
+        write_json(self.data/'delivery_state.json', accept_initial(self.data, self.manifest, self.contract))
+        restated=dict(old_field, categories=[])
+        self.contract['effectiveness_schema']={'feature_order':['duty'],'fields':[restated]}
+        self.contract['effectiveness_schema_sha256']=fingerprint(self.contract['effectiveness_schema'])
+        self.seal_contract()
+        result=validate_data(self.package, self.data, self.manifest)
+        self.assertEqual(result['startup_action'], 'start')
+        self.assertNotEqual(fingerprint({'feature_order':['duty'],'fields':[old_field]}), self.contract['effectiveness_schema_sha256'])
+
+    def test_first_accept_rejects_values_the_model_cannot_encode(self):
+        self.database()
+        self.contract['model_schema']['fields'][0]['allowed_values']=['A']
+        self.contract['model_schema_sha256']=fingerprint(self.contract['model_schema'])
+        self.seal_contract()
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('ALTER TABLE parameter_definitions ADD COLUMN allowed_values_json TEXT')
+            connection.execute("UPDATE parameter_definitions SET allowed_values_json=?", ('["A","B"]',))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['allowed_values']=['A','B']
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        with self.assertRaisesRegex(StartupBlocked, '不能交给当前模型'):
+            accept_initial(self.data, self.manifest, self.contract)
+
+    def test_presentation_fields_do_not_change_the_generation_fingerprint_input(self):
+        base={'parameter_id':'size','label':'外径','description':'说明','search_type':'continuous','min_value':0}
+        renamed=dict(base,label='直径',description='另一句')
+        self.assertEqual(omit_presentation_fields(base),omit_presentation_fields(renamed))
+        self.assertNotEqual(omit_presentation_fields(base),omit_presentation_fields(dict(base,search_type='integer')))
 
 
 if __name__=='__main__':
