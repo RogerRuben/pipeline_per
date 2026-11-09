@@ -161,7 +161,8 @@ def _effect_field(spec, binding):
             'unit': spec.get('unit') if spec.get('unit') not in (None, '') else binding.get('unit') or '',
             'required': bool(spec.get('required', binding.get('required', True))),
             'missing_policy': spec.get('missing_policy') or binding.get('missing_policy') or 'reject',
-            'allowed_values': spec.get('allowed_values') or binding.get('allowed_values') or [],
+            'allowed_values': spec.get('allowed_values') or binding.get('allowed_values') or spec.get('categories') or binding.get('categories') or [],
+            'categories': spec.get('categories') or binding.get('categories') or [],
             'category_mapping': spec.get('category_mapping') or binding.get('category_mapping') or {},
             'source': spec.get('source') or binding.get('source_type') or '',
             'parser': spec.get('parser') or binding.get('parser') or ''}
@@ -286,8 +287,15 @@ def load_contract(package,manifest):
         fingerprint(contract['business_schema'])!=contract['business_schema_sha256'] or
         contract['product_code']!=manifest['release']['product_code']):
         raise ValueError('Delivery contract fingerprints/product are inconsistent')
-    if contract.get('effectiveness_schema') is not None and fingerprint(contract['effectiveness_schema'])!=contract.get('effectiveness_schema_sha256'):
-        raise ValueError('Delivery contract fingerprints/product are inconsistent')
+    has_effect=contract.get('effectiveness_schema') is not None or contract.get('effectiveness_model_sha256')
+    if has_effect:
+        if not contract.get('effectiveness_schema') or not contract.get('effectiveness_schema_sha256') or not contract.get('effectiveness_model_sha256'):
+            raise ValueError('Delivery contract is missing the effectiveness model')
+        if fingerprint(contract['effectiveness_schema'])!=contract.get('effectiveness_schema_sha256'):
+            raise ValueError('Delivery contract fingerprints/product are inconsistent')
+        effect_file=manifest['release'].get('effectiveness_model')
+        if not effect_file or contract['effectiveness_model_sha256']!=manifest['files'].get(effect_file):
+            raise ValueError('Delivery contract is not bound to the shipped effectiveness model')
     return contract
 
 
@@ -392,22 +400,30 @@ def release_integrity_errors(document, model_ids):
     return errors
 
 
-def _runtime_code(value, mapping):
-    """Map a business value when a code exists. Otherwise the value itself is the input."""
-    if isinstance(mapping, dict) and mapping:
-        text=str(value).strip()
-        if text in mapping:
-            return mapping[text]
-        if str(value) in mapping:
-            return mapping[str(value)]
+def apply_model_value_mapping(value, mapping):
+    """Same rule as Store.runtime_parameters: strip and ignore key case."""
+    if value in (None, "") or not isinstance(mapping, dict) or not mapping:
+        return value
+    lookup=str(value).strip().lower()
+    normalized=dict((str(source).strip().lower(), target) for source, target in mapping.items())
+    if lookup in normalized:
+        return normalized[lookup]
     return value
+
+
+def _runtime_code(value, mapping):
+    return apply_model_value_mapping(value, mapping)
 
 
 def _accepted_codes(spec):
     codes=set()
-    for item in spec.get('allowed_values') or []:
-        codes.add(item)
-        codes.add(str(item).strip())
+    pools=[spec.get('allowed_values') or [], spec.get('categories') or []]
+    for pool in pools:
+        if isinstance(pool, dict):
+            pool=list(pool.keys())+list(pool.values())
+        for item in pool:
+            codes.add(item)
+            codes.add(str(item).strip())
     categories=spec.get('category_mapping') or {}
     if isinstance(categories, dict):
         for key, val in categories.items():
@@ -418,21 +434,41 @@ def _accepted_codes(spec):
     return codes
 
 
+def _finite_number(value, allow_ip=False):
+    if isinstance(value, bool):
+        return 1.0 if value else 0.0
+    text=str(value).strip()
+    if allow_ip and text.upper().startswith('IP'):
+        text=text[2:].strip()
+    if text=='':
+        return None
+    try:
+        number=float(text)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
+
+
 def _code_accepted(code, spec):
     accepted=_accepted_codes(spec)
     if accepted:
         return code in accepted or str(code).strip() in accepted
-    dtype=str(spec.get('dtype') or '')
-    if dtype in ('number', 'integer', 'float', 'boolean', 'ip_grade'):
-        if isinstance(code, bool):
-            return dtype in ('boolean', 'integer', 'number')
-        if isinstance(code, (int, float)):
-            return True
-        try:
-            float(str(code).strip())
-            return True
-        except (TypeError, ValueError):
-            return False
+    dtype=str(spec.get('dtype') or '').strip().lower()
+    parser=str(spec.get('parser') or '').strip().lower()
+    if parser=='ip_grade' or dtype=='ip_grade':
+        return _finite_number(code, allow_ip=True) is not None
+    if dtype in ('boolean', 'bool'):
+        from app.value_semantics import normalize_boolean
+        return normalize_boolean(code) is not None
+    if dtype in ('integer', 'int'):
+        number=_finite_number(code, allow_ip=False)
+        return number is not None and float(number).is_integer()
+    if dtype in ('number', 'float', 'numeric'):
+        return _finite_number(code, allow_ip=False) is not None
+    if dtype in ('enum', 'categorical', 'category'):
+        return False
     return True
 
 

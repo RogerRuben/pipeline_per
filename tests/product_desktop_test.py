@@ -369,9 +369,13 @@ class DesktopTests(unittest.TestCase):
             connection.commit()
         self.business['data']['parameters'].append(duty)
         effect={'feature_order':['duty'],'fields':[{'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True}]}
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'effect-unit')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
         self.contract=make_contract({'model_version':'v1','feature_order':['size'],
              'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
-             self.business,sha(self.package/'release/model.pkl'),{'unit':'wan_yuan','scale':1.0},effectiveness_schema=effect)
+             self.business,sha(self.package/'release/model.pkl'),{'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema=effect, effectiveness_model_sha=sha(effect_file))
         self.seal_contract()
         write_json(self.data/'delivery_state.json',accept_initial(self.data,self.manifest,self.contract))
         with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
@@ -445,6 +449,8 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(fields['retention_force']['unit'], 'kN')
         self.assertEqual(fields['retention_force']['missing_policy'], 'reject')
         self.assertGreater(len(schema['fields']), 1)
+        graded=effectiveness_schema_from_document({'feature_schema':[{'field_name':'guard','dtype':'ip_grade','parser':'ip_grade','categories':['IP54','IP67']}]})
+        self.assertEqual(graded['fields'][0]['allowed_values'], ['IP54','IP67'])
         with self.assertRaisesRegex(ValueError, '没有可校验的输入字段'):
             effectiveness_schema_from_document({})
 
@@ -460,9 +466,13 @@ class DesktopTests(unittest.TestCase):
             connection.commit()
         self.business['data']['parameters'].append(duty)
         effect={'feature_order':['duty'],'fields':[{'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}]}
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'effect-old')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
         self.contract=make_contract({'model_version':'v1','feature_order':['size'],
              'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
-             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0}, effectiveness_schema=effect)
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema=effect, effectiveness_model_sha=sha(effect_file))
         self.seal_contract()
         state=accept_initial(self.data, self.manifest, self.contract)
         state['content_snapshot']['calculation']=[row for row in state['content_snapshot']['calculation'] if row['parameter_id']=='size']
@@ -485,6 +495,15 @@ class DesktopTests(unittest.TestCase):
         self.assertTrue(any('无' in item and '99' in item for item in gaps))
         good=[{'parameter_id':'flag','required':True,'allowed_values':[0,1],'model_value_mapping':{'有':1}}]
         self.assertEqual(encoding_gaps(good, contract, {'flag'}), [])
+        folded=[{'parameter_id':'flag','required':True,'allowed_values':['A'],'model_value_mapping':{'a':1}}]
+        number_model={'model_schema':{'fields':[{'field_name':'flag','dtype':'integer','allowed_values':[1],'required':True}]}}
+        self.assertEqual(encoding_gaps(folded, number_model, {'flag'}), [])
+        special=[{'parameter_id':'level','required':True,'allowed_values':['IP54','nan','Infinity'],'model_value_mapping':{}}]
+        grade={'model_schema':{'fields':[{'field_name':'level','dtype':'ip_grade','parser':'ip_grade','required':True}]}}
+        grade_gaps=encoding_gaps(special, grade, {'level'})
+        self.assertFalse(any('IP54' in item for item in grade_gaps))
+        self.assertTrue(any('nan' in item for item in grade_gaps))
+        self.assertTrue(any('Infinity' in item for item in grade_gaps))
 
     def test_old_activation_does_not_approve_a_later_database_edit(self):
         self.database()
@@ -506,6 +525,24 @@ class DesktopTests(unittest.TestCase):
         result=validate_data(self.package, self.data, self.manifest)
         self.assertEqual(result['change_class'], 'substantive')
         self.assertEqual(result['startup_action'], 'backup')
+
+    def test_effectiveness_file_must_match_the_delivery_contract(self):
+        self.database()
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'effect-bound')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
+        effect={'feature_order':['size'],'fields':[{'field_name':'size','dtype':'number','unit':'mm','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}]}
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema=effect, effectiveness_model_sha=sha(effect_file))
+        self.seal_contract()
+        self.contract['effectiveness_model_sha256']='0'*64
+        write_json(self.package/'release/delivery_contract.json', self.contract)
+        self.manifest['files']['release/delivery_contract.json']=sha(self.package/'release/delivery_contract.json')
+        write_json(self.package/'PACKAGE_MANIFEST.json', self.manifest)
+        with self.assertRaisesRegex(ValueError, 'effectiveness model'):
+            validate_data(self.package, self.data, self.manifest)
 
     def test_presentation_fields_do_not_change_the_generation_fingerprint_input(self):
         base={'parameter_id':'size','label':'外径','description':'说明','search_type':'continuous','min_value':0}

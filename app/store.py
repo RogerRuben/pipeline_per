@@ -442,10 +442,8 @@ class Store(object):
             mapping = _json_mapping(row["model_value_mapping_json"])
             if not mapping:
                 continue
-            lookup = str(merged[key]).strip()
-            normalized = dict((str(source).strip().lower(), target) for source, target in mapping.items())
-            if lookup.lower() in normalized:
-                merged[key] = normalized[lookup.lower()]
+            from product.compatibility import apply_model_value_mapping
+            merged[key] = apply_model_value_mapping(merged[key], mapping)
         return merged
 
     def business_parameters(self, model_params, source_params=None):
