@@ -15,7 +15,7 @@ def validate_kit_path(kit):
 
 
 def batch_entry(command):
-    if command not in ('check', 'inspect', 'build', 'self-test', 'repack'):
+    if command not in ('check', 'inspect', 'build', 'self-test', 'self-test-ds', 'repack'):
         raise ValueError('Unknown client build command')
     # Check before starting Python: the interpreter can start in a long folder
     # while its native dependencies appear to be missing to legacy Win32 APIs.

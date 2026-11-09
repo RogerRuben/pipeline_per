@@ -1,0 +1,187 @@
+{
+  "version": "ds-price-v1.2",
+  "base": 25000.0,
+  "catalog": {
+    "sensors": {
+      "型号1": {
+        "name": "型号1",
+        "value": 20000.0,
+        "low": 18000.0,
+        "high": 22000.0,
+        "layer": 1,
+        "basis": "成品计价",
+        "factor": 1.0,
+        "basis_confirmed": true
+      },
+      "型号2": {
+        "name": "型号2",
+        "value": 25000.0,
+        "low": 22000.0,
+        "high": 28000.0,
+        "layer": 1,
+        "basis": "成品计价",
+        "factor": 1.0,
+        "basis_confirmed": true
+      }
+    },
+    "features": {
+      "报警功能": {
+        "name": "报警功能",
+        "type": "布尔",
+        "method": "开关加价",
+        "layer": 2,
+        "rules": [
+          {
+            "name": "报警功能",
+            "value": 1000.0,
+            "low": 1000.0,
+            "high": 1000.0,
+            "layer": 2,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": null
+          }
+        ]
+      },
+      "接口数量": {
+        "name": "接口数量",
+        "type": "数值",
+        "method": "按单位计价",
+        "layer": 2,
+        "rules": [
+          {
+            "name": "接口数量",
+            "value": 200.0,
+            "low": 200.0,
+            "high": 200.0,
+            "layer": 2,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": null
+          }
+        ]
+      },
+      "精度等级": {
+        "name": "精度等级",
+        "type": "等级",
+        "method": "按取值查价",
+        "layer": 3,
+        "rules": [
+          {
+            "name": "精度等级",
+            "value": 0.0,
+            "low": 0.0,
+            "high": 0.0,
+            "layer": 3,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": "一级"
+          },
+          {
+            "name": "精度等级",
+            "value": 3000.0,
+            "low": 3000.0,
+            "high": 3000.0,
+            "layer": 3,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": "二级"
+          }
+        ]
+      },
+      "通信类型": {
+        "name": "通信类型",
+        "type": "类别",
+        "method": "按取值查价",
+        "layer": 3,
+        "rules": [
+          {
+            "name": "通信类型",
+            "value": 0.0,
+            "low": 0.0,
+            "high": 0.0,
+            "layer": 3,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": "标准"
+          },
+          {
+            "name": "通信类型",
+            "value": 2000.0,
+            "low": 2000.0,
+            "high": 2000.0,
+            "layer": 3,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": "增强"
+          }
+        ]
+      },
+      "增强采集功能": {
+        "name": "增强采集功能",
+        "type": "布尔",
+        "method": "按传感器计价",
+        "layer": 2,
+        "rules": [
+          {
+            "name": "增强采集功能",
+            "value": 50000.0,
+            "low": 50000.0,
+            "high": 50000.0,
+            "layer": 2,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": "型号1"
+          },
+          {
+            "name": "增强采集功能",
+            "value": 100000.0,
+            "low": 100000.0,
+            "high": 100000.0,
+            "layer": 2,
+            "basis": "成品计价",
+            "factor": 1.0,
+            "basis_confirmed": true,
+            "match": "型号2"
+          }
+        ]
+      }
+    }
+  },
+  "settings": {
+    "input_unit": "元",
+    "output_unit": "元",
+    "platform": "相同",
+    "overlap": "已核对无重复"
+  },
+  "status": "可试用（非精度认证）",
+  "issues": [],
+  "training_ids": [
+    "DEMO01",
+    "DEMO02"
+  ],
+  "coverage": {
+    "sensor_types": [
+      "型号1",
+      "型号2"
+    ],
+    "count_min": 2,
+    "count_max": 3,
+    "weight_min": 1.2,
+    "weight_max": 1.8
+  },
+  "validation": {
+    "complete": true,
+    "count": 2,
+    "expected": 2,
+    "mape_pct": 4.3150307255525835,
+    "max_ape_pct": 6.195786864931847
+  }
+}

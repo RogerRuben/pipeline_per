@@ -5,54 +5,54 @@ function table(head,rows){return '<table><thead><tr>'+head.map(x=>'<th>'+E(x)+'<
 function view(){const hash=location.hash||'#design';if(hash==='#sensitivity')analysisPage='sensitivity';if(hash==='#scenario')analysisPage='scenario';const shown=hash==='#factors'?['factors']:hash==='#model'?['model']:hash==='#scenario'||hash==='#sensitivity'?[analysisPage]:['design','mechanism'];
 Q('analysisModes').hidden=!['#scenario','#sensitivity'].includes(hash);Q('sensitivityMode').classList.toggle('active',analysisPage==='sensitivity');Q('scenarioMode').classList.toggle('active',analysisPage==='scenario');
 ['design','sensitivity','scenario','factors','model','mechanism'].forEach(id=>{if(Q(id))Q(id).hidden=!shown.includes(id);});document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.hash===hash||(a.hash==='#scenario'&&hash==='#sensitivity')));Object.values(D.charts).forEach(c=>c.resize());}
-const mechanism=document.createElement('section');mechanism.id='mechanism';mechanism.className='panel mechanism-wide';mechanism.innerHTML='<h2>当前样本机理分析</h2><p class="notice">未配置机理解释服务。价格分析结果不等于机理或因果报告。</p><textarea disabled placeholder="机理分析服务接入后在此展示"></textarea><button disabled>生成机理分析</button> <button disabled>下载机理 TXT</button>';Q('design').after(mechanism);
+const mechanism=document.createElement('section');mechanism.id='mechanism';mechanism.className='panel mechanism-wide';mechanism.innerHTML='<h2>当前样本机理分析</h2><p class="notice">机理分析暂未开放。</p><textarea disabled placeholder="暂无机理分析结果"></textarea><button disabled>生成机理分析</button> <button disabled>下载机理 TXT</button>';Q('design').after(mechanism);
 const modes=document.createElement('div');modes.id='analysisModes';modes.className='panel tabs';modes.innerHTML='<button id=sensitivityMode type=button>敏感性曲线</button><button id=scenarioMode type=button>情景方案</button>';Q('sensitivity').before(modes);Q('sensitivityMode').onclick=()=>{analysisPage='sensitivity';history.replaceState(null,'','#sensitivity');view();};Q('scenarioMode').onclick=()=>{analysisPage='scenario';history.replaceState(null,'','#scenario');view();};
 document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const target=a.hash==='#scenario'?(analysisPage==='sensitivity'?'#sensitivity':'#scenario'):a.hash;if(location.hash!==target)history.pushState(null,'',target);view();window.scrollTo(0,0);}));
 window.addEventListener('hashchange',view);window.addEventListener('popstate',()=>{view();window.scrollTo(0,0);});view();
 const nativeFill=D.fill;D.fill=values=>{nativeFill(values);if(!D.schema)return;D.schema.fields.forEach(f=>{const e=Q('field_'+f.field_id),state=e.parentElement.querySelector('.availability');e.disabled=false;if(state)state.value=e.value===''?'missing':'present';delete e.dataset.priorValue;});};
-const dock=document.createElement('section');dock.className='panel';dock.id='exportDock';dock.innerHTML='<h2>会话结果导出</h2><p>结果保留30分钟，价格与版本由服务器记录；机理报告未启用。</p>';dock.appendChild(Q('exportResult').closest('.toolbar'));document.querySelector('main').insertBefore(dock,document.querySelector('main footer'));
-const oldClear=D.clear;D.clear=()=>{oldClear();if(!D.schema){meta=null;Q('modelLibrary').textContent='正在刷新模型版本…';Q('importanceProvenance').textContent='正在刷新模型版本…';Q('importanceTable').textContent='';['importanceChart','contributionChart'].forEach(id=>{if(D.charts[id])D.charts[id].clear();});}['scenarioBubble','importanceChart','contributionChart'].forEach(id=>{if(id==='scenarioBubble'&&D.charts[id])D.charts[id].clear();});Q('scenarioDiff').textContent='';Q('scenarioTop5').textContent='';};
+const dock=document.createElement('section');dock.className='panel';dock.id='exportDock';dock.innerHTML='<h2>会话结果导出</h2><p>请选择需要导出的计算结果，结果保留 30 分钟。</p>';dock.appendChild(Q('exportResult').closest('.toolbar'));document.querySelector('main').insertBefore(dock,document.querySelector('main footer'));
+const oldClear=D.clear;D.clear=()=>{if(Q('dsLayers'))Q('dsLayers').remove();oldClear();if(!D.schema){meta=null;Q('modelLibrary').textContent='正在刷新模型版本…';Q('importanceProvenance').textContent='正在刷新模型版本…';Q('importanceTable').textContent='';['importanceChart','contributionChart'].forEach(id=>{if(D.charts[id])D.charts[id].clear();});}['scenarioBubble','importanceChart','contributionChart'].forEach(id=>{if(id==='scenarioBubble'&&D.charts[id])D.charts[id].clear();});Q('scenarioDiff').textContent='';Q('scenarioTop5').textContent='';};
 function importance(){
  let value=meta&&meta.data&&meta.data.feature_importance;
  if(displaySource==='expert'){
-  const scores=(meta&&meta.data.expert_scores)||{};let rows=Array.isArray(scores)?scores:Object.keys(scores).map(k=>({field_id:k,importance:scores[k]}));
-  Q('importanceProvenance').textContent=rows.length?'专家评分：人为先验指标，不能视为模型重要度、价格贡献或敏感性。':'当前模型未提供专家评分，不能用重要度或敏感性补造。';
-  Q('importanceTable').innerHTML=table(['属性','专家评分'],rows.map(r=>[r.label_zh||r.field_id,r.importance]));
+  const technical=Q('importanceTechnical');if(technical)technical.remove();const scores=(meta&&meta.data.expert_scores)||{};let rows=Array.isArray(scores)?scores:Object.keys(scores).map(k=>({field_id:k,importance:scores[k]}));
+  Q('importanceProvenance').textContent=rows.length?'训练使用的专家评分（1–5分）。':'暂无专家评分。';
+  Q('importanceTable').innerHTML=table(['属性','专家评分','来源'],rows.map(r=>[r.label_zh||r.label||r.field_id,r.specified===false?'未评分（默认 '+(r.score==null?'—':r.score)+'）':(r.score==null?r.importance:r.score),r.specified===false?'默认值':'工作簿 / 配置']));
   ['importanceChart','contributionChart'].forEach(id=>{if(D.charts[id])D.charts[id].clear();});return;
  }
  if(displaySource==='legacy')value=D.legacyImportance;
- if(!value||!Array.isArray(value.items)||!value.items.length){Q('importanceProvenance').textContent='当前数据源未提供经发布绑定的重要度；不使用旧模型数值替代。';Q('importanceTable').textContent='未提供';['importanceChart','contributionChart'].forEach(id=>{if(D.charts[id])D.charts[id].clear();});return;}
+ if(!value||!Array.isArray(value.items)||!value.items.length){Q('importanceProvenance').textContent='暂无属性重要度数据。';Q('importanceTable').textContent='未提供';['importanceChart','contributionChart'].forEach(id=>{if(D.charts[id])D.charts[id].clear();});return;}
  const all=value.items,rows=all.slice(0,10);
- Q('importanceProvenance').textContent=(displaySource==='legacy'?'历史排序演示 legacy_demo；不解释当前模型。':'当前模型 SHA '+D.schema.price_model_sha256.slice(0,16)+'；')+(value.note||'')+(displaySource==='legacy'?' 来源：'+value.source_file+'；SHA '+value.source_sha256:'')+' 评分：'+(value.scoring||value.kind)+'；样本范围：'+(value.scope||'原演示模型')+'；样本数 '+(Array.isArray(value.sample_ids)?value.sample_ids.length:'未提供');
+ Q('importanceProvenance').textContent=displaySource==='legacy'?'历史演示数据':'当前模型的属性影响程度。';
+ const provenance=Q('importanceTechnical')||document.createElement('details');provenance.id='importanceTechnical';provenance.className='technical-details';provenance.innerHTML='<summary>分析详情</summary><p>'+E(value.note||'')+'</p><p>'+E(value.scoring||value.kind)+' · '+E(value.scope||'')+'</p><p>模型 SHA '+E(D.schema.price_model_sha256)+'</p>';Q('importanceProvenance').after(provenance);
  D.chart('importanceChart',{tooltip:{trigger:'axis'},grid:{left:120,right:30,bottom:40},xAxis:{type:'value',name:value.unit||'原始重要度'},yAxis:{type:'category',inverse:true,data:rows.map(r=>r.label_zh||r.field_id)},series:[{type:'bar',data:rows.map(r=>r.importance)}]});
  Q('importanceTable').innerHTML=table(['排名','属性','原始值','标准差','正值占比'],rows.map(r=>[r.rank,r.label_zh||r.field_id,fmt(r.importance),fmt(r.std),((r.ratio||0)*100).toFixed(2)+'%']));
  D.chart('contributionChart',{tooltip:{trigger:'axis'},xAxis:{type:'category',data:rows.map(r=>r.label_zh||r.field_id),axisLabel:{rotate:25}},yAxis:{type:'value',min:0,max:100,name:'全字段正值累计占比 %'},series:[{type:'line',data:rows.map(r=>100*r.cumulative_ratio)}]});
 }
-Q('importanceSource').add(new Option('历史排序演示 legacy_demo（不解释当前模型）','legacy'));fetch('/deep_price/legacy_importance.json').then(r=>r.json()).then(r=>{D.legacyImportance=r;if(displaySource==='legacy')importance();});
+Q('importanceSource').add(new Option('历史演示','legacy'));fetch('/deep_price/legacy_importance.json').then(r=>r.json()).then(r=>{D.legacyImportance=r;if(displaySource==='legacy')importance();});
 Q('importanceSource').onchange=()=>{displaySource=Q('importanceSource').value;importance();};
 function renderLibrary(library){
- Q('modelLibraryNote').textContent=library.note+' 模型安装与激活须经管理员受控发布，不接受本页上传 pickle。';
+ Q('modelLibraryNote').textContent='模型更新请联系管理员。';
  Q('modelLibrary').innerHTML=library.items.map(item=>{
- const m=item.metadata||{},metrics=m.metrics||{};
- let html='<article class="model-card"><span class="active-badge">'+(item.active?'正在使用':'已发布历史版本')+'</span><h3>'+E(item.model_version)+'</h3><p>产品 '+E(item.product_code)+' · '+E(item.published_at||'发布时间未提供')+'</p><code>SHA '+E(item.price_model_sha256)+'</code><h4>实际活跃成员与融合权重</h4>'+table(['成员','权重'],(m.active_members||[]).map(r=>[r.name,(r.weight*100).toFixed(2)+'%']))+'<p>活跃成员数：'+(m.active_members||[]).length+'；训练样本 '+E(metrics.training_rows)+'；输入字段 '+E(metrics.feature_count)+'；试验 '+E(metrics.trials_completed)+'</p><p>搜索候选族：'+E((m.search_candidates||[]).join('、')||'未提供')+'</p>';
- Object.keys(metrics).filter(k=>metrics[k]&&typeof metrics[k]==='object'&&!Array.isArray(metrics[k])).forEach(k=>{let v=metrics[k];const labels={selected_training_metrics:'搜索所选模型 · 训练集',validation_metrics:'搜索划分验证（不是独立测试）',full_refit_training_metrics:'全数据重拟合 · 训练集',deployed_training_metrics:'部署模型 · 训练集',test_metrics:'独立测试（以发布协议为准）'};
- html+='<h4>'+E(labels[k]||k)+'</h4><div class="metric-cards">'+['r2','mape','mae','rmse'].map(key=>{let value=v[key];const units=(m.metric_units||{})[k]||{};let text=fmt(value);if(key==='mape'){if(v.mape_percent!=null)text=Number(v.mape_percent).toFixed(2)+'%';else if(value!=null)text=units.mape==='ratio'?(value*100).toFixed(2)+'%':units.mape==='percent'?value.toFixed(2)+'%':fmt(value)+'（原值，单位未声明）';}if(['mae','rmse'].includes(key)&&value!=null)text+=units[key]==='wan_yuan'?' 万元':'（单位未声明）';return '<div><b>'+E(text)+'</b>'+E(key.toUpperCase())+'</div>';}).join('')+'</div>';});
- html+='<p>验证协议：'+E(metrics.validation_protocol||metrics.evaluation_scope||'未提供')+'</p><p>来源：'+E(m.source||'未提供')+' · 报告 SHA '+E(m.training_report_sha256||'未提供')+'</p><button disabled>只读 · 由管理员发布</button><details><summary>管理员发布流程</summary><p>在甲方训练开发包检查输入、训练并通过接口和封装验收；先备份并退出旧软件，再安装已验证的新运行包。字段或价格口径不兼容时须明确迁移。</p><p><a href=/portal>返回服务导航与管理入口</a>。本页不上传或直接启用任意模型文件。</p></details></article>';return html;
+  const m=item.metadata||{},metrics=m.metrics||{},labels={selected_training_metrics:'所选模型训练集',validation_metrics:'开发验证集',full_refit_training_metrics:'全数据重拟合训练集',deployed_training_metrics:'部署模型训练集',test_metrics:'独立测试集'};
+  let html='<article class="model-card"><span class="active-badge">'+(item.active?'正在使用':'历史版本')+'</span><h3>'+E(item.product_code)+' · 价格模型</h3>';
+  Object.keys(labels).forEach(k=>{const v=metrics[k];if(!v)return;const u=(m.metric_units||{})[k]||{};let mape=v.mape_percent!=null?v.mape_percent:(v.mape==null?null:(u.mape==='ratio'?v.mape*100:v.mape));html+='<h4>'+E(labels[k])+'</h4>'+table(['R²','平均百分比误差'],[[fmt(v.r2),mape==null?'未提供':Number(mape).toFixed(2)+'%']]);});
+  html+='<details class="technical-details"><summary>模型详情</summary><p>版本 '+E(item.model_version)+'</p><p>模型 SHA '+E(item.price_model_sha256)+'</p><p>'+E(metrics.validation_protocol||metrics.evaluation_scope||'')+'</p><h4>模型成员与权重</h4>'+table(['成员','权重'],(m.active_members||[]).map(r=>[r.name,(r.weight*100).toFixed(2)+'%']))+'<p>训练样本 '+E(metrics.training_rows)+' · 属性 '+E(metrics.feature_count)+'</p><p>报告 SHA '+E(m.training_report_sha256||'未提供')+'</p></details></article>';return html;
  }).join('');
 }
 function samplePayload(){return Object.assign(D.identity(),{parameters:D.parameters(),range_mode:Q('rangeMode').value});}
 function sensitivity(result,ranking){
  if(!result.series.length)throw new Error('没有可用的分析属性');
- Q('sensitivityNote').textContent=ranking+'；'+(result.range_mode==='historical'?'历史 min/max':'局部 max(|当前值|×20%,1) 半径')+'；'+result.note;
+ Q('sensitivityNote').textContent=ranking+' · '+(result.range_mode==='historical'?'历史取值范围':'当前值附近');
  const top=result.series.length>1;
  D.chart('sensitivityChart',{tooltip:{trigger:'axis',formatter:params=>params.map(p=>{let item=result.series[p.seriesIndex].points[p.dataIndex];if(!item)return '';return E(p.seriesName)+'：取值 '+E(item.value)+'，价格 '+fmt(item.price_wan)+' 万元，变化 '+fmt(item.change_rate_pct)+'%';}).join('<br>')},legend:{type:'scroll',bottom:0},grid:{left:70,right:25,bottom:80},xAxis:{type:'category',name:top?'独立采样点（悬浮查看真实取值）':'实际属性值',data:top?Array.from({length:Math.max(...result.series.map(s=>s.points.length))},(_,i)=>i+1):result.series[0].points.map(p=>p.value)},yAxis:{type:'value',name:top?'价格变化 %':'价格 · 万元',scale:!top},series:result.series.map(r=>({name:r.label_zh,type:'line',data:r.points.map(p=>top?p.change_rate_pct:p.price_wan)}))});
  Q('sensitivityTable').innerHTML=table(['属性','实际采样值','价格 / 万元','变化率 %'],result.series.flatMap(s=>s.points.map(p=>[s.label_zh,typeof p.value==='number'?Number(p.value.toPrecision(9)):p.value,fmt(p.price_wan),fmt(p.change_rate_pct)])));D.remember(ranking+' · '+(result.range_mode==='historical'?'历史范围':'局部范围'),result);D.status('敏感性分析完成。','success');
 }
 document.addEventListener('deep:ready',()=>{Q('single').disabled=D.busy||!Q('sensitivityField').options.length;Q('top10').disabled=D.busy||!Q('sensitivityField').options.length;Q('importanceTop10').disabled=D.busy||!(meta&&meta.data.feature_importance&&meta.data.feature_importance.items);});
-Q('rangeMode').onchange=()=>{D.epoch++;Q('sensitivityNote').textContent='采样协议已改变，请重新计算';Q('sensitivityTable').textContent='';if(D.charts.sensitivityChart)D.charts.sensitivityChart.clear();};
+Q('rangeMode').onchange=()=>{D.epoch++;Q('sensitivityNote').textContent='分析范围已改变，请重新计算';Q('sensitivityTable').textContent='';if(D.charts.sensitivityChart)D.charts.sensitivityChart.clear();};
 Q('single').onclick=()=>D.run(async current=>{let r=await D.api('/sensitivity/single',Object.assign(samplePayload(),{field_id:Q('sensitivityField').value}));if(current())sensitivity(r,'单参数敏感性');});
-Q('top10').onclick=()=>D.run(async current=>{let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:null}));if(current())sensitivity(r,'扰动敏感性 Top10：按本区间最大价格变化排序');});
-Q('importanceTop10').onclick=()=>D.run(async current=>{let data=meta&&meta.data.feature_importance;if(!data||!data.items)throw new Error('当前模型未提供重要度，不能用演示或专家评分选取属性');let keys=data.items.map(r=>r.field_id).filter(k=>D.schema.fields.some(f=>f.field_id===k&&f.analysis_supported)).slice(0,10);if(!keys.length)throw new Error('重要度字段与当前可分析字段不匹配');let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:keys,ranking_mode:'importance'}));if(current())sensitivity(r,'当前模型重要度先选 Top10，再比较扰动曲线');});
+Q('top10').onclick=()=>D.run(async current=>{let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:null}));if(current())sensitivity(r,'价格变化 Top10');});
+Q('importanceTop10').onclick=()=>D.run(async current=>{let data=meta&&meta.data.feature_importance;if(!data||!data.items)throw new Error('暂无属性重要度数据');let keys=data.items.map(r=>r.field_id).filter(k=>D.schema.fields.some(f=>f.field_id===k&&f.analysis_supported)).slice(0,10);if(!keys.length)throw new Error('重要度字段与当前可分析字段不匹配');let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:keys,ranking_mode:'importance'}));if(current())sensitivity(r,'重要属性 Top10');});
 function scenarioCard(){
  if(!D.schema)return;D.epoch++;const base=D.parameters(),item={id:'r6-'+(++serial),base,inputs:[],picked:new Set()};plans.push(item);
  const card=document.createElement('div');card.className='scenario-card';
@@ -88,24 +88,26 @@ Q('runScenarios').onclick=()=>D.run(async current=>{
  Q('scenarioTop5').innerHTML='<h3>本次情景改动的单字段影响 Top5</h3><p>只比较这次情景里实际改过的字段，各自单独算出的价格差额。这不是全字段敏感性排名，也不能把这几项加起来当作方案总价。</p>'+table(['方案','字段','单字段价格差额 / 万元'],effects.slice(0,5).map(c=>[c.variant.name,(D.schema.fields.find(f=>f.field_id===c.key)||{}).label_zh||c.key,fmt(c.delta)]));
  D.chart('scenarioChart',{tooltip:{trigger:'axis'},xAxis:{type:'category',data:variants.map(v=>v.name)},yAxis:{type:'value',name:'价格 / 万元'},series:[{type:'bar',data:result.items.slice(1).map(r=>r.result.predicted_price_wan)}]});
  D.chart('scenarioBubble',{tooltip:{formatter:p=>E(p.data[3])+' · '+E(p.data[4])+'：'+fmt(p.data[1])+' 万元'},xAxis:{type:'value',name:'改动项序号'},yAxis:{type:'value',name:'单字段价格差额 / 万元'},series:[{type:'scatter',symbolSize:v=>Math.min(65,12+Math.sqrt(Math.abs(v[1]))*20),data:effects.map((c,i)=>[i+1,c.delta,Math.abs(c.delta),c.variant.name,(D.schema.fields.find(f=>f.field_id===c.key)||{}).label_zh||c.key])}]});
- D.remember('多属性情景差额与明细',result);D.status('情景比较完成，全部预测来自同一发布模型。','success');
+ D.remember('多属性情景差额与明细',result);D.status('情景比较完成。','success');
 });
 document.addEventListener('deep:product',()=>{plans=[];Q('scenarioRows').textContent='';});
 document.addEventListener('deep:loaded',async()=>{
  const version=D.schema;Q('modelSummary').hidden=true;Q('importance').hidden=true;meta=null;Q('modelLibrary').textContent='读取当前发布模型…';Q('importanceProvenance').textContent='读取中…';
- Q('analysisAvailability').textContent='自由文本等不可分析字段已从敏感性选项中排除。';
+ Q('analysisAvailability').textContent='仅显示支持分析的属性。';
  const oldExtra=Q('r6Adjustment'),adjustment=Q('adjustment');if(oldExtra)oldExtra.remove();Q('fields').hidden=false;
  const group=Q('groups'),first=Q('design').querySelector('article'),extra=document.createElement('div');extra.className='r6-extra';extra.hidden=true;extra.id='r6Adjustment';extra.appendChild(adjustment);first.appendChild(extra);
  const button=document.createElement('button');button.type='button';button.textContent='时间批量校正';button.onclick=()=>{Q('fields').hidden=true;extra.hidden=false;group.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));};group.appendChild(button);['功能参数','性能参数','环境参数'].reverse().forEach(name=>{if(!Array.from(group.querySelectorAll('button')).some(b=>b.textContent===name)){const b=document.createElement('button');b.textContent=name;b.disabled=true;b.title='当前发布产品未配置该分组';group.prepend(b);}});
  group.querySelectorAll('button').forEach(b=>{if(b!==button)b.addEventListener('click',()=>{Q('fields').hidden=false;extra.hidden=true;});});
  D.schema.fields.forEach(f=>{
  const input=Q('field_'+f.field_id),holder=input.parentElement;
- const state=document.createElement('select');state.className='availability';state.setAttribute('aria-label',f.label_zh+'可用状态');state.add(new Option('可用（0仍是有效值）','present'));state.add(new Option('缺失 / 未提供 → null','missing'));
- const unavailable=new Option('不可用：模型未定义专用编码','unavailable');unavailable.disabled=true;state.add(unavailable);state.value=input.value===''?'missing':'present';
+ const state=document.createElement('select');state.className='availability';state.setAttribute('aria-label',f.label_zh+'可用状态');state.add(new Option('已填写','present'));state.add(new Option('未提供','missing'));
+ const unavailable=new Option('不可用','unavailable');unavailable.disabled=true;state.add(unavailable);state.value=input.value===''?'missing':'present';
  state.onchange=()=>{if(state.value==='missing'){input.dataset.priorValue=input.value;input.value='';input.disabled=true;}else{input.disabled=false;input.value=input.dataset.priorValue||input.value;}input.dispatchEvent(new Event('input'));};
  holder.appendChild(state);
  });
  try{const [importanceData,library]=await Promise.all([D.api('/feature-importance'),D.api('/model-library')]);if(version!==D.schema)return;meta=importanceData;renderLibrary(library);importance();}catch(e){if(version===D.schema)D.status(e.message,'error');}
  document.dispatchEvent(new CustomEvent('deep:ready'));view();
 });
+
+document.addEventListener('deep:prediction',()=>{const old=Q('dsLayers');if(old)old.remove();const value=D.prediction&&D.prediction.ds_pricing;if(!value)return;const section=document.createElement('div');section.id='dsLayers';section.className='result-note';section.innerHTML='<h3>三层价格明细 · 元</h3>'+table(['部件价格','第二层属性','第三层综合金额','总价'],[[fmt(value.layers.stage1),fmt(value.layers.stage2),fmt(value.layers.stage3),fmt(value.total_price)]])+'<p>'+E(value.status)+'</p>'+value.warnings.map(w=>'<p>'+E(w)+'</p>').join('');Q('comparison').parentElement.after(section);});
 })();

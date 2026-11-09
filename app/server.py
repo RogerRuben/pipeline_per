@@ -38,7 +38,6 @@ from .price_output import PriceOutputNormalizer
 from .semantic_snapshot import SemanticSnapshotService
 from .requirement_versions import RequirementVersionService, demand_fingerprint
 from .generation_profiles import public_profiles
-from .ranking_explanation import annotate_ranking_explanations
 from .relaxation_advisor import build_relaxation_suggestions
 from .deep_price.http import handle_http as handle_deep_price_http, invalidate_session as invalidate_deep_price_session
 
@@ -1082,6 +1081,8 @@ class Application(object):
             value_type = str((definitions.get(key) or {}).get("value_type") or "").lower()
             if value_type not in ("number", "ip_grade", "boolean") or value in (None, ""):
                 continue
+            if value_type == "boolean" and isinstance(value,bool):
+                continue
             try:
                 number = float(str(value).upper().replace("IP", ""))
             except (TypeError, ValueError):
@@ -1579,7 +1580,6 @@ class Application(object):
             rank_historical_products(candidates, ranking_request, tag_weights, definitions=definitions, tag_map=tag_map, constraint_rules=constraint_rules)
         )
         ranked = annotate_candidate_recommendations(ranked, scenario_policy, definitions=definitions)
-        ranked = annotate_ranking_explanations(ranked, request, definitions=definitions)
         for item in ranked:
             item["scenario"] = scenario_policy["scenario"]
         analysis_fields = (
@@ -2458,6 +2458,9 @@ class Handler(BaseHTTPRequestHandler):
             self._admin_forbidden(); return
         if path in ("/login", "/login.html"): rel = "login.html"
         elif path in ("/portal", "/portal/"): rel = "portal.html"
+        elif path=="/portal/frame":rel="front_gate/index.html"
+        elif path=="/recommendation":rel="index.html"
+        elif path.startswith(("/js/","/css/","/fonts/","/img/")) or path=="/favicon.png":rel="front_gate/"+path.lstrip("/")
         elif path in ("/admin","/admin/"): rel = "admin.html"
         elif path in ("/effectiveness", "/effectiveness/"): rel = "effectiveness.html"
         elif path in ("/price", "/price/"): rel = "price.html"
@@ -2483,6 +2486,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._redirect(self._safe_next((query.get("next") or [""])[0]) or "/portal"); return
             if self._auth_required(path):
                 return
+            from app.unified_portal import handle_portal
+            if handle_portal(self,path):return
             if path == "/cost-effectiveness" or path.startswith("/cost-effectiveness/"):
                 self._serve_cost_effectiveness("GET", path, query); return
             if path == "/api/auth/status":

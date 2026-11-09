@@ -125,7 +125,7 @@ def main():
     else:
         from services.common.http_service import make_handler
         if args.role == 'price':
-            from services.price_service.app import PriceService
+            from services.price_service.ds_backend import load_price_service as PriceService
             app = PriceService(contained(package,release['price_model']),None,
                                evaluation_metadata=contained(package,release['evaluation_metadata']))
         else:

@@ -75,7 +75,7 @@ class Supervisor:
             return {'status':self.phase,'error':self.error,'instance_id':self.instance_id,
                     'pid':self.launcher_pid,'supervisor_pid':os.getpid(),'version':self.manifest['version'],
                     'package_dir':str(self.package),'data_dir':str(self.data),
-                    'classification':self.manifest['release']['classification'],'win7_validated':False,
+                    'classification':self.manifest['release']['classification'],'price_backend':self.manifest['release'].get('price_backend','optuna_v3'),'win7_validated':False,
                     'generation':self.generation,'restart_count':self.restart_count,
                     'portal_url':web+'/portal' if web else None,'control_url':self.service_url('control'),
                     'ports':dict(self.ports),'services':services,'operations':[dict(item) for item in self.operations],
@@ -98,7 +98,9 @@ class Supervisor:
                     self.send_response(status);self.send_header('Content-Type',content_type)
                     self.send_header('Content-Length',str(len(raw)));self.send_header('Cache-Control','no-store')
                     self.send_header('X-Content-Type-Options','nosniff')
-                    self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors 'none'")
+                    trusted_web=supervisor.service_url('web')
+                    ancestors="'self'"+((' '+trusted_web) if trusted_web else '')
+                    self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors "+ancestors)
                     self.end_headers();self.wfile.write(raw)
                 except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):self.close_connection=True
             def host_valid(self):return self.headers.get('Host')==urlparse(supervisor.url).netloc

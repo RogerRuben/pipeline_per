@@ -150,6 +150,8 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             config = load_config(source, effect_config,allow_legacy=price_engine not in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'))
         else:
             raise ValueError("请提供双行表头CSV/XLSX，或使用--demo。")
+        from tools.product_identity import workbook_product_name
+        product_name=workbook_product_name(source,product_name)
         raw = source.read_bytes()
         if price_engine in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7') and missing_tokens is None:
             from .product_price_optuna_v2 import load_config as load_optuna_config
@@ -189,6 +191,9 @@ def build(input_path=None, output_dir=None, product_code="VIRTUAL_PIPELINE_PRODU
             optuna_config=workbook_config(source,load_optuna_config(price_config,price_overrides),{p['parameter_id'] for p in data['parameters']},loader=load_optuna_config)
             restore_configurations(data,table,optuna_config['expert']['field_types'],optuna_config['input']['missing_tokens'])
             apply_types(data,optuna_config['expert']['field_types'])
+            if price_engine in ('optuna_v2','optuna_v3'):
+                from .product_price_optuna_v2 import apply_attribute_groups
+                apply_attribute_groups(data,optuna_config)
             if price_engine=='optuna_v7':
                 from .product_price_optuna_v7 import train_price_optuna_v7
                 price_bundle,price_report=train_price_optuna_v7(data,output/"price",price_config,progress,optuna_config,input_path=source)

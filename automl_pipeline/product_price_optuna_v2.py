@@ -22,7 +22,7 @@ DEFAULT={'schema_version':'price-optuna-v2-pipeline-1.0',
  'search':{'n_trials':150,'optimizer_seed':42,'seed_low':1,'seed_high':10000,'timeout_seconds':None},
  'validation':{'test_size':.2,'price_bins':3,'auto_adjust_test_size':True},
  'targets':{'r2_min':.9,'mape_percent_max':10.,'hard_gate':False},
- 'expert':{'enabled':True,'default_score':1.,'use_supplied_defaults':True,'scores':{},'records':[],'field_types':{}},
+ 'expert':{'enabled':True,'default_score':1.,'use_supplied_defaults':True,'scores':{},'records':[],'field_types':{},'attribute_groups':{}},
  'input':{'missing_tokens':[],'remove_outliers':False,'min_samples':4},
  'deployment':{'model_scope':'full_data'}}
 LABELS={'lasso':'稀疏回归','ridge':'岭回归','expert_tree':'专家分裂树','extratrees':'极端随机树','svr':'支持向量回归','gbdt':'梯度提升树'}
@@ -34,7 +34,7 @@ def load_config(path=None,overrides=None):
         if not isinstance(source,dict):raise ValueError('配置必须是对象：'+prefix)
         for key,value in source.items():
             if key not in target:raise ValueError('未知Optuna V2配置：'+prefix+key)
-            if isinstance(target[key],dict) and key not in ('scores','field_types'):merge(target[key],value,prefix+key+'.')
+            if isinstance(target[key],dict) and key not in ('scores','field_types','attribute_groups'):merge(target[key],value,prefix+key+'.')
             else:target[key]=copy.deepcopy(value)
     if path:merge(result,json.loads(Path(path).read_text(encoding='utf-8-sig')))
     if overrides:merge(result,overrides)
@@ -63,13 +63,28 @@ def load_config(path=None,overrides=None):
 def workbook_config(source,cfg,known,loader=load_config):
     cfg=copy.deepcopy(cfg)
     if source:
-        scores,records,types,unused=ratings_from_workbook(source,known)
+        scores,records,types,groups=ratings_from_workbook(source,known)
         cfg['expert']['scores'].update(scores)
         if records:cfg['expert']['records']=records
         cfg['expert']['field_types'].update(types)
-    unknown=(set(cfg['expert']['scores'])|set(cfg['expert']['field_types']))-set(known)
+        if cfg['schema_version'] in ('price-optuna-v2-pipeline-1.0','price-optuna-v3-pipeline-1.0'):
+            cfg['expert']['attribute_groups'].update(groups)
+    unknown=(set(cfg['expert']['scores'])|set(cfg['expert']['field_types'])|set(cfg['expert']['attribute_groups']))-set(known)
     if unknown:raise ValueError('价格专家配置引用未知英文代号：'+','.join(sorted(unknown)))
     return loader(overrides=cfg)
+
+
+def apply_attribute_groups(data,cfg):
+    aliases={'function':'功能','功能参数':'功能','performance':'性能','性能参数':'性能',
+             'environment':'环境','环境参数':'环境','other':'其他','其他参数':'其他'}
+    groups=cfg['expert'].get('attribute_groups') or {}
+    for p in data['parameters']:
+        if p['parameter_id'] in groups:
+            raw=str(groups[p['parameter_id']]).strip()
+            group=aliases.get(raw.lower(),raw)
+            if group not in ('功能','性能','环境','其他'):
+                raise ValueError('属性分组须为功能、性能、环境或其他：'+p['parameter_id'])
+            p['parameter_group']=group
 
 
 def expert_rating(parameter,cfg):
@@ -135,6 +150,7 @@ def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrid
     cfg=loader(config_path,overrides);known={p['parameter_id'] for p in data['parameters']}
     cfg=workbook_config(input_path,cfg,known,loader=loader)
     data=copy.deepcopy(data)
+    apply_attribute_groups(data,cfg)
     if input_path:
         from app.product_table import product_table_rows
         from services.price_service.optuna_v2.typed_features import restore_configurations

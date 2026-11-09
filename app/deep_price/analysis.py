@@ -76,7 +76,7 @@ class DeepPriceAnalysis:
                 if 'price_unit' in payload and payload['price_unit'] != '万元':
                     raise DeepPriceError('invalid_input', '价格单位必须为万元')
             if path == '/schema':
-                output = dict(metadata, fields=fields, capabilities={'ml': True, 'additive_rules': False,
+                output = dict(metadata, fields=fields, capabilities={'ml': before.get('backend')!='ds_three_layer', 'ds_three_layer':before.get('backend')=='ds_three_layer', 'additive_rules': False,
                               'mixed_adjustment': False, 'explanation': 'not_configured', 'batch_limit': 100})
                 output.update(backend=before.get('backend'), fixture=bool(schema.get('virtual_fixture')),
                               published_at=snapshot.release.get('activated_at'), analysis_metadata=bound_metadata(schema.get('analysis_metadata'),snapshot,before['model_sha256']))
@@ -133,6 +133,8 @@ class DeepPriceAnalysis:
                         raise DeepPriceError('unavailable', '价格服务返回无效或乱序结果', 503)
                     results.append({'item_id': item['item_id'], 'result': dict(metadata, success=True, pricing_mode='ml',
                                     predicted_price_wan=price, business_parameters=business)})
+                    if response.get('ds_result'):
+                        results[-1]['result'].update(pricing_mode='ds_three_layer',ds_pricing=response['ds_result'])
                 output = results[0]['result'] if path == '/predict' else dict(metadata, success=True, items=results)
             snapshot.assert_unchanged()
             after = self.gateway.price_health(timeout=deadline.remaining())

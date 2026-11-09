@@ -114,7 +114,13 @@ def ratings_from_workbook(source,known):
                 raise ValueError("不同专家声明的属性类型不一致："+key)
             types[key] = value
         if token(raw_group):
-            groups[key] = clean_field_id(raw_group)
+            value=clean_field_id(raw_group)
+            aliases={'function':'功能','功能参数':'功能','performance':'性能','性能参数':'性能',
+                     'environment':'环境','环境参数':'环境','other':'其他','其他参数':'其他'}
+            value=aliases.get(value.lower(),value)
+            if key in groups and groups[key]!=value:
+                raise ValueError('不同专家声明的属性分组不一致：'+key)
+            groups[key] = value
     return {key:float(np.median(values)) for key,values in collected.items()},records,types,groups
 
 

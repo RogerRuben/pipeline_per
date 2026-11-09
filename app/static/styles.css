@@ -119,3 +119,4 @@
 @media(max-width:900px){.scenario-choices{grid-template-columns:repeat(3,minmax(90px,1fr))}.result-controls{justify-content:flex-start}.popover-panel{position:fixed;left:14px;right:14px;top:auto;bottom:14px;width:auto;max-height:80vh;overflow:auto}.product-context>small{margin-left:0;width:100%}}
 .numeric-special-control select,.numeric-special-control input{min-width:0;width:100%}
 .numeric-special-control input:disabled{background:#f1f3f5;color:#7b8490;cursor:not-allowed}
+#recommendationStaleNotice { padding: 12px 16px; margin: 12px 0; border: 1px solid #e6b85c; border-radius: 8px; background: #fff7e5; color: #724d10; }
