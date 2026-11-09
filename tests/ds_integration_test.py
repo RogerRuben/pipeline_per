@@ -1,6 +1,7 @@
 import json,sys,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from tools.ds_examples import workbook
 from tools.build_ds_release import build
@@ -28,6 +29,15 @@ class DSIntegrationTests(unittest.TestCase):
         self.assertEqual(len(batch['items']),2)
         with self.assertRaises(JsonServiceError):svc.handle_post('/api/v1/predict',{'parameters':dict(params,alarm=None)})
         with self.assertRaises(JsonServiceError):svc.handle_post('/api/v1/predict',{'parameters':params,'expected_model_sha256':'old'})
+    def test_recommendation_accepts_real_boolean_business_values(self):
+        from app.server import Application
+        app=Application.__new__(Application)
+        app.store=SimpleNamespace(parameter_map=lambda:{'alarm':{'value_type':'boolean'}},
+            runtime_parameters=lambda p:p,business_parameters=lambda p,b:p)
+        app.runtime=SimpleNamespace(evaluate=lambda p:{'parameters':p})
+        app._decorate_evaluation=lambda e,b:e
+        for value in (False,True):self.assertEqual(app._evaluate_with_rules({'alarm':value})['parameters']['alarm'],value)
+
     def test_inspection_is_read_only_and_mapping_complete(self):
         result=build(self.source,None,'DS_TEST','fallback',self.config,True,inspect_only=True)
         self.assertFalse(result['training']);self.assertEqual(result['records'],8)

@@ -75,7 +75,7 @@ class Supervisor:
             return {'status':self.phase,'error':self.error,'instance_id':self.instance_id,
                     'pid':self.launcher_pid,'supervisor_pid':os.getpid(),'version':self.manifest['version'],
                     'package_dir':str(self.package),'data_dir':str(self.data),
-                    'classification':self.manifest['release']['classification'],'win7_validated':False,
+                    'classification':self.manifest['release']['classification'],'price_backend':self.manifest['release'].get('price_backend','optuna_v3'),'win7_validated':False,
                     'generation':self.generation,'restart_count':self.restart_count,
                     'portal_url':web+'/portal' if web else None,'control_url':self.service_url('control'),
                     'ports':dict(self.ports),'services':services,'operations':[dict(item) for item in self.operations],

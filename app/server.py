@@ -1081,6 +1081,8 @@ class Application(object):
             value_type = str((definitions.get(key) or {}).get("value_type") or "").lower()
             if value_type not in ("number", "ip_grade", "boolean") or value in (None, ""):
                 continue
+            if value_type == "boolean" and isinstance(value,bool):
+                continue
             try:
                 number = float(str(value).upper().replace("IP", ""))
             except (TypeError, ValueError):
