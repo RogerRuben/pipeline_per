@@ -271,6 +271,9 @@ def make_contract(schema,business,model_sha,price_output,effectiveness_schema=No
         contract['effectiveness_schema_sha256']=fingerprint(effect)
         if effectiveness_model_sha:
             contract['effectiveness_model_sha256']=effectiveness_model_sha
+    gaps=encoding_gaps(fields, contract, model_field_ids(contract))
+    if gaps:
+        raise ValueError('业务取值不能交给当前模型计算：'+'、'.join(gaps))
     return contract
 
 
@@ -614,7 +617,10 @@ def validate_data(package,data,manifest,contract=None):
         previous=read_json(state_path)
         if previous.get('model_schema_sha256')!=contract['model_schema_sha256'] or previous.get('price_basis')!=contract['price_basis']:
             raise StartupBlocked('Replacement model schema or price basis is incompatible'+_PRESERVED)
-        if previous.get('effectiveness_schema_sha256') not in (None, contract.get('effectiveness_schema_sha256')):
+        previous_effect=previous.get('effectiveness_schema_sha256')
+        same_effect_file=(previous.get('effectiveness_model_sha256')
+                          and previous.get('effectiveness_model_sha256')==contract.get('effectiveness_model_sha256'))
+        if previous_effect not in (None, contract.get('effectiveness_schema_sha256')) and not same_effect_file:
             raise StartupBlocked('Effectiveness model schema is incompatible'+_PRESERVED)
         if current['binding_schema_sha256']!=previous.get('binding_schema_sha256'):
             raise StartupBlocked('Accepted business release/binding changed: binding_schema_sha256'+_PRESERVED)
@@ -654,4 +660,7 @@ def accept_initial(data,manifest,contract):
     current=inspect_database(Path(data)/'data/protocol_demo.db', price_ids=price_ids, effect_ids=effect_ids)
     if calculation_schema(current['live_schema'], ids or None)!=calculation_schema(contract['business_schema'], ids or None):
         raise ValueError('Seeded database differs from its delivery contract'+_PRESERVED)
+    gaps=encoding_gaps(current['live_schema'], contract, ids)
+    if gaps:
+        raise StartupBlocked('新增的业务取值还不能交给当前模型计算：'+'、'.join(gaps)+_PRESERVED)
     return _public_state(current, manifest, contract, 'none', 'start')

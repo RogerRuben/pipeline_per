@@ -544,6 +544,51 @@ class DesktopTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'effectiveness model'):
             validate_data(self.package, self.data, self.manifest)
 
+    def test_same_effectiveness_file_survives_an_empty_categories_field(self):
+        self.database()
+        duty={'parameter_id':'duty','unit':'%','value_type':'number','search_type':'continuous','required':1,'enabled':1,'min_value':0,'max_value':100}
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('INSERT INTO parameter_definitions VALUES(?,?,?,?,?,?,?,?)',
+                               tuple(duty[key] for key in ('parameter_id','unit','value_type','search_type','required','enabled','min_value','max_value')))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'].append(duty)
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        self.business['data']['parameters'].append(duty)
+        old_field={'field_name':'duty','dtype':'number','unit':'%','allowed_values':[],'required':True,'missing_policy':'reject','category_mapping':{},'source':'','parser':''}
+        effect_file=self.package/'release/effect.json'; effect_file.write_bytes(b'same-effect-file')
+        self.manifest['release']['effectiveness_model']='release/effect.json'
+        self.manifest['files']['release/effect.json']=sha(effect_file)
+        self.contract=make_contract({'model_version':'v1','feature_order':['size'],
+             'fields':[{'field_name':'size','unit':'mm','dtype':'number','required':True,'missing_policy':'reject'}]},
+             self.business, sha(self.package/'release/model.pkl'), {'unit':'wan_yuan','scale':1.0},
+             effectiveness_schema={'feature_order':['duty'],'fields':[old_field]},
+             effectiveness_model_sha=sha(effect_file))
+        self.seal_contract()
+        write_json(self.data/'delivery_state.json', accept_initial(self.data, self.manifest, self.contract))
+        restated=dict(old_field, categories=[])
+        self.contract['effectiveness_schema']={'feature_order':['duty'],'fields':[restated]}
+        self.contract['effectiveness_schema_sha256']=fingerprint(self.contract['effectiveness_schema'])
+        self.seal_contract()
+        result=validate_data(self.package, self.data, self.manifest)
+        self.assertEqual(result['startup_action'], 'start')
+        self.assertNotEqual(fingerprint({'feature_order':['duty'],'fields':[old_field]}), self.contract['effectiveness_schema_sha256'])
+
+    def test_first_accept_rejects_values_the_model_cannot_encode(self):
+        self.database()
+        self.contract['model_schema']['fields'][0]['allowed_values']=['A']
+        self.contract['model_schema_sha256']=fingerprint(self.contract['model_schema'])
+        self.seal_contract()
+        with closing(sqlite3.connect(str(self.data/'data/protocol_demo.db'))) as connection:
+            connection.execute('ALTER TABLE parameter_definitions ADD COLUMN allowed_values_json TEXT')
+            connection.execute("UPDATE parameter_definitions SET allowed_values_json=?", ('["A","B"]',))
+            document=json.loads(connection.execute('SELECT data_json FROM product_releases').fetchone()[0])
+            document['parameters'][0]['allowed_values']=['A','B']
+            connection.execute('UPDATE product_releases SET data_json=?', (json.dumps(document, ensure_ascii=False),))
+            connection.commit()
+        with self.assertRaisesRegex(StartupBlocked, '不能交给当前模型'):
+            accept_initial(self.data, self.manifest, self.contract)
+
     def test_presentation_fields_do_not_change_the_generation_fingerprint_input(self):
         base={'parameter_id':'size','label':'外径','description':'说明','search_type':'continuous','min_value':0}
         renamed=dict(base,label='直径',description='另一句')
