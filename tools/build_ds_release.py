@@ -19,8 +19,8 @@ def build(source,out,product_code,product_name,config,virtual_data=False,inspect
     report=HistoricalProductOnboarding().analyze(source.name,source.read_bytes(),product_code,product_name,[],require_dual_header=True)
     data=report['data'];definitions={p['parameter_id']:p for p in data['parameters']}
     mapping=config.get('field_map') or {p['parameter_id']:p['label'] for p in data['parameters'] if p['label'] in {s['name'] for s in specs}}
-    if set(mapping)-set(definitions):raise ValueError('DS映射引用不存在的英文属性代号')
-    if set(mapping.values())!={s['name'] for s in specs} or len(mapping)!=len(specs):raise ValueError('DS字段映射必须完整且不重复')
+    if set(mapping)-set(definitions):raise ValueError('DS映射引用不存在的英文属性代号：'+','.join(sorted(set(mapping)-set(definitions))))
+    if set(mapping.values())!={s['name'] for s in specs} or len(mapping)!=len(specs):raise ValueError('DS字段映射必须完整且不重复；模型要求：'+'、'.join(s['name'] for s in specs)+'；请在 settings/ds.json 的 field_map 中配置英文代号到这些名称的对应关系')
     fields=[]
     for key,name in mapping.items():
         p=definitions[key];spec=next(s for s in specs if s['name']==name)
