@@ -24,8 +24,10 @@ def sync_addresses(app,data):
     changed=False
     for role,attr,key in [('price','price_url','price_service_url'),('effectiveness','effectiveness_url','effectiveness_service_url')]:
         url=(status.get('services',{}).get(role) or {}).get('url')
-        if url and url!=getattr(app.model_gateway,attr):
-            setattr(app.model_gateway,attr,url);app.model_config[key]=url;changed=True
+        if url:
+            app.model_config[key]=url
+            if url!=getattr(app.model_gateway,attr):
+                setattr(app.model_gateway,attr,url);changed=True
     if changed:
         app.model_data_sync_error='服务地址已更新，等待重新连接'
         app._invalidate_runtime_caches()

@@ -4,7 +4,7 @@
 
 ## 地址和外部配置
 
-软件目录“访问地址.txt”和用户目录 runtime/access.txt 记录地址。第一次运行读取 defaults/desktop.json，之后读取独立用户目录的 config/desktop.json。管理页显示此路径和实际端口。修改配置并完整退出、重新启动生效，无需改代码或训练。端口占用时明确提示，不静默换端口。
+软件目录“访问地址.txt”和用户目录 runtime/access.txt 记录地址。第一次运行读取 defaults/desktop.json，之后读取独立用户目录的 config/desktop.json。管理页显示此路径和实际端口。修改配置并完整退出、重新启动生效，无需改代码或训练。端口被占用时仅该服务自动改用空闲端口；未占用的配置保持不变，实际地址在管理页和 runtime/access.txt 显示。
 
 ## 服务和数据
 

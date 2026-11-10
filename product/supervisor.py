@@ -73,7 +73,7 @@ class Supervisor:
                    'url':self.service_url(role),'alive':self.alive(role),'paused':role in self.paused,
                    'state':'running' if self.alive(role) else 'stopped' if role in self.paused else 'failed' if role in self.blocked else 'starting',
                    'error':self.errors.get(role)}
-            web=self.service_url('web')
+            web=self.service_url('web') if self.alive('web') else None
             return {'status':self.phase,'error':self.error,'instance_id':self.instance_id,
                     'pid':self.launcher_pid,'supervisor_pid':os.getpid(),'version':self.manifest['version'],
                     'package_dir':str(self.package),'data_dir':str(self.data),
