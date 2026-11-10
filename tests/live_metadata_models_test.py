@@ -65,6 +65,11 @@ class LibraryTests(unittest.TestCase):
         data={'fields':[{'field_name':'size','field_label':'旧名','unit':'mm','value':42}],'explanation':[{'field_id':'size','label':'旧名','score':5}]}
         result=overlay_labels(data,self.store.parameter_map());self.assertEqual(result['fields'][0]['field_label'],'尺寸')
         self.assertEqual(result['fields'][0]['value'],42);self.assertEqual(data['fields'][0]['field_label'],'旧名')
+    def test_model_advisory_strings_follow_field_renames_without_rewriting_values(self):
+        data={'fields':[{'field_name':'size','field_label':'旧尺寸'}],'domain_status':{'warnings':['旧尺寸高于训练范围上限100']},'product_name':'旧尺寸','parameters':{'kind':'旧尺寸'}}
+        result=overlay_labels(data,self.store.parameter_map())
+        self.assertEqual(result['domain_status']['warnings'],['尺寸高于训练范围上限100'])
+        self.assertEqual(result['product_name'],'旧尺寸');self.assertEqual(result['parameters']['kind'],'旧尺寸')
     def test_failed_switch_restores_previous_config_even_when_units_present(self):
         self.asset();old={'price':{'id':'b'*64},'effectiveness':{'id':'c'*64}};write_json(self.library.active,old)
         with patch.object(self.library,'_restart',side_effect=ValueError('failure')) as restart:

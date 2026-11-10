@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import {chromium} from '../outputs/r7_browser/node_modules/playwright/index.mjs';
-const [base,out]=process.argv.slice(2);await fs.mkdir(out,{recursive:true});
+const [base,out,effectPath]=process.argv.slice(2);await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({channel:'chrome',headless:true});
 const context=await browser.newContext({viewport:{width:1480,height:1000}});
 const report={checks:{},errors:[]};context.on('page',p=>p.on('pageerror',e=>report.errors.push(e.message)));
@@ -60,13 +60,30 @@ try{
  const priceModels=await api('/api/portal/models/price');await check('portal_real_metrics',Object.keys(priceModels.model_sets[0].metrics).length>0&&priceModels.model_sets[0].model_count>1);
  await portal.locator('#models').click();const lib=portal.frameLocator('#libraryFrame');await lib.locator('#current').waitFor();await check('editable_model_library',await lib.locator('#install').isVisible()&&(await lib.locator('#current').innerText()).includes('MAPE'));
  await portal.screenshot({path:out+'/model-library.png'});
+ if(effectPath){
+  const effect=JSON.parse(await fs.readFile(effectPath,'utf8'));effect.model_version=String(effect.model_version)+'-ui';const file=out+'/ui_effectiveness.json';await fs.writeFile(file,JSON.stringify(effect));
+  await lib.locator('#role').selectOption('effectiveness');await lib.locator('#name').fill('界面导入效能验收');await lib.locator('#file').setInputFiles(file);await lib.locator('#install').click();
+  await lib.locator('#items article').filter({hasText:'界面导入效能验收'}).waitFor();await check('model_library_gui_import',true);
+  await lib.locator('#items article').filter({hasText:'界面导入效能验收'}).locator('.activate').click();
+  await lib.locator('#status').filter({hasText:'模型已切换并保存'}).waitFor();await lib.locator('#items article .active').waitFor();await check('model_library_gui_activate',await lib.locator('#items article .active').count()===1);
+  portal.once('dialog',d=>d.accept('界面改名效能验收'));await lib.locator('#items .rename').first().click();await lib.locator('#items article').filter({hasText:'界面改名效能验收'}).waitFor();await check('model_library_gui_rename',true);
+  await portal.screenshot({path:out+'/model-library-activated.png'});
+ }
  const reco=pages.recommend;await reco.bringToFront();if(await reco.locator('#tourOverlay').isVisible())await reco.locator('#tourSkip').click();
- const recResponse=reco.waitForResponse(r=>r.url().endsWith('/api/recommend'));await reco.locator('#recommendBtn').click();await (await recResponse).finished();await reco.locator('.result-card').first().click();
+ report.recommendation_seconds=[];
+ for(let i=0;i<3;i++){const recResponse=reco.waitForResponse(r=>r.url().endsWith('/api/recommend'));const began=performance.now();await reco.locator('#recommendBtn').click();await (await recResponse).finished();await reco.locator('.result-card').first().waitFor();report.recommendation_seconds.push((performance.now()-began)/1000);}
+ await check('recommendation_under_six_seconds',report.recommendation_seconds.every(v=>v<6));
+ await reco.locator('.result-card').first().click();
  if(await reco.locator('#tourOverlay').isVisible())await reco.locator('#tourSkip').click();
  await reco.locator('#rangeDiagnosticsPanel details').evaluate(e=>e.open=true);
  await check('all_reference_ranges_visible',await reco.locator('#rangeDiagnosticsPanel').innerText().then(t=>t.includes('DataMaster')&&t.includes('训练')));
  await reco.screenshot({path:out+'/recommendation-ranges.png'});
- await reco.locator('a[href="/portal"]').first().click();await reco.waitForURL('**/portal');await check('navigation_returns_top_portal',reco.frames().filter(f=>f.url().endsWith('/portal')).length===1);
+ await reco.locator('#closeDetail').click();
+ await portal.locator('#workbench').click();const gate=portal.frames().find(f=>f.url().includes('/portal/frame'));
+ await gate.goto(base+'/portal/frame#/intelligent',{waitUntil:'networkidle'});await gate.waitForSelector('iframe');
+ let embedded;for(let i=0;i<50&&!embedded;i++){embedded=gate.childFrames().find(f=>f.url().includes('/recommendation'));if(!embedded)await pause(100);}
+ await embedded.locator('a[href="/portal"]').first().click();await portal.waitForLoadState('networkidle');
+ await check('navigation_returns_top_portal',portal.frames().filter(f=>f.url().endsWith('/portal')).length===1&&portal.url()===base+'/portal');
  await admin.screenshot({path:out+'/admin-renamed.png'});
  await check('no_browser_errors',report.errors.length===0);report.status='pass';
 }catch(e){report.status='fail';report.error=e.stack;for(const p of context.pages().slice(-1))await p.screenshot({path:out+'/failure.png'});throw e;}

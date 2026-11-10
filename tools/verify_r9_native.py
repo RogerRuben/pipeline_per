@@ -54,7 +54,8 @@ try:
  start();check('fresh_exe_start',True)
  if a.browser:
   with (out/'browser.log').open('wb') as log:
-   done=subprocess.run(['C:/Program Files/nodejs/node.exe',str(ROOT/'tools/verify_r9_ui.mjs'),base,str(out/'browser')],stdout=log,stderr=subprocess.STDOUT,timeout=300)
+   effect_path=package/read_json(package/'PACKAGE_MANIFEST.json')['release']['effectiveness_model']
+   done=subprocess.run(['C:/Program Files/nodejs/node.exe',str(ROOT/'tools/verify_r9_ui.mjs'),base,str(out/'browser'),str(effect_path)],stdout=log,stderr=subprocess.STDOUT,timeout=300)
   check('complete_browser_checks',done.returncode==0)
  else:
   schema=call('/api/deep-price/v1/schema');ref=call('/api/deep-price/v1/products?page=1&page_size=100')['items'][0]
