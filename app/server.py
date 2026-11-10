@@ -1597,8 +1597,18 @@ class Application(object):
             request, candidates, definitions, tag_map, constraint_rules,
             requirement_version=requirement_version,
         ) if ranked and not any(item.get("strict_filter_satisfied") for item in ranked) else []
+        # Cards open their cached evaluation directly, without agreement_detail.
+        # Attach reference metadata only for the visible page; never re-predict.
+        visible=ranked[start:start + page_size]
+        specs=self.runtime.model_feature_specs() if hasattr(self.runtime,'model_feature_specs') else self.runtime.all_feature_specs() if hasattr(self.runtime,'all_feature_specs') else []
+        for item in visible:
+            for key in ('evaluation','current_model_evaluation'):
+                if isinstance(item.get(key),dict):
+                    evaluation=dict(item[key]);item[key]=evaluation
+                    parameters=evaluation.get('parameters') or item.get('params') or {}
+                    evaluation['range_diagnostics']=build_range_diagnostics(parameters,definitions,specs,evaluation.get('model_parameters') or parameters)
         return {
-            "items": ranked[start:start + page_size],
+            "items": visible,
             "analysis_items": analysis_items,
             "total": len(ranked),
             "page": page,
