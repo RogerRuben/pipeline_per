@@ -85,7 +85,7 @@
         await api("/api/admin/product-releases/section/save",{method:"POST",body:JSON.stringify({release_id:state.releaseId,section:state.editing.section,items:items})});saved=true;hide(q("adminEditOverlay"));toast("已保存到待发布草稿，不影响当前运行数据");
         try{await loadReleaseDetail();await renderProductReleases()}catch(refreshError){toast("数据已保存，但页面刷新失败："+refreshError.message+"。请手动刷新页面。",9000)}
       }else{
-        if(state.editing.section==='parameters'){Object.keys(item).forEach(function(key){var el=q('adminEditForm').elements[key];if(key!==c.pk&&el&&el.dataset.initialValue===el.value)delete item[key];});}
+        if(state.editing.section==='parameters'&&state.editing.item&&state.editing.item[c.pk]){Object.keys(item).forEach(function(key){var el=q('adminEditForm').elements[key];if(key!==c.pk&&el&&el.dataset.initialValue===el.value)delete item[key];});}
         await api("/api/admin/upsert",{method:"POST",body:JSON.stringify({section:state.editing.section,item:item})});saved=true;hide(q("adminEditOverlay"));toast("保存成功");
         try{await load()}catch(refreshError){toast("数据已保存，但页面刷新失败："+refreshError.message+"。请手动刷新页面。",9000)}
       }
