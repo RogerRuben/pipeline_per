@@ -1,0 +1,40 @@
+{
+  "source_code_commit": "2c9ec508404981765fa580389a3974ea04e6de95",
+  "artifacts": [
+    {
+      "name": "CB9S.7z",
+      "bytes": 80998349,
+      "sha256": "f8a56972951372eeb16d5154b0c0aca9558e0d33ffeebfea233101b815510fba"
+    },
+    {
+      "name": "PipelinePer_R9C_AutoML_20261110.zip",
+      "bytes": 71298554,
+      "sha256": "9cdc35e81e01c433121b5b058af3dccb9f5e64225ad87aaa7703ee0e8c2f8c07"
+    },
+    {
+      "name": "PipelinePer_R9C_DS_20261110.zip",
+      "bytes": 71216897,
+      "sha256": "1f7f352c031437dfb0ab70964ca5f248a27d263288e31c0d636a1efbd5c2094f"
+    }
+  ],
+  "unit_case_counts": {
+    "product_desktop_test": 36,
+    "product_optuna_v3_test": 20,
+    "product_optuna_v3_failure_test": 7,
+    "deep_price_contract_test": 13,
+    "deep_price_comprehensive_test": 20,
+    "deep_price_review_test": 8,
+    "price_evaluation_metadata_test": 3,
+    "workbook_expert_v3_test": 5,
+    "portable_compatibility_test": 18,
+    "r6_analysis_test": 18,
+    "live_metadata_models_test": 11
+  },
+  "browser_checks": 37,
+  "native_automl_checks": 17,
+  "native_ds_checks": 17,
+  "mixed_model_checks": 5,
+  "old_pipeline_checks": 45,
+  "win7_machine_validated": false,
+  "business_data": "synthetic"
+}

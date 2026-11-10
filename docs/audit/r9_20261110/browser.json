@@ -1,0 +1,73 @@
+{
+  "checks": {
+    "portal_frame": true,
+    "deep_theme": true,
+    "deep_branding": true,
+    "simple_theme": true,
+    "simple_branding": true,
+    "effect_theme": true,
+    "effect_branding": true,
+    "recommend_theme": true,
+    "recommend_branding": true,
+    "cost_theme": true,
+    "cost_branding": true,
+    "selection_shows_historical_price": true,
+    "historical_price_route": true,
+    "pure_model_route_preserved": true,
+    "modified_inputs_use_model": true,
+    "radar_animation_enabled": true,
+    "top10_completes": true,
+    "smooth_relative_sensitivity": true,
+    "rename_numeric_00": true,
+    "rename_flag_00": true,
+    "all_non_label_columns_unchanged": true,
+    "deep_live_label": true,
+    "simple_live_label": true,
+    "effect_live_label": true,
+    "schema_label_/api/price-workbench/schema": true,
+    "schema_label_/api/effectiveness-workbench/schema": true,
+    "schema_label_/api/deep-price/v1/schema": true,
+    "portal_real_metrics": true,
+    "editable_model_library": true,
+    "model_library_gui_import": true,
+    "model_library_gui_activate": true,
+    "model_library_gui_rename": true,
+    "recommendation_under_six_seconds": true,
+    "all_reference_ranges_visible": true,
+    "navigation_returns_top_portal": true,
+    "new_indicator_keeps_form_defaults": true,
+    "no_browser_errors": true
+  },
+  "errors": [],
+  "top10_seconds": 8.889834300000002,
+  "updates": [
+    {
+      "id": "numeric_00",
+      "name": "验收新中文_numeric_00",
+      "payload": {
+        "section": "parameters",
+        "item": {
+          "parameter_id": "numeric_00",
+          "label": "验收新中文_numeric_00"
+        }
+      }
+    },
+    {
+      "id": "flag_00",
+      "name": "验收新中文_flag_00",
+      "payload": {
+        "section": "parameters",
+        "item": {
+          "parameter_id": "flag_00",
+          "label": "验收新中文_flag_00"
+        }
+      }
+    }
+  ],
+  "recommendation_seconds": [
+    0.7290434000000023,
+    0.655329700000002,
+    0.692052499999998
+  ],
+  "status": "pass"
+}

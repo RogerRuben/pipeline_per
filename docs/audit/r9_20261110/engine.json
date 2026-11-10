@@ -1,0 +1,9 @@
+{
+  "kind": "pyinstaller-full-app-onedir",
+  "exe_sha256": "2ed26f2b11005d1a06cb70026a5821f9c5d418b3ce893f6ba90ac829ac16ebb5",
+  "runtime_python": "3.8.10",
+  "source_files_distributed": false,
+  "ui_resources": "embedded",
+  "win7_machine_tested": false,
+  "pyinstaller": "5.13.2"
+}

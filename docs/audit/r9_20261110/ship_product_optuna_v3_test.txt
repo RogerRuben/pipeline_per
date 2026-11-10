@@ -1,0 +1,32 @@
+[I 2026-11-10 23:04:31,273] A new study created in memory with name: price_ensemble_joint_optuna
+test_best_candidate_is_selected_from_union_of_both_phases (__main__.OptunaV3Tests) ... ok
+test_cache_does_not_treat_inactive_zero_as_fitted_prediction (__main__.OptunaV3Tests) ... ok
+test_chinese_explanation_retains_original_attribute_owner_and_expert_score (__main__.OptunaV3Tests) ... ok
+test_declared_configuration_preserves_leading_zero_and_ip_tokens (__main__.OptunaV3Tests) ... ok
+test_invalid_validation_and_constant_prices_fail_before_search (__main__.OptunaV3Tests) ... ok
+test_joint_objectives_are_worst_train_and_development_and_logs_keep_actuals (__main__.OptunaV3Tests) ... ok
+test_local_refinement_fixes_seed_and_preserves_categorical_space (__main__.OptunaV3Tests) ... ok
+test_native_price_matches_original_wrapper_with_categorical_inputs (__main__.OptunaV3Tests) ... ok
+test_old_development_only_history_is_reevaluated (__main__.OptunaV3Tests) ... ok
+test_onehot_has_no_numeric_order_and_unseen_category_does_not_leak (__main__.OptunaV3Tests) ... ok
+test_only_two_semantic_types_and_numeric_integer_scales (__main__.OptunaV3Tests) ... ok
+test_same_history_reuses_observations_changed_data_reevaluates_parameters (__main__.OptunaV3Tests) ... ok
+��ѡ��optuna_v3��START�����иð汾�ѱ���ģ�ͣ�outputs/optuna_v3��
+�л���������ѵ����ɾ���κ�ģ�͡�RETRAINֻѵ����ǰѡ��İ汾��
+��ѡ��optuna_v2��START�����иð汾�ѱ���ģ�ͣ�outputs/optuna_v2��
+�л���������ѵ����ɾ���κ�ģ�͡�RETRAINֻѵ����ǰѡ��İ汾��
+��ѡ��optuna_v3���ð汾��δѵ��������CHECK_INPUT����RETRAIN��START���������һ��ģ�ͻ��Զ�ѵ����
+�л���������ѵ����ɾ���κ�ģ�͡�RETRAINֻѵ����ǰѡ��İ汾��
+test_saved_engine_choice_requires_its_own_model_and_preserves_both (__main__.OptunaV3Tests) ... ok
+test_seed_escape_supports_full_unsigned_32_bit_range_on_windows_numpy (__main__.OptunaV3Tests) ... ok
+test_units_change_preserves_predictions (__main__.OptunaV3Tests) ... ok
+test_v2_and_v3_share_identical_input_protocol (__main__.OptunaV3Tests) ... ok
+test_v3_runs_both_phases_with_one_shared_budget (__main__.OptunaV3Tests) ... ok
+test_v3_warm_history_increases_pool_but_not_new_budget (__main__.OptunaV3Tests) ... ok
+test_v3_works_on_ten_records_forty_features (__main__.OptunaV3Tests) ... ok
+test_weight_only_changes_reuse_predictions_without_stale_inactive_models (__main__.OptunaV3Tests) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 20.697s
+
+OK

@@ -1,0 +1,16 @@
+test_admin_generated_ids_and_non_model_text_fields_do_not_disable_schema (__main__.HistoricalTests) ... ok
+test_deep_http_labels_use_current_database_without_modifying_model (__main__.HistoricalTests) ... ok
+test_stale_history_request_cannot_return_a_price_after_business_change (__main__.HistoricalTests) ... ok
+test_unchanged_historical_product_uses_stored_price_but_model_route_is_pure (__main__.HistoricalTests) ... ok
+test_export_and_backup_restore_preserve_model_library (__main__.LibraryTests) ... ok
+test_failed_switch_restores_previous_config_even_when_units_present (__main__.LibraryTests) ... ok
+test_invalid_role_does_not_touch_active_config (__main__.LibraryTests) ... ok
+test_live_label_overlay_changes_names_only (__main__.LibraryTests) ... ok
+test_model_advisory_strings_follow_field_renames_without_rewriting_values (__main__.LibraryTests) ... ok
+test_partial_admin_rename_preserves_every_other_column_byte_for_byte (__main__.LibraryTests) ... ok
+test_tampered_model_is_rejected_before_stopping_service (__main__.LibraryTests) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 4.853s
+
+OK

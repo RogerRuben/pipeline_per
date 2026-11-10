@@ -1,0 +1,15 @@
+{
+  "checks": {
+    "baseline_ds": true,
+    "v3_same_business_native_consistency": true,
+    "raw_ds_import_and_replacement": true,
+    "v3_choice_survives_cold_restart": true,
+    "both_backend_assets_retained": true
+  },
+  "status": "pass",
+  "predictions": {
+    "ds": 4.5,
+    "v3": 5.31175,
+    "replaced_ds": 4.6
+  }
+}

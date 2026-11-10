@@ -8,8 +8,8 @@ from tools.client_builder import free_ports
 from automl_pipeline.product_price_optuna_v3 import train_price_optuna_v3
 from services.price_service.native_bundle import load_bundle,predict
 from threadpoolctl import threadpool_limits
-p=argparse.ArgumentParser();p.add_argument('--package',required=True);a=p.parse_args();package=Path(a.package).resolve()
-out=ROOT/'outputs/r9_mixed_models2';out.mkdir(exist_ok=False);manifest=read_json(package/'PACKAGE_MANIFEST.json')
+p=argparse.ArgumentParser();p.add_argument('--package',required=True);p.add_argument('--label',default='2');a=p.parse_args();package=Path(a.package).resolve()
+out=ROOT/'outputs'/('r9_mixed_models'+a.label);out.mkdir(exist_ok=False);manifest=read_json(package/'PACKAGE_MANIFEST.json')
 business=read_json(package/manifest['release']['business_package'])['data']
 for parameter in business['parameters']:
  if parameter['value_type']=='boolean':parameter['value_type']='number'

@@ -1,0 +1,13 @@
+test_all_unscorable_candidates_leave_diagnostics_without_fake_model (__main__.V3FailureTests) ... [I 2026-11-10 23:02:39,008] A new study created in memory with name: price_ensemble_joint_optuna
+ok
+test_cache_lookup_error_refits_same_candidate_and_disables_fast_path (__main__.V3FailureTests) ... ok
+test_full_v3_training_finishes_even_if_tpe_sampler_raises_keyerror (__main__.V3FailureTests) ... ok
+test_real_finite_table_can_have_numerically_unscorable_candidate_without_aborting (__main__.V3FailureTests) ... ok
+test_tpe_keyerror_recovers_inside_original_distribution_and_records_each_parameter (__main__.V3FailureTests) ... ok
+test_tpe_nonfinite_parameter_is_never_used_to_fit_model (__main__.V3FailureTests) ... ok
+test_zero_cache_setting_uses_original_backend_without_fast_path (__main__.V3FailureTests) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 11.597s
+
+OK

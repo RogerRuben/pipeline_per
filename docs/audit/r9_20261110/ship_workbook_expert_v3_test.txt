@@ -1,0 +1,10 @@
+test_conflicting_groups_are_rejected (__main__.WorkbookExpertV3Tests) ... ok
+test_duplicate_and_out_of_range_and_unknown_fields (__main__.WorkbookExpertV3Tests) ... ok
+test_group_only_rows_do_not_create_expert_scores (__main__.WorkbookExpertV3Tests) ... ok
+test_other_engine_workbook_contract_is_unchanged (__main__.WorkbookExpertV3Tests) ... ok
+test_workbook_priority_median_groups_and_inspection (__main__.WorkbookExpertV3Tests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.070s
+
+OK

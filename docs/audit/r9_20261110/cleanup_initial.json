@@ -1,0 +1,135 @@
+{
+  "scope": "Only intermediate artifacts created during this R9 task",
+  "status": "pass",
+  "deleted": [
+    {
+      "path": "outputs/r9check",
+      "bytes": 1801169341.0
+    },
+    {
+      "path": "outputs/r9fcheck",
+      "bytes": 1801172671.0
+    },
+    {
+      "path": "outputs/r9eng",
+      "bytes": 198762624.0
+    },
+    {
+      "path": "outputs/r9eng_work",
+      "bytes": 235965585.0
+    },
+    {
+      "path": "outputs/r9eng_final",
+      "bytes": 198762797.0
+    },
+    {
+      "path": "outputs/r9eng_final_work",
+      "bytes": 235966461.0
+    },
+    {
+      "path": "outputs/r9eng_release",
+      "bytes": 198763506.0
+    },
+    {
+      "path": "outputs/r9eng_release_work",
+      "bytes": 235969457.0
+    },
+    {
+      "path": "deliverables/CB9",
+      "bytes": 418910730.0
+    },
+    {
+      "path": "deliverables/CB9.zip",
+      "bytes": 144566325
+    },
+    {
+      "path": "deliverables/CB9.zip.sha256",
+      "bytes": 75
+    },
+    {
+      "path": "deliverables/CB9_build.json",
+      "bytes": 496
+    },
+    {
+      "path": "deliverables/CB9.7z",
+      "bytes": 74586412
+    },
+    {
+      "path": "deliverables/CB9.7z.sha256",
+      "bytes": 74
+    },
+    {
+      "path": "deliverables/CB9F",
+      "bytes": 418911743.0
+    },
+    {
+      "path": "deliverables/CB9F.zip",
+      "bytes": 144577074
+    },
+    {
+      "path": "deliverables/CB9F.zip.sha256",
+      "bytes": 76
+    },
+    {
+      "path": "deliverables/CB9F_build.json",
+      "bytes": 498
+    },
+    {
+      "path": "deliverables/CB9F.7z",
+      "bytes": 79339902
+    },
+    {
+      "path": "deliverables/CB9F.7z.sha256",
+      "bytes": 75
+    },
+    {
+      "path": "deliverables/CB9R",
+      "bytes": 418913634.0
+    },
+    {
+      "path": "deliverables/CB9R.zip",
+      "bytes": 144578240
+    },
+    {
+      "path": "deliverables/CB9R.zip.sha256",
+      "bytes": 76
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_AutoML_20261110",
+      "bytes": 199569951.0
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_AutoML_20261110_build",
+      "bytes": 145659.0
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_AutoML_20261110.zip",
+      "bytes": 71295982
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_AutoML_20261110.zip.sha256",
+      "bytes": 102
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_DS_20261110",
+      "bytes": 198899781.0
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_DS_20261110_build",
+      "bytes": 4864.0
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_DS_20261110.zip",
+      "bytes": 71214330
+    },
+    {
+      "path": "deliverables/PipelinePer_R9_DS_20261110.zip.sha256",
+      "bytes": 98
+    },
+    {
+      "path": "product/_frozen_resources.py",
+      "bytes": 5904866
+    }
+  ],
+  "bytes": 7297953505.0
+}

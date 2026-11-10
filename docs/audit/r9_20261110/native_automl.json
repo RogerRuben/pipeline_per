@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "fresh_exe_start": true,
+    "complete_browser_checks": true,
+    "cold_restart_with_live_schema_drift": true,
+    "userdata_not_reseeded": true,
+    "chinese_renames_survive_cold_restart": true,
+    "price_import_frozen_runtime": true,
+    "price_switch_restarts_only_itself_e0eaaa": true,
+    "effect_import_frozen_runtime": true,
+    "effectiveness_switch_restarts_only_itself_9c57a4": true,
+    "both_model_choices_persist": true,
+    "bad_model_keeps_current": true,
+    "price_switch_restarts_only_itself_defaul": true,
+    "effect_choice_independent": true,
+    "effectiveness_switch_restarts_only_itself_defaul": true,
+    "reset_defaults": true,
+    "web_starts_without_price_service": true,
+    "price_service_recovers": true
+  },
+  "win7_machine_tested": false,
+  "status": "pass"
+}
