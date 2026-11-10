@@ -22,6 +22,9 @@ def allowed(name):
     if name in ('data/protocol_demo.db','installed.json','delivery_state.json','runtime/initialized.json'):
         return True
     path=PurePosixPath(name)
+    if name=='models/library/catalog.json':return True
+    if len(path.parts)==4 and path.parts[:2]==('models','library') and re.fullmatch('[0-9a-f]{64}',path.parts[2]):
+        return path.parts[3] in ('asset.json','model.pkl','model.json','ds_release.json','evaluation_metadata.json')
     return (len(path.parts)==2 and path.parts[0]=='config' and
             re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\.json',path.parts[1]) is not None
             and path.parts[1].split('.')[0].upper() not in RESERVED)
@@ -40,6 +43,7 @@ def backup_data(data):
         files=['data/protocol_demo.db']
         sources=list((data/'config').glob('*.json'))+[data/name for name in
                  ('installed.json','delivery_state.json','runtime/initialized.json')]
+        sources.extend(p for p in (data/'models/library').rglob('*') if p.is_file() and allowed(p.relative_to(data).as_posix()))
         for path in sources:
             if path.is_file():
                 relative=path.relative_to(data).as_posix()
@@ -48,7 +52,7 @@ def backup_data(data):
                 shutil.copy2(str(path),str(target));files.append(relative)
         records={name:sha(stage/name) for name in files}
         write_json(stage/'BACKUP_MANIFEST.json',{'format':'pipeline-user-backup-1.0','files':records,
-                   'scope':'SQLite, JSON config, installation and accepted contract state; no control tokens, logs or exports'})
+                   'scope':'SQLite, JSON config, installed model library, installation and accepted contract state; no control tokens, logs or exports'})
         fd,filename=tempfile.mkstemp(prefix='backup-',suffix='.zip.tmp',dir=str(backup_dir));os.close(fd)
         pending=Path(filename);target=pending.with_suffix('')
         try:

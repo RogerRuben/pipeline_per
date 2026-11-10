@@ -104,6 +104,7 @@ class AnalysisFeatures:
                 values = payload.get('values') if path.endswith('/single') else None
                 if values is None:
                     field=dict(fields[key])
+                    if 'analysis_values' in field:field['allowed_values']=field['analysis_values']
                     if mode=='historical' and field['type'] in ('number','integer'):
                         observed=historical.get(key,[])
                         if not observed:raise DeepPriceError('invalid_input','没有可用的历史数值范围：'+key)

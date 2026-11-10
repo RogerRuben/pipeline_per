@@ -146,8 +146,6 @@ class Supervisor:
         return ControlHandler
 
     def start_worker(self,role):
-        if role=='web' and not all(self.alive(dep) for dep in ('price','effectiveness')):
-            raise RuntimeError('请先启动价格和效能服务，再启动网页服务。')
         ready=self.data/('runtime/'+secrets.token_hex(12)+'-'+role+'.json')
         logfile=self.data/('logs/'+role+'.log');logfile.parent.mkdir(parents=True,exist_ok=True)
         if logfile.exists() and logfile.stat().st_size>5*1024*1024:
@@ -158,7 +156,7 @@ class Supervisor:
         args=entry+['--package',str(self.package),
               '--data-dir',str(self.data),'--role',role,'--ready',str(ready),'--generation',self.generation,
               '--parent',str(os.getpid()),'--port',str(self.ports[role])]
-        if role=='web':args.extend(['--price-url',self.service_url('price'),'--effectiveness-url',self.service_url('effectiveness')])
+        if role=='web':args.extend(['--price-url',self.service_url('price') or 'http://127.0.0.1:1','--effectiveness-url',self.service_url('effectiveness') or 'http://127.0.0.1:1'])
         env=dict(os.environ)
         for key in list(env):
             if key.startswith(('PYTHON','IPDEMO_','_PYI','_MEIPASS')):env.pop(key,None)
@@ -206,7 +204,11 @@ class Supervisor:
 
     def start_workers(self):
         self.phase='starting';self.error=None;self.generation=secrets.token_hex(8)
-        for role in ROLES:self.start_worker(role)
+        for role in ROLES:
+            try:self.start_worker(role)
+            except Exception as exc:
+                logging.exception('Service startup failed: %s',role)
+                self.errors[role]=str(exc);self.blocked.add(role);self.stop_worker(role)
         self.settle();logging.info('All services ready generation=%s',self.generation)
 
     def execute(self,operation):
@@ -242,7 +244,7 @@ class Supervisor:
             self.start_workers()
             write_json(installed,{'version':self.manifest['version'],'data_schema':self.manifest['data_schema'],
                                  'release':self.manifest['release']['product_code']})
-            if not self.no_browser:webbrowser.open(self.status()['portal_url'])
+            if not self.no_browser:webbrowser.open(self.status()['portal_url'] or self.url)
             next_probe=time.monotonic()+5
             while not self.stopping.wait(.25):
                 if self.restarting.is_set():

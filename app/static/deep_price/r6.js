@@ -32,7 +32,7 @@ function importance(){
 Q('importanceSource').add(new Option('历史演示','legacy'));fetch('/deep_price/legacy_importance.json').then(r=>r.json()).then(r=>{D.legacyImportance=r;if(displaySource==='legacy')importance();});
 Q('importanceSource').onchange=()=>{displaySource=Q('importanceSource').value;importance();};
 function renderLibrary(library){
- Q('modelLibraryNote').textContent='模型更新请联系管理员。';
+ Q('modelLibraryNote').innerHTML='<a href="/model-library" target="_blank" rel="noopener">打开模型库，接入或切换模型</a>';
  Q('modelLibrary').innerHTML=library.items.map(item=>{
   const m=item.metadata||{},metrics=m.metrics||{},labels={selected_training_metrics:'所选模型训练集',validation_metrics:'开发验证集',full_refit_training_metrics:'全数据重拟合训练集',deployed_training_metrics:'部署模型训练集',test_metrics:'独立测试集'};
   let html='<article class="model-card"><span class="active-badge">'+(item.active?'正在使用':'历史版本')+'</span><h3>'+E(item.product_code)+' · 价格模型</h3>';
@@ -41,17 +41,24 @@ function renderLibrary(library){
  }).join('');
 }
 function samplePayload(){return Object.assign(D.identity(),{parameters:D.parameters(),range_mode:Q('rangeMode').value});}
-function sensitivity(result,ranking){
+function sensitivity(result,ranking,remember=true){
  if(!result.series.length)throw new Error('没有可用的分析属性');
- Q('sensitivityNote').textContent=ranking+' · '+(result.range_mode==='historical'?'历史取值范围':'当前值附近');
- const top=result.series.length>1;
- D.chart('sensitivityChart',{tooltip:{trigger:'axis',formatter:params=>params.map(p=>{let item=result.series[p.seriesIndex].points[p.dataIndex];if(!item)return '';return E(p.seriesName)+'：取值 '+E(item.value)+'，价格 '+fmt(item.price_wan)+' 万元，变化 '+fmt(item.change_rate_pct)+'%';}).join('<br>')},legend:{type:'scroll',bottom:0},grid:{left:70,right:25,bottom:80},xAxis:{type:'category',name:top?'独立采样点（悬浮查看真实取值）':'实际属性值',data:top?Array.from({length:Math.max(...result.series.map(s=>s.points.length))},(_,i)=>i+1):result.series[0].points.map(p=>p.value)},yAxis:{type:'value',name:top?'价格变化 %':'价格 · 万元',scale:!top},series:result.series.map(r=>({name:r.label_zh,type:'line',data:r.points.map(p=>top?p.change_rate_pct:p.price_wan)}))});
- Q('sensitivityTable').innerHTML=table(['属性','实际采样值','价格 / 万元','变化率 %'],result.series.flatMap(s=>s.points.map(p=>[s.label_zh,typeof p.value==='number'?Number(p.value.toPrecision(9)):p.value,fmt(p.price_wan),fmt(p.change_rate_pct)])));D.remember(ranking+' · '+(result.range_mode==='historical'?'历史范围':'局部范围'),result);D.status('敏感性分析完成。','success');
+ D.lastSensitivity={result,ranking};const top=result.series.length>1,relative=top&&D.sensitivityMode==='relative';
+ const weighted=top&&Q('sensitivityWeight')&&Q('sensitivityWeight').value==='expert';
+ const experts=meta&&meta.data.expert_scores||[],scoreFor=id=>{const row=Array.isArray(experts)?experts.find(s=>s.field_id===id&&s.specified!==false):null;return row&&row.score!=null?2+(Number(row.score)-1)*.5:1;};
+ const smooth=(!Q('curveStyle')||Q('curveStyle').value==='smooth');
+ Q('sensitivityNote').textContent=ranking+(weighted?' · 专家评分加权（辅助指标）':' · 模型价格变化');
+ D.chart('sensitivityChart',{tooltip:{trigger:'axis'},legend:{type:'scroll',bottom:0},grid:{left:70,right:35,bottom:80},
+  xAxis:{type:relative||(!top&&result.series[0].points.every(p=>typeof p.value==='number'))?'value':'category',name:relative?'参数相对当前值变化率（%）':top?'独立采样点（实际取值见表）':'属性实际取值',data:relative?undefined:top?Array.from({length:Math.max(...result.series.map(s=>s.points.length))},(_,i)=>i+1):result.series[0].points.map(p=>p.value)},
+  yAxis:{type:'value',name:top?(weighted?'专家加权变化率（%）':'价格变化率（%）'):'价格（万元）',scale:true,splitLine:{lineStyle:{type:'dashed'}}},
+  series:result.series.map(s=>{const base=Number(D.parameters()[s.field_id]);return {id:s.field_id,name:s.label_zh,type:'line',smooth:smooth&&s.points.every(p=>typeof p.value==='number'),symbol:'circle',symbolSize:6,data:s.points.map(p=>relative?[(p.value-base)/Math.abs(base)*100,p.change_rate_pct*(weighted?scoreFor(s.field_id):1)]:!top&&typeof p.value==='number'?[p.value,p.price_wan]:top?p.change_rate_pct*(weighted?scoreFor(s.field_id):1):p.price_wan)};})});
+ Q('sensitivityTable').innerHTML=table(['属性','实际采样值','价格 / 万元','真实变化率 %'],result.series.flatMap(s=>s.points.map(p=>[s.label_zh,p.value,fmt(p.price_wan),fmt(p.change_rate_pct)])));
+ if(remember)D.remember(ranking,result);D.status('敏感性分析完成。','success');
 }
 document.addEventListener('deep:ready',()=>{Q('single').disabled=D.busy||!Q('sensitivityField').options.length;Q('top10').disabled=D.busy||!Q('sensitivityField').options.length;Q('importanceTop10').disabled=D.busy||!(meta&&meta.data.feature_importance&&meta.data.feature_importance.items);});
 Q('rangeMode').onchange=()=>{D.epoch++;Q('sensitivityNote').textContent='分析范围已改变，请重新计算';Q('sensitivityTable').textContent='';if(D.charts.sensitivityChart)D.charts.sensitivityChart.clear();};
-Q('single').onclick=()=>D.run(async current=>{let r=await D.api('/sensitivity/single',Object.assign(samplePayload(),{field_id:Q('sensitivityField').value}));if(current())sensitivity(r,'单参数敏感性');});
-Q('top10').onclick=()=>D.run(async current=>{let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:null}));if(current())sensitivity(r,'价格变化 Top10');});
+Q('single').onclick=()=>D.run(async current=>{D.sensitivityMode='single';let r=await D.api('/sensitivity/single',Object.assign(samplePayload(),{field_id:Q('sensitivityField').value}));if(current())sensitivity(r,'单参数敏感性');});
+Q('top10').onclick=()=>D.run(async current=>{D.sensitivityMode='relative';const numeric=D.schema.fields.filter(f=>['number','integer'].includes(f.type)&&f.price_model_input&&Number(D.parameters()[f.field_id])!==0).map(f=>f.field_id);if(!numeric.length)throw new Error('没有非零数值属性，请使用单参数或全属性分析');let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:numeric}));if(current())sensitivity(r,'数值属性 Top10');});
 Q('importanceTop10').onclick=()=>D.run(async current=>{let data=meta&&meta.data.feature_importance;if(!data||!data.items)throw new Error('暂无属性重要度数据');let keys=data.items.map(r=>r.field_id).filter(k=>D.schema.fields.some(f=>f.field_id===k&&f.analysis_supported)).slice(0,10);if(!keys.length)throw new Error('重要度字段与当前可分析字段不匹配');let r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:keys,ranking_mode:'importance'}));if(current())sensitivity(r,'重要属性 Top10');});
 function scenarioCard(){
  if(!D.schema)return;D.epoch++;const base=D.parameters(),item={id:'r6-'+(++serial),base,inputs:[],picked:new Set()};plans.push(item);
@@ -110,4 +117,9 @@ document.addEventListener('deep:loaded',async()=>{
 });
 
 document.addEventListener('deep:prediction',()=>{const old=Q('dsLayers');if(old)old.remove();const value=D.prediction&&D.prediction.ds_pricing;if(!value)return;const section=document.createElement('div');section.id='dsLayers';section.className='result-note';section.innerHTML='<h3>三层价格明细 · 元</h3>'+table(['部件价格','第二层属性','第三层综合金额','总价'],[[fmt(value.layers.stage1),fmt(value.layers.stage2),fmt(value.layers.stage3),fmt(value.total_price)]])+'<p>'+E(value.status)+'</p>'+value.warnings.map(w=>'<p>'+E(w)+'</p>').join('');Q('comparison').parentElement.after(section);});
+
+const styleBar=document.createElement('div');styleBar.className='toolbar';styleBar.innerHTML='<label>曲线样式 <select id="curveStyle"><option value="smooth">原版平滑曲线</option><option value="line">原始折线</option></select></label><label>对比口径 <select id="sensitivityWeight"><option value="price">模型价格变化</option><option value="expert">原版专家加权对比</option></select></label><button id="allAttributes" class="secondary">全属性采样对比</button>';Q('sensitivityNote').before(styleBar);
+['curveStyle','sensitivityWeight'].forEach(id=>Q(id).onchange=()=>{if(D.lastSensitivity)sensitivity(D.lastSensitivity.result,D.lastSensitivity.ranking,false);});
+Q('allAttributes').onclick=()=>D.run(async current=>{D.sensitivityMode='all';const r=await D.api('/sensitivity/top10',Object.assign(samplePayload(),{field_ids:null}));if(current())sensitivity(r,'全属性对比');});
+document.addEventListener('deep:labels',event=>{const fields=event.detail;if(meta&&meta.data){for(const rows of [meta.data.expert_scores,(meta.data.feature_importance||{}).items])if(Array.isArray(rows))rows.forEach(r=>{if(fields[r.field_id]){r.label=fields[r.field_id].label;r.label_zh=fields[r.field_id].label;}});importance();}if(D.lastSensitivity){D.lastSensitivity.result.series.forEach(s=>{if(fields[s.field_id])s.label_zh=fields[s.field_id].label;});sensitivity(D.lastSensitivity.result,D.lastSensitivity.ranking,false);}});
 })();

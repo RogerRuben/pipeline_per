@@ -125,7 +125,7 @@ class PriceService(ServiceApplication):
             metrics.update(self.evaluation_metadata['metrics'])
             importance=self.evaluation_metadata.get('feature_importance') or importance
         return {'metrics': metrics, 'feature_importance': importance,
-                'active_members':(self.evaluation_metadata or {}).get('active_members',[]),
+                'active_members':((self.evaluation_metadata or {}).get('active_members') or [{'name':m['name'],'weight':m['weight']} for m in explanation.get('member_ledger',[]) if m.get('weight',0)>0]),
                 'metric_units':(self.evaluation_metadata or {}).get('metric_units',{}),
                 'search_candidates':(self.evaluation_metadata or {}).get('search_candidates',[]),
                 'expert_scores': explanation.get('price_attribute_scores'),

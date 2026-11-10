@@ -50,6 +50,12 @@ def fields_for(snapshot, schema):
                 field[target] = definition[source]
         field['analysis_supported']=bool(key in specs and (field['type'] in ('number','integer','boolean') or field['allowed_values']))
         field['analysis_unavailable_reason']=None if field['analysis_supported'] else '自由文本或未提供枚举合法取值，不能执行单属性扰动'
+        if field['allowed_values'] and spec.get('allowed_values'):
+            from app.value_semantics import values_equal
+            supported=list(spec['allowed_values'])+list((spec.get('category_mapping') or {}).values())
+            legal=[v for v in field['allowed_values'] if any(values_equal(snapshot.codec.runtime_parameters({key:v}).get(key),candidate) for candidate in supported)]
+            field['analysis_values']=legal
+            if not legal:field.update(analysis_supported=False,analysis_unavailable_reason='当前模型不支持业务字典的这些取值')
         field['missing_policy']=spec.get('missing_policy','service_owned')
         result.append(field)
     return result, specs

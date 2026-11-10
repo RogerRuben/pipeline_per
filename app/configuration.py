@@ -27,7 +27,7 @@ DEFAULT_MODEL_SERVICE_CONFIG = {
 }
 
 DEFAULT_SERVICE_PORTAL_CONFIG = {
-    "title": "工业技术协议智能系统",
+    "title": "辅助设计平台",
     "services": {
         "recommendation": {"label": "方案智能推荐", "description": "根据设计要求筛选、推荐并生成候选方案", "url": "/", "visible": True, "enabled": True},
         "quick_price": {"label": "简易价格预测", "description": "快速估算成品参考价格", "url": "/price", "visible": True, "enabled": True},

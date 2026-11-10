@@ -27,6 +27,9 @@ def invalidate_session(handler):
 
 
 def send(handler,status,body,sid=None,content_type=None):
+    if content_type is None and isinstance(body,dict) and hasattr(handler.app,'store'):
+        from app.business_labels import overlay_labels
+        body=overlay_labels(body,handler.app.store.parameter_map())
     data = body if isinstance(body,bytes) else json.dumps(body,ensure_ascii=False,allow_nan=False).encode('utf-8')
     handler.send_response(status)
     handler.send_header('Content-Type',content_type or 'application/json; charset=utf-8')
@@ -93,6 +96,11 @@ def handle_http(handler, method):
         sid=cache.session(handler._cookie_value('dp_session'),principal)
         path=unquote(parsed.path[len(PREFIX):])
         service = DeepPriceAnalysis(handler.app.store, handler.app.model_gateway)
+        if method=='POST' and path=='/reference-price':
+            from app.deep_price.reference import reference_price
+            status,body=reference_price(service,payload)
+            if status==200:body=cache.put(sid,path,body)
+            send(handler,status,body,sid);return True
         if method=='POST' and path=='/export':
             if not isinstance(payload,dict) or set(payload)!={'result_id','format'}:
                 raise DeepPriceError('invalid_input','导出只接受result_id和format，不接受浏览器价格')

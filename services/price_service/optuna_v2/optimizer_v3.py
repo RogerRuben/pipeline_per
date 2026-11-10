@@ -197,9 +197,11 @@ class SearchDriver(object):
 
 
 def run_training(v3_settings,history_identity,model_backend,observer=None,**kwargs):
+    import hashlib,json
+    history_identity=hashlib.sha256((json.dumps(history_identity,sort_keys=True,ensure_ascii=False)+'|joint_train_development_minimax_v1').encode('utf-8')).hexdigest()
     driver=SearchDriver(v3_settings,model_backend,history_identity,kwargs.get('progress_callback') or print,
                         kwargs['seed_low'],kwargs['seed_high'],kwargs['optimizer_seed'],kwargs['r2_target'],kwargs['mape_target'],observer)
-    try:return v2_training(model_backend=model_backend,search_driver=driver,history_identity=history_identity,**kwargs)
+    try:return v2_training(model_backend=model_backend,search_driver=driver,history_identity=history_identity,joint_train_development=True,**kwargs)
     finally:
         diagnostic=getattr(driver,'search_diagnostics',None)
         if diagnostic is not None:

@@ -246,6 +246,7 @@ def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrid
     replay,_=backend.predict(validation_fit,validation_frame)
     if not np.allclose(replay,validation['predicted_price'].values,rtol=1e-10,atol=1e-10):raise AssertionError('所选划分模型重新加载后预测不一致。')
     metrics=result['validation_metrics'];met=metrics['r2']>=q['r2_min'] and metrics['mape']*100<=q['mape_percent_max']
+    if engine=='optuna_v3':met=bool(result.get('joint_targets_met',False))
     report={'engine':engine,'implementation_version':'supplied-optuna-v2-typed-2.0' if engine=='optuna_v2' else 'project-optuna-v3-1.0','selected_model':'Optuna双目标六模型集成',
         'training_rows':len(frame),'feature_count':len(specs),'feature_order':list(frame.columns),'representative_seed':result['selected_split_seed'],
         'seed_selection':'joint_split_seed_hyperparameters_and_six_weights_'+('NSGAII_MOTPE' if engine=='optuna_v3' else 'NSGAII'),'selected_trial':result['selected_trial'],
@@ -255,13 +256,14 @@ def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrid
         'nested_cv_metrics':{'mean_mape':None,'mean_r2':None},'validation_metrics':metrics,'validation_protocol':'joint_searched_split',
         'validation_train_rows':result['validation_train_rows'],'validation_test_rows':result['validation_test_rows'],
         'validation_record_ids':[ids[lookup[int(n)]] for n in validation['source_excel_row']],
-        'targets_met':bool(met),'cv_targets_met':None,'holdout_targets_met':None,'business_accuracy_certified':False,
+        'targets_met':bool(met),'objective_contract':result['objective_contract'],'joint_targets_met':result['joint_targets_met'],
+        'cv_targets_met':None,'holdout_targets_met':None,'business_accuracy_certified':False,
         'member_count':len(ledger),'configuration_count':1,'member_ledger':ledger,'weights':{r['name']:r['weight'] for r in ledger},
         'expert_scores_enabled':cfg['expert']['enabled'],'deployment_scope':deployment_scope,'full_data_deployment':deployment_scope=='full_data',
         'native_equivalence_max_delta_wan':float(delta),'selected_split_reload_verified':True,'quality_gate_rejected':bool(q['hard_gate'] and not met),
         'elapsed_seconds':round(time.monotonic()-start,2),'warning':warning,'targets':q,'feasible_pareto_count':result['feasible_pareto_count'],
         'encoded_feature_count':len(fitted['feature_names']),'attribute_types':{p['parameter_id']:('配置类型' if p['parameter_id'] in mappings else '数值') for p in specs},
-        'search_identity':search_identity,'categorical_encoding':'training_only_onehot','numeric_scaling':'training_only_MinMax',
+        'search_identity':result.get('search_identity') or search_identity,'categorical_encoding':'training_only_onehot','numeric_scaling':'training_only_MinMax',
         'min_samples':cfg['input']['min_samples'],'tiny_sample_mode':split_report['tiny_sample_mode'],'validation_split':split_report}
     for key in ('history_trials_imported','history_policy','phase_counts','selected_phase','tpe_inherited_completed_trials','candidate_pool_count','cache_statistics','failed_trials','sampler_fallback_count','implementation_provenance'):
         if key in result:report[key]=result[key]
@@ -271,5 +273,5 @@ def train_price_optuna_v2(data,output_dir,config_path=None,progress=None,overrid
     manifest_path=Path(str(path)+'.manifest.json');manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
     manifest.update(bundle_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),automl_explanation=native['automl_explanation']);write_json(manifest_path,manifest)
     progress('Optuna %s完成：开发MAPE %.3f%%，R² %.6f；已导出%s原生价格模型。'%(version,metrics['mape']*100,metrics['r2'],deployment_scope))
-    if report['quality_gate_rejected']:raise ValueError('开发指标未达目标，已保存诊断；旧运行版本保留。')
+    if report['quality_gate_rejected']:raise ValueError(('训练集与开发验证集联合指标' if engine=='optuna_v3' else '开发指标')+'未达目标，已保存诊断；旧运行版本保留。')
     return native,report

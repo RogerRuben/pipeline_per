@@ -70,7 +70,7 @@ class OptunaV3Tests(unittest.TestCase):
         self.assertEqual(set(mappings['mount']),{'001','1'});self.assertEqual(set(mappings['interface']),{'IP65','IP67'})
         self.assertNotEqual(frame.loc[0,'mount'],frame.loc[1,'mount'])
     def test_v2_and_v3_share_identical_input_protocol(self):
-        self.assertEqual(self.r2['search_identity'],self.r3['search_identity'])
+        self.assertNotEqual(self.r2['search_identity'],self.r3['search_identity']) # Same inputs, different optimization objectives.
         self.assertEqual(self.r2['feature_order'],self.r3['feature_order']);self.assertEqual(self.r3['feature_count'],36)
         self.assertGreater(self.r3['encoded_feature_count'],36)
     def test_v3_runs_both_phases_with_one_shared_budget(self):
@@ -141,10 +141,24 @@ class OptunaV3Tests(unittest.TestCase):
         self.assertEqual(details['policy'],'parameters_only_reevaluate')
         forced,proposals,details=read_history(history,identity,reuse_metrics=False);self.assertFalse(forced);self.assertEqual(len(proposals),3)
     def test_v3_warm_history_increases_pool_but_not_new_budget(self):
-        overrides=copy.deepcopy(self.shared);overrides.update(search={'n_trials':2},v3={'startup_trials':1,'warm_start':{'history_file':str(self.path/'v2/study_history.json')}})
+        overrides=copy.deepcopy(self.shared);overrides.update(search={'n_trials':2},v3={'startup_trials':1,'warm_start':{'history_file':str(self.path/'v3/study_history.json')}})
         with threadpool_limits(limits=1):_,report=train_price_optuna_v3(self.data,self.path/'warm',overrides=overrides,progress=lambda s:None)
-        self.assertEqual(report['history_trials_imported'],3);self.assertEqual(report['trials_completed'],2)
-        self.assertEqual(report['candidate_pool_count'],5);self.assertEqual(report['phase_counts'],{'nsga':1,'tpe':1})
+        self.assertEqual(report['history_trials_imported'],6);self.assertEqual(report['trials_completed'],2)
+        self.assertEqual(report['candidate_pool_count'],8);self.assertEqual(report['phase_counts'],{'nsga':1,'tpe':1})
+    def test_old_development_only_history_is_reevaluated(self):
+        overrides=copy.deepcopy(self.shared);overrides.update(search={'n_trials':2},v3={'warm_start':{'history_file':str(self.path/'v2/study_history.json')}})
+        with threadpool_limits(limits=1):_,report=train_price_optuna_v3(self.data,self.path/'old-history',overrides=overrides,progress=lambda s:None)
+        self.assertEqual(report['history_trials_imported'],0)
+        self.assertEqual(report['history_policy']['policy'],'parameters_only_reevaluate')
+        self.assertEqual(report['candidate_pool_count'],2)
+    def test_joint_objectives_are_worst_train_and_development_and_logs_keep_actuals(self):
+        trials=pd.read_csv(self.path/'v3/all_trials.csv')
+        for row in trials[trials.valid].itertuples():
+            self.assertAlmostEqual(row.objective_r2,min(row.train_r2,row.r2),places=10)
+            self.assertAlmostEqual(row.objective_mape,max(row.train_mape_percent/100,row.mape),places=10)
+        self.assertEqual(self.r3['objective_contract'],'joint_train_development_minimax_v1')
+        training=self.r3['selected_training_metrics'];dev=self.r3['validation_metrics'];targets=self.r3['targets']
+        self.assertEqual(self.r3['joint_targets_met'],training['r2']>=targets['r2_min'] and dev['r2']>=targets['r2_min'] and training['mape_percent']<=targets['mape_percent_max'] and dev['mape']*100<=targets['mape_percent_max'])
     def test_local_refinement_fixes_seed_and_preserves_categorical_space(self):
         import optuna
         study=optuna.create_study();trial=study.ask();anchor=_original_baseline(9300)

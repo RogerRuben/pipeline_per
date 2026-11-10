@@ -1695,6 +1695,15 @@ class Store(object):
             raise ValueError("不支持维护该数据类型")
         table, pk = self.ADMIN_TABLES[section]
         data = dict(item or {})
+        incoming_keys=set(data)
+        previous=None
+        if section in ('parameters','products') and data.get(pk):
+            conn=self.connect()
+            try:
+                previous=conn.execute('SELECT * FROM '+table+' WHERE '+pk+'=?',(data[pk],)).fetchone()
+            finally:conn.close()
+            if previous:
+                merged=dict(previous);merged.update(data);data=merged
         parameter_ids = set(self.parameter_map())
         tag_ids = set(self.tag_map(include_disabled=True))
         if section == "products":
@@ -1878,15 +1887,23 @@ class Store(object):
                     conn.close()
         columns = self._table_columns(table)
         data = dict((k, v) for k, v in data.items() if k in columns)
+        if previous and section in ('parameters','products'):
+            data={k:v for k,v in data.items() if k in incoming_keys or k==pk}
         if not data.get(pk):
             data[pk] = safe_id({"parameters":"PAR","tags":"TAG","tag_rules":"TAGRULE","couplings":"CPL","constraints":"RULE","agreements":"AGR","products":"PRODUCT"}.get(section,"ID"))
         placeholders = ",".join("?" for _ in data)
         updates = ",".join("%s=excluded.%s" % (key, key) for key in data if key != pk)
         sql = "INSERT INTO %s(%s) VALUES(%s) ON CONFLICT(%s) DO UPDATE SET %s" % (table, ",".join(data), placeholders, pk, updates)
+        values=tuple(data.values())
+        if previous and section in ('parameters','products'):
+            changed=[key for key in data if key!=pk]
+            if not changed:return {"saved":True,"id":data[pk]}
+            sql='UPDATE '+table+' SET '+','.join(key+'=?' for key in changed)+' WHERE '+pk+'=?'
+            values=tuple(data[key] for key in changed)+(data[pk],)
         with self.lock:
             conn = self.connect()
             try:
-                conn.execute(sql, tuple(data.values())); self._audit(conn, "upsert", section, str(data[pk]), data); conn.commit()
+                conn.execute(sql, values); self._audit(conn, "upsert", section, str(data[pk]), data); conn.commit()
             finally: conn.close()
         return {"saved": True, "id": data[pk]}
 

@@ -20,36 +20,39 @@ def record_change(data, report):
         stream.write(json.dumps(report, ensure_ascii=False, sort_keys=True) + '\n')
 
 
-def prepare_existing(package, data, manifest, confirm):
-    """Classify, back up when required, and refuse unclassified changes without a yes."""
-    data = Path(data)
+def check_live_database(data):
+    """Only actual SQLite integrity is a startup precondition, not release equality."""
+    database=Path(data)/'data/protocol_demo.db'
+    with closing(sqlite3.connect(database.resolve().as_uri()+'?mode=ro',uri=True)) as conn:
+        if conn.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+            raise ValueError('用户数据库损坏，请在管理入口查看恢复说明。')
+
+
+def prepare_existing(package, data, manifest, confirm=None):
+    """Start from live data. Contract drift is diagnostic, never an automatic migration."""
+    data=Path(data);check_live_database(data)
     try:
-        state = validate_data(package, data, manifest)
-    except StartupBlocked as exc:
-        if confirm(exc.prompt + '\n\n是否先备份现有数据？备份后仍不会启动，也不会改用新模型。'):
-            archive = backup_data(data)
-            record_change(data, dict(exc.report, backup=str(archive), accepted=False))
-            raise StartupBlocked(str(exc) + '\n已备份到：' + str(archive), exc.report)
-        raise
-    except StartupConfirmation as exc:
-        if not confirm(exc.prompt):
-            raise ValueError('已取消启动，用户数据未修改。\n' + exc.prompt)
-        archive = backup_data(data)
-        accepted = accept_initial(data, manifest, load_contract(package, manifest))
-        write_json(data/'delivery_state.json', accepted)
-        record_change(data, dict(exc.report, backup=str(archive), accepted=True))
-        return dict(accepted, startup_action='confirmed', change_class='unclassified', backup=str(archive))
-    action = state.get('startup_action') or 'start'
-    if action == 'backup':
-        archive = backup_data(data)
-        accepted = accept_initial(data, manifest, load_contract(package, manifest))
-        write_json(data/'delivery_state.json', accepted)
-        state = dict(state, backup=str(archive))
-    if state.get('change_class') not in (None, 'none'):
-        record_change(data, {'change_class': state.get('change_class'), 'startup_action': action,
-                             'active_release_id': state.get('active_release_id'),
-                             'backup': state.get('backup')})
-    return state
+        state=validate_data(package,data,manifest)
+    except (ValueError,sqlite3.Error,KeyError,TypeError) as exc:
+        diagnostic={'status':'review','startup_action':'start_live_database','message':str(exc),
+                    'database_modified':False,'contract_accepted':False}
+        record_change(data,diagnostic)
+        write_json(data/'runtime/startup_diagnostics.json',diagnostic)
+        return diagnostic
+    write_json(data/'runtime/startup_diagnostics.json',{'status':'ok','startup_action':'start_live_database'})
+    return dict(state,startup_action='start_live_database')
+
+
+def capture_compatible_state(package,data,manifest):
+    """Never claim an incompatible snapshot was accepted, and never close the web UI."""
+    try:
+        state=accept_initial(data,manifest,load_contract(package,manifest))
+    except (ValueError,sqlite3.Error,KeyError,TypeError) as exc:
+        diagnostic={'status':'review','startup_action':'start_live_database','message':str(exc),
+                    'database_modified':False,'contract_accepted':False}
+        record_change(data,diagnostic);write_json(Path(data)/'runtime/startup_diagnostics.json',diagnostic)
+        return
+    write_json(Path(data)/'delivery_state.json',state)
 
 
 def _restore_database(archive, database):

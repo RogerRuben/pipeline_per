@@ -50,8 +50,8 @@ class ProgressBest(object):
         if self.key is None or key<self.key:self.key=key;self.best=trial
     def describe(self,trial):
         self.update(trial);t=trial.user_attrs.get('train_metrics',{})
-        current='训练MAPE %s%%，R² %s；开发MAPE %.10g%%，R² %.12g'%(fmt(t.get('mape_percent')),fmt(t.get('r2')),trial.values[1]*100.,trial.values[0])
+        current='训练MAPE %s%%，R² %s；开发MAPE %.10g%%，R² %.12g'%(fmt(t.get('mape_percent')),fmt(t.get('r2')),trial.user_attrs.get('development_mape',trial.values[1])*100.,trial.user_attrs.get('development_r2',trial.values[0]))
         if self.best:
             b=self.best;bt=b.user_attrs.get('train_metrics',{})
-            current+='；目标优胜#%d 训练%s%%/%s，开发%.10g%%/%.12g'%(b.number,fmt(bt.get('mape_percent')),fmt(bt.get('r2')),b.values[1]*100.,b.values[0])
+            current+='；目标优胜#%d 训练%s%%/%s，开发%.10g%%/%.12g'%(b.number,fmt(bt.get('mape_percent')),fmt(bt.get('r2')),b.user_attrs.get('development_mape',b.values[1])*100.,b.user_attrs.get('development_r2',b.values[0]))
         return current+'；累计%.1f秒。'%(time.monotonic()-self.started)

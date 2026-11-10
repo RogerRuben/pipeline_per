@@ -22,7 +22,8 @@ def initialize_data(package, data, manifest):
     contract=load_contract(package,manifest)
     database=data/'data/protocol_demo.db'
     if database.exists():
-        validate_data(package,data,manifest,contract)
+        from product.startup import check_live_database
+        check_live_database(data)
         return False
     for name in ('data','config','backups','exports','uploads','logs','runtime','models'):
         (data/name).mkdir(parents=True,exist_ok=True)
@@ -76,6 +77,8 @@ def main():
         sys.stdout=sys.stderr=(data/('logs/'+args.role+'.log')).open('a',encoding='utf-8',buffering=1)
     manifest = verify_package(package)
     release = manifest['release']
+    from product.model_library import active_paths
+    selected_models=active_paths(package,data,release,args.role) if args.role!='web' else {}
     from services.common.http_service import ExclusiveThreadingHTTPServer as ThreadingHTTPServer
     if args.role == 'web':
         initialize_data(package,data,manifest)
@@ -92,7 +95,8 @@ def main():
                 except KeyError:return None
             app.static_loader=static_loader
         # Capture the post-sync binding state only after a successful startup.
-        write_json(data/'delivery_state.json',accept_initial(data,manifest,load_contract(package,manifest)))
+        from product.startup import capture_compatible_state
+        capture_compatible_state(package,data,manifest)
         # Runtime-only links: persisted configuration and prices remain untouched.
         app.portal_config['services']['cost_effectiveness_analysis'].update(
             visible=True, enabled=True, url='/cost-effectiveness/')
@@ -126,11 +130,10 @@ def main():
         from services.common.http_service import make_handler
         if args.role == 'price':
             from services.price_service.ds_backend import load_price_service as PriceService
-            app = PriceService(contained(package,release['price_model']),None,
-                               evaluation_metadata=contained(package,release['evaluation_metadata']))
+            app = PriceService(selected_models['price'],None,**({'evaluation_metadata':selected_models['price_metadata']} if selected_models['price_metadata'] else {}))
         else:
             from services.effectiveness_service.app import EffectivenessService,SnapshotBackend
-            app = EffectivenessService(SnapshotBackend(contained(package,release['effectiveness_model'])))
+            app = EffectivenessService(SnapshotBackend(selected_models['effectiveness']))
         handler = make_handler(app)
     server = ThreadingHTTPServer(('127.0.0.1',args.port),handler)
     server.daemon_threads = True

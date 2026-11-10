@@ -109,7 +109,7 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
                  optimizer_seed=42, drop_first=True, remove_outliers=False,
                  verbose=True, prepared_data=None, expert_scores=None,
                  progress_callback=None, timeout_seconds=None, model_backend=None,
-                 search_driver=None, history_identity=None, min_samples=8):
+                 search_driver=None, history_identity=None, min_samples=8, joint_train_development=False):
     """Perform joint search and save split validation plus a full-data deployment bundle.
 
     Notes: validation metrics are SEARCHED on holdout labels, NOT untouched independent
@@ -198,6 +198,16 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
         telemetry_backend.last_evaluation=None
         values=objective(trial)
         attach(trial,telemetry_backend)
+        if trial.user_attrs.get('valid'):
+            trial.set_user_attr('development_r2',float(values[0]));trial.set_user_attr('development_mape',float(values[1]))
+        if joint_train_development and trial.user_attrs.get('valid'):
+            train=trial.user_attrs.get('train_metrics') or {}
+            if train.get('r2') is None or train.get('mape_percent') is None:
+                trial.set_user_attr('valid',False)
+                trial.set_user_attr('error','训练集指标不可定义，无法判断联合达标')
+                return -1e6,1e6
+            trial.set_user_attr('objective_contract','joint_train_development_minimax_v1')
+            return min(float(train['r2']),values[0]),max(float(train['mape_percent'])/100.,values[1])
         return values
     if search_driver is None:
         study.optimize(observed_objective, n_trials=int(n_trials), n_jobs=1, show_progress_bar=False,
@@ -210,7 +220,8 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
                "mape": None, "valid": t.user_attrs.get("valid", False),
                "error": t.user_attrs.get("error", "")}
         if t.values is not None:
-            rec["r2"], rec["mape"] = t.values
+            rec["r2"], rec["mape"] = t.user_attrs.get('development_r2',t.values[0]),t.user_attrs.get('development_mape',t.values[1])
+            rec['objective_r2'],rec['objective_mape']=t.values
         if search_driver is not None:rec.update(phase=t.user_attrs.get('phase','history'),anchor=t.user_attrs.get('anchor'),
             evaluation_diagnostic=json.dumps(t.user_attrs.get('evaluation_diagnostic',{}),ensure_ascii=False),
             sampler_fallbacks=json.dumps(t.user_attrs.get('sampler_fallbacks',[]),ensure_ascii=False))
@@ -228,7 +239,8 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
     pareto_records = []
     for t in sorted(study.best_trials, key=lambda item: item.number):
         if t.user_attrs.get("valid"):
-            pareto_records.append({"trial": t.number, "r2": t.values[0], "mape": t.values[1],
+            pareto_records.append({"trial": t.number, "r2": t.user_attrs.get('development_r2',t.values[0]), "mape": t.user_attrs.get('development_mape',t.values[1]),
+                                   'objective_r2':t.values[0],'objective_mape':t.values[1],
                                    "feasible": t.values[0] >= r2_target and t.values[1] <= mape_target,
                                    "selected": t.number == chosen.number, "split_seed": t.params["split_seed"]})
     pd.DataFrame(pareto_records).to_csv(os.path.join(output_dir, "pareto_front.csv"),
@@ -284,7 +296,13 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
         "training_full_data_model": True,
         "created_at": datetime.now().isoformat(timespec="seconds"),
     }
-    result['selected_training_metrics']=(telemetry_backend.last_evaluation or {}).get('train_metrics')
+    from .training_observation import score as score_training
+    selected_prediction,_=predict_bundle(validation_bundle,Xtr)
+    result['selected_training_metrics']=score_training(ytr,selected_prediction)
+    result['objective_contract']='joint_train_development_minimax_v1' if joint_train_development else 'development_only'
+    result['search_identity']=history_identity
+    tm=result['selected_training_metrics']
+    result['joint_targets_met']=bool(tm.get('r2') is not None and tm['r2']>=r2_target and tm['mape_percent']<=mape_target*100 and scores['r2']>=r2_target and scores['mape']<=mape_target)
     from .training_observation import score as training_score
     final_training,_=predict_bundle(full_bundle,X)
     result['full_refit_training_metrics']=training_score(y,final_training)
@@ -295,7 +313,7 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
         print("\nSelected trial:", chosen.number, "| Split seed:", best_cfg["split_seed"])
         print("Search-split R2: {:.6f} | MAPE: {:.2f}% | MAE: {:.6f}".format(
             scores["r2"], scores["mape"] * 100, scores["mae"]))
-        print("Target reached:", scores["r2"] >= r2_target and scores["mape"] <= mape_target)
+        print("Target reached:", result['joint_targets_met'] if joint_train_development else scores["r2"] >= r2_target and scores["mape"] <= mape_target)
         print("Weights:", result["ensemble_weights"])
         print("Saved:", os.path.abspath(output_dir))
     return result

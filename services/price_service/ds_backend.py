@@ -82,6 +82,9 @@ class DSPriceService(ServiceApplication):
 
 def load_price_service(model_path=None,fallback_json=None,**kwargs):
     if model_path and Path(model_path).suffix.lower()=='.json':
-        return DSPriceService(model_path)
+        raw=json.loads(Path(model_path).read_text(encoding='utf-8-sig'))
+        if raw.get('format')=='pipeline-ds-release-1.0':return DSPriceService(model_path)
+        from services.price_service.app import PriceService
+        return PriceService(None,model_path,**kwargs)
     from services.price_service.app import PriceService
     return PriceService(model_path,fallback_json,**kwargs)

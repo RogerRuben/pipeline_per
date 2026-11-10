@@ -1,8 +1,15 @@
 """Frozen software entry: supervisor and workers share one sealed executable."""
 import sys
+if not getattr(sys,"frozen",False):
+    from pathlib import Path
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
 
 
 def main():
+    if '--asset-check' in sys.argv:
+        from product.model_library import inspect_asset
+        index=sys.argv.index('--asset-check');role,path,metadata,report=sys.argv[index+1:index+5]
+        return inspect_asset(role,path,None if metadata=='-' else metadata,report)
     if '--worker' in sys.argv:
         sys.argv.remove('--worker')
         from product.worker import main as worker

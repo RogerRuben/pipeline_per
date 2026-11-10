@@ -1,44 +1,25 @@
-# PipelinePer 原生入口运行包
+# PipelinePer 运行包（R9）
 
-完整解压后双击 `product.exe`。它是带原创图标的 x64 Win32 GUI 入口，使用包内 CPython 3.8.10 启动监督器及价格、试用效能、网页三个服务。无需外部 Python。关闭浏览器后服务继续运行，退出请使用管理页“退出软件”。
+完整解压后双击 product.exe。它是带像素图标的完整 GUI 可执行入口，以 PyInstaller onedir 冻结程序模块和网页资源，管理价格、效能、网页三个独立服务。运行包没有 Python 业务源码、开发目录或 BAT 入口，不需要安装 Python。关闭浏览器后服务仍运行，退出请使用管理页“退出软件”。
 
-## 地址和外部端口配置
+## 地址和外部配置
 
-先查看软件目录“访问地址.txt”，也可双击 `SHOW_ADDRESSES.bat`。软件初次运行将默认配置复制到用户数据目录 `config\desktop.json`；以后以这个外部 JSON 为准。修改后退出软件再重新启动生效，无需改代码、训练或重新打包。管理页显示正在使用的配置路径和各服务实际地址；用户目录 `runtime\access.txt` 也记录访问地址。
+软件目录“访问地址.txt”和用户目录 runtime/access.txt 记录地址。第一次运行读取 defaults/desktop.json，之后读取独立用户目录的 config/desktop.json。管理页显示此路径和实际端口。修改配置并完整退出、重新启动生效，无需改代码或训练。端口占用时明确提示，不静默换端口。
 
-端口值来自交付配置，可分别设置管理、网页、价格、效能四个端口。端口占用时明确报错，不静默换端口。`open_browser` 控制是否自动打开浏览器。
+## 服务和数据
 
-## 单服务操作
+管理页支持单服务启动、停止、重启及整体重启。手动停止的服务保持停止，其他服务继续运行。模型服务异常时仍提供网页管理入口；计算功能会显示实际不可用状态。
 
-管理页可单独启动、停止、重启三个服务；其他进程保持运行。主动停止的服务保持停止，直到手动启动或下次完整启动软件。网页服务启动前，价格和效能服务须已启动。价格服务重启后旧分析请求会因模型实例身份变化被拒绝，请在深度分析页面刷新产品版本。
+默认用户目录是 %LOCALAPPDATA%/PipelinePer/products/<产品编码SHA256前32位>。可用 --data-dir 指定独立位置，后续命令保持相同路径。首次才导入初始业务包，已有数据库以实际保存的数据为准。中文名称修改不会要求迁移、重新导入或改配置；模型继续使用稳定的英文字段。发布契约差异记录在日志，不阻止打开网页。
 
-```powershell
-.\product.exe --service price --stop
-.\product.exe --service price --start
-.\product.exe --service effectiveness --restart
-.\product.exe --restart
-.\product.exe --status --report "$env:TEMP\pipeline-status.json"
-.\product.exe --stop
-```
+Portal 顶部“模型库”支持本系统兼容模型的导入检查、命名、启用和导出。价格机器学习模型、DS 三层模型、效能快照分别保存，切换仅重启对应服务；失败回滚。资产和启用配置位于用户目录，升级和重新打包不覆盖。正式专家效能模型仍需符合冻结适配器契约，不支持任意格式或依赖未知的模型。
 
-## 数据、更新和恢复
+## 备份与恢复
 
-默认用户目录按产品编码隔离在 `%LOCALAPPDATA%\PipelinePer\products\<产品编码SHA256前32位>`；检测到公共旧目录属于同一产品时继续使用旧目录（仍须通过兼容检查），SQLite 位于 `data\protocol_demo.db`，配置、日志、导出和备份分别在独立子目录。可用 `--data-dir "D:\PipelineData"` 显式指定，同一实例的命令使用同一路径。
+product.exe --backup --report backup-report.json 生成备份。product.exe --restore 备份路径 --data-dir 新空目录 --report restore-report.json 执行恢复；随后以相同 --data-dir 启动。
 
-首次才导入业务发布包；已有数据不会重新导入。新版本解压到新目录，继续使用原数据目录。更新前备份，换模型时验证字段／业务发布／价格契约；不兼容时停止并要求迁移。
+备份包含 SQLite、JSON 配置和已安装模型库，不含进程控制凭证、日志或导出文件。恢复只写新的空目录，并验证清单、文件 SHA、SQLite 和契约；不会覆盖原目录。数据库损坏或初始化标记存在但数据库丢失时，拒绝重新导入默认数据。
 
-```powershell
-.\product.exe --backup --report "$env:TEMP\backup.json"
-.\product.exe --restore "D:\backup.zip" --data-dir "D:\RecoveredData" --report "$env:TEMP\restore.json"
-.\product.exe --data-dir "D:\RecoveredData"
-```
+## 验收范围
 
-恢复只写新的空目录；验证备份清单、SHA、SQLite 和兼容契约。恢复中断或已初始化后丢失数据库时拒绝重新导入默认数据。此包的效能仍为试用快照；真实价格准确率需以甲方数据和独立样本验收。
-
-## Win7
-
-原生入口按 Windows 6.1 编译，仅调用 Win7 可用 Win32 API，不依赖 PyInstaller 或额外 C 运行时；模型解释器和数值依赖仍有自身运行库／补丁要求。当前没有 Win7 实机，不能标记整包已通过 Win7。请运行 `TARGET_CHECK.bat` 并在目标浏览器实际操作后再确认交付。启动器和服务仍保持 Job 所有权及父进程监视，无法建立时明确失败。
-
-## 源码交付边界
-
-当前是原生启动器 + 包内 CPython + Python 业务源码的 onedir 原型。运行包的 payload 包含业务源码，未实施源码保护；EXE 入口不代表业务代码全部编译隐藏。网页 HTML/CSS/JS 也随运行包交付。甲方训练开发包与最终受保护发行包属于不同交付范围，当前包不能作为无可读 Python 源码的发行版。
+包内运行环境为 CPython 3.8.10。当前没有 Windows 7 SP1 x64 实机，本机测试不能代替 Win7 验收。PyInstaller 5.13.2 的官方 Windows 支持范围从 Windows 8 开始，Win7 还需要核对系统补丁、运行库、浏览器和进程管理行为。可使用 product.exe --target-check --report target-report.json 进行目标机检查，再完成真实页面操作。当前效能快照为试用模型，业务准确率需甲方数据验收。

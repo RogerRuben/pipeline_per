@@ -54,6 +54,8 @@ def build_range_diagnostics(business_parameters, definitions, model_feature_spec
             "business_reference": None if special else _range(actual, definition.get("min_value"), definition.get("max_value"), "data_master"),
             "model_contracts": {},
             "training_ranges": {},
+            "model_actual": model_parameters.get(key,actual),
+            "value_type": definition.get("value_type"),
         }
         model_actual = model_parameters.get(key, actual)
         for kind, spec in (specs_by_key.get(key) or {}).items():
@@ -68,7 +70,7 @@ def build_range_diagnostics(business_parameters, definitions, model_feature_spec
         if special:
             item["outside_any_reference"] = False
             result.append(item)
-        elif ranges:
+        else:
             item["outside_any_reference"] = any(value.get("inside") is False for value in ranges)
             result.append(item)
     return result

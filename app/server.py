@@ -854,7 +854,7 @@ class Application(object):
             field["parameter_id"] = key
             field["display_value_mapping_json"] = definition.get("display_value_mapping_json")
             field["special_value_keys_json"] = definition.get("special_value_keys_json")
-            field["business_value_type"] = definition.get("value_type")
+            field["business_value_type"] = {"float":"number","numeric":"number","integer":"number","bool":"boolean"}.get(definition.get("value_type"),definition.get("value_type"))
             business_allowed = self._json_array(definition.get("allowed_values_json"))
             if business_allowed:
                 field["allowed_values"] = business_allowed
@@ -2383,11 +2383,18 @@ class Handler(BaseHTTPRequestHandler):
         self._json({"error":"admin_disabled","message":"当前公开演示未开放数据管理功能。请在本地启动或受保护的正式隧道中使用。"}, 403)
 
     def _json(self, payload, status=200):
+        path=urlparse(self.path).path
+        if path.startswith(('/api/deep-price/','/api/price-workbench/','/api/effectiveness-workbench/','/api/agreements/','/cost-effectiveness/api/')) or path in ('/api/evaluate','/api/improve','/api/recommend','/api/bootstrap'):
+            from app.business_labels import overlay_labels
+            payload=overlay_labels(payload,self.app.store.parameter_map())
         data = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
         self.send_response(status); self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store"); self.end_headers(); self.wfile.write(data)
 
     def _body(self):
-        length = int(self.headers.get("Content-Length","0") or 0); raw = self.rfile.read(length) if length else b"{}"; return json.loads(raw.decode("utf-8"))
+        length = int(self.headers.get("Content-Length","0") or 0)
+        maximum=150*1024*1024 if urlparse(self.path).path=='/api/model-library/install' else 64*1024*1024
+        if not 0<=length<=maximum:raise ValueError('请求文件过大')
+        raw = self.rfile.read(length) if length else b"{}"; return json.loads(raw.decode("utf-8"))
 
     def _file(self, path, download_name=None):
         path = Path(path); data = path.read_bytes(); disposition = self._attachment_header(download_name) if download_name else None
@@ -2460,6 +2467,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/portal", "/portal/"): rel = "portal.html"
         elif path=="/portal/frame":rel="front_gate/index.html"
         elif path=="/recommendation":rel="index.html"
+        elif path=="/model-library":rel="model-library.html"
         elif path.startswith(("/js/","/css/","/fonts/","/img/")) or path=="/favicon.png":rel="front_gate/"+path.lstrip("/")
         elif path in ("/admin","/admin/"): rel = "admin.html"
         elif path in ("/effectiveness", "/effectiveness/"): rel = "effectiveness.html"
@@ -2488,6 +2496,19 @@ class Handler(BaseHTTPRequestHandler):
                 return
             from app.unified_portal import handle_portal
             if handle_portal(self,path):return
+            if path=='/api/model-library' or path.startswith('/api/model-library/export/'):
+                from product.model_library import ModelLibrary
+                library=ModelLibrary(self.app)
+                if path=='/api/model-library':self._json(library.list())
+                else:self._bytes(library.export(path.rsplit('/',1)[-1]),'application/zip','model-asset.zip')
+                return
+            if path=='/api/business-labels':
+                from product.compatibility import fingerprint
+                definitions=self.app.store.parameter_map()
+                visible={k:{n:d.get(n) for n in ('label','unit','parameter_group','min_value','max_value','value_type')} for k,d in definitions.items()}
+                active=self.app.root/'config/active_models.json'
+                models=json.loads(active.read_text(encoding='utf-8-sig')) if active.exists() else {}
+                self._json({'fields':visible,'version':fingerprint(visible),'models':fingerprint(models)});return
             if path == "/cost-effectiveness" or path.startswith("/cost-effectiveness/"):
                 self._serve_cost_effectiveness("GET", path, query); return
             if path == "/api/auth/status":
@@ -2604,6 +2625,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._demo_forbidden(); return
             if self.app.demo_read_only and path.startswith("/api/saved/"):
                 self._demo_forbidden(); return
+            if path.startswith('/api/model-library/'):
+                if self.app.demo_read_only or self.app.disable_admin:raise ValueError('当前账号不能修改模型库')
+                from product.model_library import ModelLibrary
+                import base64
+                library=ModelLibrary(self.app)
+                if path=='/api/model-library/install':self._json(library.install(request['role'],request.get('name'),request['filename'],base64.b64decode(request['content'],validate=True),request.get('field_map')))
+                elif path=='/api/model-library/activate':self._json(library.activate(request['role'],request['id']))
+                elif path=='/api/model-library/rename':self._json(library.rename(request['id'],request['name']))
+                else:self._json({'error':'not_found'},404)
+                return
             if path == "/api/recommend": self._json(self.app.recommend(request))
             elif path == "/api/generation/request": self._json(self.app.request_generation(request))
             elif path == "/api/generate-live": self._json(self.app.generate_live(request))

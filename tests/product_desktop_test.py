@@ -129,8 +129,7 @@ class DesktopTests(unittest.TestCase):
 
     def test_wrong_product_and_corrupt_existing_db_fail_without_replacement(self):
         database=self.database('OTHER');before=database.read_bytes()
-        with self.assertRaisesRegex(ValueError,'不兼容'):
-            initialize_data(self.package,self.data,self.manifest)
+        self.assertFalse(initialize_data(self.package,self.data,self.manifest))
         self.assertEqual(database.read_bytes(),before)
         database.write_bytes(b'corrupt-existing-user-data')
         with self.assertRaises(sqlite3.DatabaseError):
@@ -302,9 +301,9 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(state['startup_action'],'backup')
         self.assertEqual(sha(database),edited)
         prepared=prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
-        self.assertTrue(str(prepared['backup']).endswith('.zip'))
+        self.assertEqual(prepared['startup_action'],'start_live_database')
         self.assertEqual(sha(database),edited)
-        self.assertEqual(validate_data(self.package,self.data,self.manifest)['change_class'],'none')
+        self.assertEqual(validate_data(self.package,self.data,self.manifest)['change_class'],'generation')
 
     def test_english_field_rename_without_a_rule_does_not_rewrite_the_database(self):
         database=self.database()
@@ -334,13 +333,13 @@ class DesktopTests(unittest.TestCase):
         with self.assertRaises(StartupConfirmation):
             validate_data(self.package,self.data,self.manifest)
         self.assertEqual(sha(database),edited)
-        with self.assertRaisesRegex(ValueError,'已取消启动'):
-            prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        diagnostic=prepare_existing(self.package,self.data,self.manifest,lambda _message: self.fail('no modal expected'))
+        self.assertEqual(diagnostic['startup_action'],'start_live_database')
         self.assertEqual(sha(database),edited)
         accepted=prepare_existing(self.package,self.data,self.manifest,lambda _message: True)
-        self.assertEqual(accepted['change_class'],'unclassified')
+        self.assertFalse(accepted['contract_accepted'])
         self.assertEqual(sha(database),edited)
-        self.assertEqual(validate_data(self.package,self.data,self.manifest)['startup_action'],'start')
+        with self.assertRaises(StartupConfirmation):validate_data(self.package,self.data,self.manifest)
 
     def test_migration_does_not_start_when_backup_fails(self):
         self.database(); before=sha(self.data/'data/protocol_demo.db')
@@ -430,8 +429,8 @@ class DesktopTests(unittest.TestCase):
             connection.commit()
         with self.assertRaises(StartupConfirmation):
             validate_data(self.package,self.data,self.manifest)
-        with self.assertRaisesRegex(ValueError,'已取消启动'):
-            prepare_existing(self.package,self.data,self.manifest,lambda _message: False)
+        diagnostic=prepare_existing(self.package,self.data,self.manifest,lambda _message: self.fail('no modal expected'))
+        self.assertEqual(diagnostic['startup_action'],'start_live_database')
         self.assertEqual(read_json(self.data/'delivery_state.json')['content_snapshot']['payload_sha256'],before)
 
     def test_incompatible_model_can_be_backed_up_without_being_accepted(self):
@@ -439,11 +438,11 @@ class DesktopTests(unittest.TestCase):
         accepted=read_json(self.data/'delivery_state.json')['model_schema_sha256']
         self.contract['model_schema']['fields'][0]['missing_policy']='training_mean'
         self.contract['model_schema_sha256']=fingerprint(self.contract['model_schema']);self.seal_contract()
-        with self.assertRaises(StartupBlocked):
-            prepare_existing(self.package,self.data,self.manifest,lambda _message: True)
+        result=prepare_existing(self.package,self.data,self.manifest,lambda _message: self.fail('no modal expected'))
+        self.assertFalse(result['contract_accepted'])
         self.assertEqual(sha(database),before)
         self.assertEqual(read_json(self.data/'delivery_state.json')['model_schema_sha256'],accepted)
-        self.assertTrue(any(self.data.joinpath('backups').glob('backup-*.zip')))
+        self.assertTrue((self.data/'runtime/startup_diagnostics.json').exists())
 
     def test_v4_effectiveness_bundle_is_part_of_the_contract(self):
         from product.compatibility import effectiveness_schema_from_document

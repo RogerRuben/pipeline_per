@@ -1,6 +1,7 @@
 (function(){
   "use strict";
   var schema=null,defaults={};
+  document.addEventListener('business:metadata',function(event){if(schema)(schema.fields||[]).forEach(function(f){var d=event.detail.fields[f.field_name||f.key];if(d)f.field_label=d.label;});});
   function q(id){return document.getElementById(id)}
   function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function show(el){el.classList.remove("hidden")} function hide(el){el.classList.add("hidden")}
