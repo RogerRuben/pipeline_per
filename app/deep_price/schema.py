@@ -24,14 +24,16 @@ def fields_for(snapshot, schema):
         raise DeepPriceError('unavailable', '模型字段缺少业务定义：' + ', '.join(sorted(missing)), 503)
     result = []
     for key, definition in definitions.items():
-        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', key):
+        # Admin-generated stable IDs use PAR-..., which is also safe as a JSON
+        # key and DOM ID. Legacy non-model fields must remain readable.
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_-]*', key):
             raise DeepPriceError('unavailable', '业务字段ID不满足英文稳定标识契约', 503)
         spec = specs.get(key, {})
         unit = definition.get('unit') or spec.get('unit') or ''
         if definition.get('unit') and spec.get('unit') and definition['unit'] != spec['unit']:
             raise DeepPriceError('unavailable', '业务/模型字段单位不一致：' + key, 503)
         kind = definition.get('value_type') or 'number'
-        kind = {'float': 'number', 'bool': 'boolean', 'ip_grade': 'integer'}.get(kind, kind)
+        kind = {'float': 'number', 'numeric':'number', 'text':'string', 'bool': 'boolean', 'ip_grade': 'integer'}.get(kind, kind)
         if kind=='number' and definition.get('search_type')=='integer':
             kind='integer'
         if kind not in ('number', 'integer', 'enum', 'boolean', 'string'):

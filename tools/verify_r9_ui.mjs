@@ -85,6 +85,10 @@ try{
  await embedded.locator('a[href="/portal"]').first().click();await portal.waitForLoadState('networkidle');
  await check('navigation_returns_top_portal',portal.frames().filter(f=>f.url().endsWith('/portal')).length===1&&portal.url()===base+'/portal');
  await admin.screenshot({path:out+'/admin-renamed.png'});
+ await admin.locator('#addAdminRow').click();await admin.locator('#adminEditForm [name="label"]').fill('验收新增独立属性');
+ const added=admin.waitForResponse(r=>r.url().endsWith('/api/admin/upsert'));await admin.locator('#saveAdminEdit').click();const addedResponse=await added;const saved=await addedResponse.json();
+ const snapshot=await api('/api/admin/snapshot');const created=snapshot.parameters.find(p=>p.parameter_id===saved.id);
+ await check('new_indicator_keeps_form_defaults',addedResponse.ok()&&created&&created.value_type==='number'&&created.preference==='neutral'&&created.enabled===1);
  await check('no_browser_errors',report.errors.length===0);report.status='pass';
 }catch(e){report.status='fail';report.error=e.stack;for(const p of context.pages().slice(-1))await p.screenshot({path:out+'/failure.png'});throw e;}
 finally{await fs.writeFile(out+'/browser.json',JSON.stringify(report,null,2));await browser.close();}

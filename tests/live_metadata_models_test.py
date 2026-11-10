@@ -43,6 +43,13 @@ class HistoricalTests(unittest.TestCase):
         status,schema=self.http('/schema');self.assertEqual(status,200,schema)
         self.assertEqual(next(f for f in schema['fields'] if f['field_id']=='size')['label_zh'],'新尺寸中文')
         self.assertEqual(self.model_path.read_bytes(),before)
+    def test_admin_generated_ids_and_non_model_text_fields_do_not_disable_schema(self):
+        with closing(sqlite3.connect(str(self.db))) as c,c:
+            c.execute('INSERT INTO parameter_definitions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',('PAR-NEW','业务备注','','text',0,1,99,'其他','[]','{}',None,None))
+        status,schema=self.http('/schema');self.assertEqual(status,200,schema)
+        field=next(f for f in schema['fields'] if f['field_id']=='PAR-NEW')
+        self.assertEqual(field['type'],'string');self.assertFalse(field['price_model_input'])
+        status,result=self.http('/predict',self.request());self.assertEqual(status,200,result);self.assertEqual(result['predicted_price_wan'],50)
 
 class LibraryTests(unittest.TestCase):
     def setUp(self):
