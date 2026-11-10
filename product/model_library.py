@@ -153,7 +153,9 @@ class ModelLibrary:
         while time.monotonic()<deadline:
             s=fetch(control['url']+'/api/status')
             operation=next((o for o in s.get('operations',[]) if o['id']==op['operation_id']),{})
-            if operation.get('status')=='succeeded':return
+            if operation.get('status')=='succeeded':
+                if hasattr(self.app,'sync_desktop_addresses'):self.app.sync_desktop_addresses()
+                return
             if operation.get('status')=='failed':raise ValueError(operation.get('error','服务未启动'))
             time.sleep(.2)
         raise ValueError('服务重启超时')

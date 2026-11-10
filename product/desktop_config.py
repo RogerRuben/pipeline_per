@@ -1,4 +1,4 @@
-"""Explicit loopback ports; no silent fallback to an unknown port."""
+"""External preferred ports; actual available ports are published at runtime."""
 from pathlib import Path
 from product.common import read_json,write_json
 

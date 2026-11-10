@@ -39,13 +39,15 @@ class Supervisor:
         self.instance_id=secrets.token_hex(16);self.token=secrets.token_urlsafe(32)
         self.stopping=threading.Event();self.restarting=threading.Event();self.lock=threading.RLock()
         self.workers={};self.logs={};self.paused=set();self.blocked=set();self.errors={}
+        self.web_started=False
         self.generation=secrets.token_hex(8);self.phase='starting';self.error=None;self.restart_count=0
         self.failures={role:deque() for role in ROLES};self.health_failures={role:0 for role in ROLES}
         self.actions=queue.Queue(maxsize=32);self.operations=deque(maxlen=30)
         self.job=WorkerJob()
         import ctypes
         ctypes.windll.kernel32.SetDllDirectoryW(None)
-        try:self.server=ThreadingHTTPServer(('127.0.0.1',self.ports['control']),self.handler())
+        from product.ports import bind_server
+        try:self.server=bind_server(ThreadingHTTPServer,self.ports['control'],self.handler(),self.ports.values())
         except OSError as exc:
             self.job.close()
             raise RuntimeError('管理端口 %d 无法使用，请检查配置文件 %s：%s'%(self.ports['control'],self.data/'config/desktop.json',exc))
@@ -78,7 +80,9 @@ class Supervisor:
                     'classification':self.manifest['release']['classification'],'price_backend':self.manifest['release'].get('price_backend','optuna_v3'),'win7_validated':False,
                     'generation':self.generation,'restart_count':self.restart_count,
                     'portal_url':web+'/portal' if web else None,'control_url':self.service_url('control'),
-                    'ports':dict(self.ports),'services':services,'operations':[dict(item) for item in self.operations],
+                    'ports':dict(self.ports),'configured_ports':dict(self.config['ports']),
+                    'port_fallbacks':{k:{'configured':v,'actual':self.ports[k]} for k,v in self.config['ports'].items() if v and v!=self.ports[k]},
+                    'services':services,'operations':[dict(item) for item in self.operations],
                     'config_path':str(self.data/'config/desktop.json')}
 
     def record_status(self):
@@ -155,7 +159,8 @@ class Supervisor:
               str(self.package/'runtime/python38/pythonw.exe'),'-I','-B','-X','utf8',str(self.package/'payload/product/worker.py')]
         args=entry+['--package',str(self.package),
               '--data-dir',str(self.data),'--role',role,'--ready',str(ready),'--generation',self.generation,
-              '--parent',str(os.getpid()),'--port',str(self.ports[role])]
+              '--parent',str(os.getpid()),'--port',str(self.ports[role]),
+              '--reserved-ports',','.join(str(p) for k,p in self.config['ports'].items() if k!=role)]
         if role=='web':args.extend(['--price-url',self.service_url('price') or 'http://127.0.0.1:1','--effectiveness-url',self.service_url('effectiveness') or 'http://127.0.0.1:1'])
         env=dict(os.environ)
         for key in list(env):
@@ -177,6 +182,11 @@ class Supervisor:
                                 with self.lock:
                                     self.workers[role]['url']=value['url'];self.ports[role]=urlparse(value['url']).port
                                     self.errors.pop(role,None);self.health_failures[role]=0
+                                self.record_status()
+                                if role=='web':
+                                    moved=self.web_started and urlparse(value['url']).port!=int(args[args.index('--port')+1])
+                                    self.web_started=True
+                                    if moved and not self.no_browser:webbrowser.open(value['url']+'/portal')
                                 return value['url']
                         except (OSError,ValueError):pass
                 self.stopping.wait(.1)

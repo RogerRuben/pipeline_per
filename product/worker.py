@@ -69,6 +69,7 @@ def main():
     parser.add_argument('--price-url')
     parser.add_argument('--effectiveness-url')
     parser.add_argument('--port',type=int,default=0)
+    parser.add_argument('--reserved-ports',default='')
     args = parser.parse_args()
     watch_parent(args.parent)
     package,data = Path(args.package).resolve(),Path(args.data_dir).resolve()
@@ -105,7 +106,14 @@ def main():
             'url':read_json(data/'runtime/control.json')['url'],'visible':True,'enabled':True}
         app.portal_config['services']['effectiveness']['label']='试用效能评价'
         class WebHandler(Handler):
+            def sync_addresses(self):
+                from product.ports import sync_addresses
+                sync_addresses(self.app,data)
+            def do_POST(self):
+                self.sync_addresses()
+                super().do_POST()
             def do_GET(self):
+                self.sync_addresses()
                 from urllib.parse import urlparse
                 path=urlparse(self.path).path
                 if path=='/api/desktop-status':
@@ -125,6 +133,8 @@ def main():
                     return
                 super().do_GET()
         WebHandler.app = app
+        from product.ports import sync_addresses
+        app.sync_desktop_addresses=lambda:sync_addresses(app,data)
         handler = WebHandler
     else:
         from services.common.http_service import make_handler
@@ -135,7 +145,8 @@ def main():
             from services.effectiveness_service.app import EffectivenessService,SnapshotBackend
             app = EffectivenessService(SnapshotBackend(selected_models['effectiveness']))
         handler = make_handler(app)
-    server = ThreadingHTTPServer(('127.0.0.1',args.port),handler)
+    from product.ports import bind_server
+    server = bind_server(ThreadingHTTPServer,args.port,handler,[int(p) for p in args.reserved_ports.split(',') if p])
     server.daemon_threads = True
     write_json(args.ready,{'pid':os.getpid(),'role':args.role,'generation':args.generation,
                           'url':'http://127.0.0.1:%d'%server.server_address[1]})
