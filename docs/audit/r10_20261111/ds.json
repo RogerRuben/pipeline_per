@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "all_all_services_running": true,
+    "all_only_occupied_ports_changed": true,
+    "all_live_api_consistency": true,
+    "all_foreign_listeners_preserved": true,
+    "all_config_unchanged": true,
+    "all_published_actual_addresses": true,
+    "all_final_config_unchanged": true
+  },
+  "cases": {
+    "all": {
+      "configured": {
+        "control": 64309,
+        "web": 64310,
+        "price": 64311,
+        "effectiveness": 64312
+      },
+      "actual": {
+        "control": 64327,
+        "web": 64374,
+        "price": 64342,
+        "effectiveness": 64355
+      }
+    }
+  },
+  "win7_tested": false,
+  "status": "pass"
+}

@@ -1,0 +1,143 @@
+{
+  "checks": {
+    "none_all_services_running": true,
+    "none_only_occupied_ports_changed": true,
+    "none_live_api_consistency": true,
+    "none_foreign_listeners_preserved": true,
+    "none_config_unchanged": true,
+    "none_published_actual_addresses": true,
+    "price_restart_moves_occupied_port": true,
+    "price_restart_preserves_other_processes": true,
+    "price_restart_updates_all_clients": true,
+    "effectiveness_restart_moves_occupied_port": true,
+    "effectiveness_restart_preserves_other_processes": true,
+    "effectiveness_restart_updates_all_clients": true,
+    "web_restart_moves_occupied_port": true,
+    "web_restart_preserves_other_processes": true,
+    "web_restart_updates_all_clients": true,
+    "none_final_config_unchanged": true,
+    "web_all_services_running": true,
+    "web_only_occupied_ports_changed": true,
+    "web_live_api_consistency": true,
+    "web_foreign_listeners_preserved": true,
+    "web_config_unchanged": true,
+    "web_published_actual_addresses": true,
+    "web_final_config_unchanged": true,
+    "price_all_services_running": true,
+    "price_only_occupied_ports_changed": true,
+    "price_live_api_consistency": true,
+    "price_foreign_listeners_preserved": true,
+    "price_config_unchanged": true,
+    "price_published_actual_addresses": true,
+    "price_final_config_unchanged": true,
+    "effectiveness_all_services_running": true,
+    "effectiveness_only_occupied_ports_changed": true,
+    "effectiveness_live_api_consistency": true,
+    "effectiveness_foreign_listeners_preserved": true,
+    "effectiveness_config_unchanged": true,
+    "effectiveness_published_actual_addresses": true,
+    "effectiveness_final_config_unchanged": true,
+    "control_all_services_running": true,
+    "control_only_occupied_ports_changed": true,
+    "control_live_api_consistency": true,
+    "control_foreign_listeners_preserved": true,
+    "control_config_unchanged": true,
+    "control_published_actual_addresses": true,
+    "control_final_config_unchanged": true,
+    "all_all_services_running": true,
+    "all_only_occupied_ports_changed": true,
+    "all_live_api_consistency": true,
+    "all_foreign_listeners_preserved": true,
+    "all_config_unchanged": true,
+    "all_published_actual_addresses": true,
+    "all_final_config_unchanged": true
+  },
+  "cases": {
+    "none": {
+      "configured": {
+        "control": 61464,
+        "web": 61465,
+        "price": 61466,
+        "effectiveness": 61467
+      },
+      "actual": {
+        "control": 61464,
+        "web": 61465,
+        "price": 61466,
+        "effectiveness": 61467
+      }
+    },
+    "web": {
+      "configured": {
+        "control": 64580,
+        "web": 64581,
+        "price": 64582,
+        "effectiveness": 64583
+      },
+      "actual": {
+        "control": 64580,
+        "web": 64611,
+        "price": 64582,
+        "effectiveness": 64583
+      }
+    },
+    "price": {
+      "configured": {
+        "control": 64642,
+        "web": 64643,
+        "price": 64644,
+        "effectiveness": 64645
+      },
+      "actual": {
+        "control": 64642,
+        "web": 64643,
+        "price": 64653,
+        "effectiveness": 64645
+      }
+    },
+    "effectiveness": {
+      "configured": {
+        "control": 64715,
+        "web": 64716,
+        "price": 64717,
+        "effectiveness": 64718
+      },
+      "actual": {
+        "control": 64715,
+        "web": 64716,
+        "price": 64717,
+        "effectiveness": 64735
+      }
+    },
+    "control": {
+      "configured": {
+        "control": 64779,
+        "web": 64780,
+        "price": 64781,
+        "effectiveness": 64782
+      },
+      "actual": {
+        "control": 64783,
+        "web": 64780,
+        "price": 64781,
+        "effectiveness": 64782
+      }
+    },
+    "all": {
+      "configured": {
+        "control": 64841,
+        "web": 64842,
+        "price": 64843,
+        "effectiveness": 64844
+      },
+      "actual": {
+        "control": 64847,
+        "web": 64876,
+        "price": 64855,
+        "effectiveness": 64861
+      }
+    }
+  },
+  "win7_tested": false,
+  "status": "pass"
+}

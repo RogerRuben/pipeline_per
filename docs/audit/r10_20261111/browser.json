@@ -1,0 +1,6 @@
+{
+  "status": "pass",
+  "control": "http://127.0.0.1:63320",
+  "portal": "http://127.0.0.1:63349/portal",
+  "configured_web": 63317
+}

@@ -1,0 +1,12 @@
+test_available_preferred_port_is_preserved (__main__.PortTests) ... ok
+test_ephemeral_choice_cannot_steal_other_configured_port (__main__.PortTests) ... WARNING:root:Port 18001 unavailable; allocating another loopback port
+ok
+test_occupied_port_falls_back_and_does_not_touch_occupier (__main__.PortTests) ... WARNING:root:Port 65357 unavailable; allocating another loopback port
+ok
+test_unrelated_bind_error_is_not_hidden (__main__.PortTests) ... ok
+test_web_clients_follow_new_addresses_without_overwriting_config (__main__.PortTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.032s
+
+OK

@@ -1,0 +1,42 @@
+{
+  "status": "pass",
+  "scope": "Only R10 temporary builds and duplicate extracted kits",
+  "deleted": [
+    {
+      "path": "outputs/r10_engine",
+      "bytes": 198765669.0
+    },
+    {
+      "path": "outputs/r10_engine_work",
+      "bytes": 235978941.0
+    },
+    {
+      "path": "outputs/r10_engine_final_work",
+      "bytes": 235979247.0
+    },
+    {
+      "path": "outputs/r10check",
+      "bytes": 1112503553.0
+    },
+    {
+      "path": "deliverables/CB10",
+      "bytes": 418920053.0
+    },
+    {
+      "path": "deliverables/CB10.zip",
+      "bytes": 144582263
+    },
+    {
+      "path": "deliverables/CB10.zip.sha256",
+      "bytes": 76
+    },
+    {
+      "path": "deliverables/CB10_build.json",
+      "bytes": 498
+    },
+    {
+      "path": "product/_frozen_resources.py",
+      "bytes": 5905442
+    }
+  ]
+}

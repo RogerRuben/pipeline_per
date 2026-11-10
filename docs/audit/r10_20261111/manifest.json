@@ -1,0 +1,26 @@
+{
+  "source_code": "3a152a2577d67e7cdfb484bc95dae871095f8481",
+  "checks": {
+    "automl": 51,
+    "ds": 7,
+    "browser": 8
+  },
+  "files": [
+    {
+      "name": "CB10.7z",
+      "bytes": 81001169,
+      "sha256": "9cdacb73c2a45a424c535744700ccc79d9c481a47457de53ea226d494104751d"
+    },
+    {
+      "name": "PipelinePer_R10_AutoML_20261111.zip",
+      "bytes": 71300737,
+      "sha256": "9f4520a878a70f63840eac4d6a257e859eb62826d4886950e27428d6e040bdc3"
+    },
+    {
+      "name": "PipelinePer_R10_DS_20261111.zip",
+      "bytes": 71219079,
+      "sha256": "1b5779c3ecf391d9e4bd1a258bca69bee8c7265d83aff59e8e7959441eaf480d"
+    }
+  ],
+  "win7_tested": false
+}
