@@ -30,7 +30,7 @@ def copy_tree(source,target):
             shutil.copy2(str(path),str(destination))
 
 
-def build(out,runtime,bootstrap,example):
+def build(out,runtime,bootstrap,example,model_cases=None):
     out,runtime,bootstrap,example=map(lambda p:Path(p).resolve(),(out,runtime,bootstrap,example))
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
         raise ValueError('Choose a new project outputs/ or deliverables/ directory')
@@ -77,6 +77,10 @@ def build(out,runtime,bootstrap,example):
     shutil.copy2(str(ROOT/'examples/ds/DEMO_model.json'),str(ds_example/'DS_model.json'))
     (ds_example/'products.xlsx').write_bytes(ds_workbook(ds_example/'DS_model.json'))
     write_json(ds_example/'ds.json',{'model_file':'examples/ds/DS_model.json','field_map':{},'value_aliases':{}})
+    if model_cases:
+        case_folder=out/'examples/model_cases';case_folder.mkdir()
+        for path in Path(model_cases).glob('*'):
+            if path.is_file():shutil.copy2(str(path),str(case_folder/path.name))
     write_json(out/'settings/desktop.json',template_config())
     # Win7 Notepad reliably recognizes editable Chinese JSON with a UTF-8 BOM.
     for path in (out/'settings').glob('*.json'):
@@ -113,5 +117,5 @@ def build(out,runtime,bootstrap,example):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--out',required=True);p.add_argument('--runtime',required=True)
-    p.add_argument('--bootstrap',required=True);p.add_argument('--example',required=True);a=p.parse_args()
-    print(json.dumps(build(a.out,a.runtime,a.bootstrap,a.example),ensure_ascii=True,indent=2))
+    p.add_argument('--bootstrap',required=True);p.add_argument('--example',required=True);p.add_argument('--model-cases');a=p.parse_args()
+    print(json.dumps(build(a.out,a.runtime,a.bootstrap,a.example,a.model_cases),ensure_ascii=True,indent=2))
