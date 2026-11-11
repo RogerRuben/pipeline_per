@@ -1,0 +1,11 @@
+{
+  "original_zip_sha256": "fd9a999a4e074c0ea317303e4e9ea20e7cbf7baa711884bc9f74a8c47a8c50e6",
+  "declared_domain_test_sha256": "94ef5af47e3ab2bc0f6c8e1448de37aeba8a6036fdf4fb1d1bb4059969fe6d25",
+  "explicit_test_domain": [
+    "1",
+    "2"
+  ],
+  "domain_in_original_export": false,
+  "algorithm_sources_unchanged": true,
+  "v15_ui_asset": null
+}

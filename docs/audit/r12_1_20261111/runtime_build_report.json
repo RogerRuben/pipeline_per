@@ -1,0 +1,12 @@
+{
+  "status": "built",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\deliverables\\PipelinePer_R12B_PumpExport_20261111",
+  "archive": null,
+  "archive_sha256": null,
+  "archive_bytes": 0,
+  "files": 1088,
+  "model_sha256": "71d3afd6c30e0d5027f7a9696be541a2d2719351ac86ea72863538412b57a43d",
+  "source_sha": "3d50bd492d4704bd34541dd9063553de6e83dbb1",
+  "python_source_included": false,
+  "win7_validated": false
+}

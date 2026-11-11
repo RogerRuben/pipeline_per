@@ -1,0 +1,102 @@
+[
+  {
+    "path": "deliverables/PipelinePer_R12B_PumpExport_20261111",
+    "bytes": 352788158
+  },
+  {
+    "path": "deliverables/PipelinePer_R12B_PumpExport_20261111_build",
+    "bytes": 235513
+  },
+  {
+    "path": "deliverables/PipelinePer_R12B_PumpExport_20261111.zip",
+    "bytes": 125134679
+  },
+  {
+    "path": "deliverables/PipelinePer_R12B_PumpExport_20261111.zip.sha256",
+    "bytes": 108
+  },
+  {
+    "path": "deliverables/PipelinePer_R12B_PumpExport_20261111.7z",
+    "bytes": 54216147
+  },
+  {
+    "path": "deliverables/CB12B",
+    "bytes": 574109087
+  },
+  {
+    "path": "deliverables/CB12B.zip",
+    "bytes": 199006503
+  },
+  {
+    "path": "deliverables/CB12B.zip.sha256",
+    "bytes": 77
+  },
+  {
+    "path": "deliverables/CB12B.7z",
+    "bytes": 73486703
+  },
+  {
+    "path": "deliverables/CB12B_build.json",
+    "bytes": 500
+  },
+  {
+    "path": "outputs/r12_1_enum/lock/software",
+    "bytes": 352373677
+  },
+  {
+    "path": "outputs/r12_1_enum/lock/software_build",
+    "bytes": 241481
+  },
+  {
+    "path": "outputs/r12_1_enum/lock/software.zip",
+    "bytes": 125034344
+  },
+  {
+    "path": "outputs/r12_1_enum/lock/software.zip.sha256",
+    "bytes": 80
+  },
+  {
+    "path": "outputs/r12_1_enum/lock/userdata",
+    "bytes": 2147286
+  },
+  {
+    "path": "outputs/r12_1_enum/product/software",
+    "bytes": 352381118
+  },
+  {
+    "path": "outputs/r12_1_enum/product/software_build",
+    "bytes": 169215
+  },
+  {
+    "path": "outputs/r12_1_enum/product/software.zip",
+    "bytes": 125035830
+  },
+  {
+    "path": "outputs/r12_1_enum/product/software.zip.sha256",
+    "bytes": 80
+  },
+  {
+    "path": "outputs/r12_1_enum/product/userdata",
+    "bytes": 2147125
+  },
+  {
+    "path": "outputs/r12_1_enum/pump/software",
+    "bytes": 352811547
+  },
+  {
+    "path": "outputs/r12_1_enum/pump/software_build",
+    "bytes": 236059
+  },
+  {
+    "path": "outputs/r12_1_enum/pump/software.zip",
+    "bytes": 125075089
+  },
+  {
+    "path": "outputs/r12_1_enum/pump/software.zip.sha256",
+    "bytes": 80
+  },
+  {
+    "path": "outputs/r12_1_enum/pump/userdata",
+    "bytes": 2179829
+  }
+]

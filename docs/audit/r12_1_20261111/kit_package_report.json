@@ -1,0 +1,14 @@
+{
+  "status": "built",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\k12b\\CB12B\\project\\deliverables\\client-v3-20261111_173621-fe2d",
+  "archive": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\k12b\\CB12B\\project\\deliverables\\client-v3-20261111_173621-fe2d.zip",
+  "archive_sha256": "bea34c5d27381c8ad06e4fc4015ff89fd3249c466be03142f814759dc852d75a",
+  "archive_bytes": 127170405,
+  "files": 1088,
+  "model_sha256": "71d3afd6c30e0d5027f7a9696be541a2d2719351ac86ea72863538412b57a43d",
+  "source_sha": "3d50bd492d4704bd34541dd9063553de6e83dbb1",
+  "python_source_included": false,
+  "win7_validated": false,
+  "published_archive": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\k12b\\CB12B\\deliverables\\client-v3-20261111_173621-fe2d.zip",
+  "published_sha256": "bea34c5d27381c8ad06e4fc4015ff89fd3249c466be03142f814759dc852d75a"
+}

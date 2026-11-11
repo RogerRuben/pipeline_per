@@ -1,0 +1,22 @@
+
+7-Zip 26.02 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-06-25
+
+Scanning the drive for archives:
+1 file, 54234160 bytes (52 MiB)
+
+Testing archive: deliverables\PipelinePer_R12B_PumpExport_20261111.7z
+--
+Path = deliverables\PipelinePer_R12B_PumpExport_20261111.7z
+Type = 7z
+Physical Size = 54234160
+Headers Size = 17635
+Method = LZMA2:27 LZMA:20 BCJ2
+Solid = +
+Blocks = 2
+
+Everything is Ok
+
+Folders: 115
+Files: 1089
+Size:       354835280
+Compressed: 54234160

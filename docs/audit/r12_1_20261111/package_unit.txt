@@ -1,0 +1,12 @@
+test_actual_frozen_expert_engine_loads_and_scores (__main__.ExpertTests) ... ok
+test_changed_algorithm_even_with_rehashed_manifest_is_rejected (__main__.ExpertTests) ... ok
+test_corrupt_original_source_is_rejected (__main__.ExpertTests) ... ok
+test_lock_unknown_feasibility_is_not_fabricated_as_zero_or_one (__main__.ExpertTests) ... ok
+test_model_library_installs_export_data_without_python_source (__main__.ExpertTests) ... ok
+test_original_zip_preserves_model_bytes_and_never_imports_expert_into_web (__main__.ExpertTests) ... ok
+test_path_traversal_rejected_without_extracting (__main__.ExpertTests) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 20.894s
+
+OK

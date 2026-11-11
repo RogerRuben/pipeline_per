@@ -1,0 +1,13 @@
+2026-11-11 17:16:17,244 ERROR Service startup failed: web
+Traceback (most recent call last):
+  File "product\supervisor.py", line 225, in start_workers
+    try:self.start_worker(role)
+  File "product\supervisor.py", line 184, in start_worker
+    value=read_json(ready)
+  File "product\common.py", line 10, in read_json
+    return json.loads(Path(path).read_text(encoding='utf-8-sig'))
+  File "pathlib.py", line 1236, in read_text
+  File "pathlib.py", line 1222, in open
+  File "pathlib.py", line 1078, in _opener
+PermissionError: [Errno 13] Permission denied: 'D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\r12_1_enum\\pump\\userdata\\runtime\\0817729a92bb1af3dbc06160-web.json'
+2026-11-11 17:16:17,268 INFO All services ready generation=90c7167d1a20498c

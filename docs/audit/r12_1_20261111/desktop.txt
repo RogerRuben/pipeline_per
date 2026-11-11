@@ -1,0 +1,41 @@
+test_compatible_retrained_model_accepts_new_sha_without_writing_database (__main__.DesktopTests) ... ok
+test_control_rejects_missing_token_cross_origin_and_rebinding_host (__main__.DesktopTests) ... ok
+test_data_path_is_independent_and_override_is_explicit (__main__.DesktopTests) ... ok
+test_default_data_path_does_not_silently_skip_unreadable_legacy (__main__.DesktopTests) ... ok
+test_default_data_path_separates_products_and_keeps_matching_legacy (__main__.DesktopTests) ... ok
+test_direct_legal_values_survive_an_alias_map_but_bad_codes_do_not (__main__.DesktopTests) ... ok
+test_display_edits_do_not_block_restart (__main__.DesktopTests) ... ok
+test_effectiveness_file_must_match_the_delivery_contract (__main__.DesktopTests) ... ok
+test_effectiveness_only_unit_change_blocks_startup (__main__.DesktopTests) ... ok
+test_english_field_rename_without_a_rule_does_not_rewrite_the_database (__main__.DesktopTests) ... ok
+test_equivalent_price_output_configuration_is_canonicalized (__main__.DesktopTests) ... ok
+test_existing_data_and_confirmed_config_never_reseeded (__main__.DesktopTests) ... ok
+test_failed_migration_restores_the_original_database (__main__.DesktopTests) ... ok
+test_first_accept_rejects_values_the_model_cannot_encode (__main__.DesktopTests) ... ok
+test_incompatible_model_can_be_backed_up_without_being_accepted (__main__.DesktopTests) ... ok
+test_instance_lock_is_exclusive_and_os_released (__main__.DesktopTests) ... ok
+test_legacy_requires_explicit_verified_predecessor_approval (__main__.DesktopTests) ... ok
+test_live_backup_is_consistent_and_excludes_runtime_secrets (__main__.DesktopTests) ... ok
+test_live_field_mapping_drift_from_published_release_is_rejected (__main__.DesktopTests) ... ok
+test_manifest_cannot_escape_or_accept_changed_model (__main__.DesktopTests) ... ok
+test_migration_does_not_start_when_backup_fails (__main__.DesktopTests) ... ok
+test_missing_database_or_interrupted_restore_never_reseeds (__main__.DesktopTests) ... ok
+test_new_enum_without_model_code_is_not_accepted (__main__.DesktopTests) ... ok
+test_old_activation_does_not_approve_a_later_database_edit (__main__.DesktopTests) ... ok
+test_old_price_only_snapshot_accepts_unchanged_effectiveness_fields (__main__.DesktopTests) ... ok
+test_presentation_fields_do_not_change_the_generation_fingerprint_input (__main__.DesktopTests) ... ok
+test_price_unit_and_release_identity_changes_are_not_silently_accepted (__main__.DesktopTests) ... ok
+test_restore_checks_real_database_config_and_can_be_validated_again (__main__.DesktopTests) ... ok
+test_restore_rejects_traversal_and_tampering_before_publishing_database (__main__.DesktopTests) ... ok
+test_same_effectiveness_file_survives_an_empty_categories_field (__main__.DesktopTests) ... ok
+test_same_product_changed_model_schema_is_rejected_before_database_write (__main__.DesktopTests) ... ok
+test_search_range_change_keeps_rows_and_is_backed_up_before_accept (__main__.DesktopTests) ... ok
+test_unaudited_business_change_is_not_accepted_automatically (__main__.DesktopTests) ... ok
+test_unclassified_payload_requires_confirmation_and_can_be_declined (__main__.DesktopTests) ... ok
+test_v4_effectiveness_bundle_is_part_of_the_contract (__main__.DesktopTests) ... ok
+test_wrong_product_and_corrupt_existing_db_fail_without_replacement (__main__.DesktopTests) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 3.277s
+
+OK

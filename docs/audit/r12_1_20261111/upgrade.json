@@ -1,0 +1,12 @@
+{
+  "checks": {
+    "real_exe_ready": true,
+    "logical_product_and_fields_preserved": true,
+    "effect_schema_updated": true,
+    "same_expert_model": true,
+    "same_price_model": true,
+    "backend_ready": true
+  },
+  "win7_tested": false,
+  "status": "pass"
+}

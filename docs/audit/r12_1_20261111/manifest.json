@@ -1,0 +1,38 @@
+{
+  "application_commit": "3d50bd492d4704bd34541dd9063553de6e83dbb1",
+  "baseline_reproduced": "2e32d13",
+  "artifacts": [
+    {
+      "name": "PipelinePer_R12B_PumpExport_20261111.7z",
+      "bytes": 54234160,
+      "sha256": "344d9e9a62bd39ece683349abe96886e3d42cc87558f324129d5f50149800db2"
+    },
+    {
+      "name": "CB12B.7z",
+      "bytes": 73502079,
+      "sha256": "c981520b4c149152cf05ea940f0815c51b362858fb404b9f5caed7d9b670b79c"
+    },
+    {
+      "name": "ExpertEnum_RegressionCases_20261111.zip",
+      "bytes": 887871,
+      "sha256": "a98eb6dc573a75566c67ebe0d1d886374207d2601a4d998eccbfd2e4f1cfb85f"
+    }
+  ],
+  "checks": {
+    "enum_unit": 11,
+    "worker_readiness_races": 2,
+    "desktop": 36,
+    "live_metadata": 11,
+    "expert_package": 7,
+    "native_enum": 18,
+    "native_enum_predictions": 24,
+    "upgrade": 6,
+    "relocated": 23,
+    "offline_kit": 11
+  },
+  "positive_fixture_is_unmodified_original_export": false,
+  "positive_fixture_enum_domain": "Explicit synthetic schema.fields declaration, not inference from historical samples",
+  "original_category_exports_without_domains": "Rejected by strict delivery contract",
+  "expert_algorithms_unchanged": 19,
+  "win7_tested": false
+}

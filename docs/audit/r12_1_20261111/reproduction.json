@@ -1,0 +1,123 @@
+{
+  "status": "pass",
+  "baseline_commit": "2e32d13",
+  "comparisons": [
+    {
+      "format": "lock-product-reuse-model-17.0",
+      "before": {
+        "feature_order": [
+          "connector"
+        ],
+        "fields": [
+          {
+            "field_name": "connector",
+            "dtype": "enum",
+            "unit": "",
+            "required": true
+          }
+        ]
+      },
+      "before_rejected_legal_values": true,
+      "after": {
+        "feature_order": [
+          "connector"
+        ],
+        "fields": [
+          {
+            "field_name": "connector",
+            "dtype": "enum",
+            "unit": "",
+            "required": true,
+            "missing_policy": "reject",
+            "allowed_values": [
+              "A",
+              "B"
+            ],
+            "categories": [],
+            "category_mapping": {},
+            "source": "",
+            "parser": ""
+          }
+        ]
+      }
+    },
+    {
+      "format": "system-effectiveness-frozen-model-13.0",
+      "before": {
+        "feature_order": [
+          "connector"
+        ],
+        "fields": [
+          {
+            "field_name": "connector",
+            "dtype": "enum",
+            "unit": "",
+            "required": true
+          }
+        ]
+      },
+      "before_rejected_legal_values": true,
+      "after": {
+        "feature_order": [
+          "connector"
+        ],
+        "fields": [
+          {
+            "field_name": "connector",
+            "dtype": "enum",
+            "unit": "",
+            "required": true,
+            "missing_policy": "reject",
+            "allowed_values": [
+              "A",
+              "B"
+            ],
+            "categories": [],
+            "category_mapping": {},
+            "source": "",
+            "parser": ""
+          }
+        ]
+      }
+    },
+    {
+      "format": "effectiveness-frozen-model-15.0",
+      "before": {
+        "feature_order": [
+          "connector"
+        ],
+        "fields": [
+          {
+            "field_name": "connector",
+            "dtype": "enum",
+            "unit": "",
+            "required": true
+          }
+        ]
+      },
+      "before_rejected_legal_values": true,
+      "after": {
+        "feature_order": [
+          "connector"
+        ],
+        "fields": [
+          {
+            "field_name": "connector",
+            "dtype": "enum",
+            "unit": "",
+            "required": true,
+            "missing_policy": "reject",
+            "allowed_values": [
+              "A",
+              "B"
+            ],
+            "categories": [],
+            "category_mapping": {},
+            "source": "",
+            "parser": ""
+          }
+        ]
+      }
+    }
+  ]
+}

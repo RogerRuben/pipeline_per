@@ -1,0 +1,7 @@
+test_cleanup_sharing_lock_does_not_fail_a_healthy_worker (__main__.ReadyRaceTests) ... ok
+test_read_lock_and_incomplete_json_retry_until_same_worker_is_healthy (__main__.ReadyRaceTests) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.256s
+
+OK

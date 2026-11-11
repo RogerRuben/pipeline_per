@@ -1,0 +1,86 @@
+{
+  "scope": "Owned R12.1 intermediate builds and synthetic acceptance copies only; final archives, current runtime, sealed engines and original inputs preserved",
+  "bytes_freed": 5125363908,
+  "files": [
+    {
+      "path": "outputs/r12_1_engine",
+      "bytes": 351551361
+    },
+    {
+      "path": "outputs/r12_1_engine_work",
+      "bytes": 237656000
+    },
+    {
+      "path": "outputs/r12_1_engine_final",
+      "bytes": 351551348
+    },
+    {
+      "path": "outputs/r12_1_engine_final_work",
+      "bytes": 237656067
+    },
+    {
+      "path": "outputs/r12_1_expert",
+      "bytes": 152425036
+    },
+    {
+      "path": "outputs/r12_1_expert_work",
+      "bytes": 170869831
+    },
+    {
+      "path": "outputs/r12_1_expert_sealed_work",
+      "bytes": 179058976
+    },
+    {
+      "path": "outputs/r12_1_engine_sealed_work",
+      "bytes": 237656409
+    },
+    {
+      "path": "outputs/r12_1_relocated",
+      "bytes": 354835280
+    },
+    {
+      "path": "outputs/k12b",
+      "bytes": 1195469492
+    },
+    {
+      "path": "deliverables/CB12B",
+      "bytes": 576157006
+    },
+    {
+      "path": "product/_frozen_resources.py",
+      "bytes": 5894311
+    },
+    {
+      "path": "outputs/r12_1_upgrade/userdata",
+      "bytes": 2299154
+    },
+    {
+      "path": "outputs/r12_native_r121_relocated/userdata",
+      "bytes": 2132436
+    },
+    {
+      "path": "outputs/r12_1_enum/lock/software",
+      "bytes": 354420799
+    },
+    {
+      "path": "outputs/r12_1_enum/lock/userdata",
+      "bytes": 2147289
+    },
+    {
+      "path": "outputs/r12_1_enum/product/software",
+      "bytes": 354428240
+    },
+    {
+      "path": "outputs/r12_1_enum/product/userdata",
+      "bytes": 2147313
+    },
+    {
+      "path": "outputs/r12_1_enum/pump/software",
+      "bytes": 354858669
+    },
+    {
+      "path": "outputs/r12_1_enum/pump/userdata",
+      "bytes": 2148891
+    }
+  ]
+}

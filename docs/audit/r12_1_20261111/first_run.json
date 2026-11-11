@@ -1,0 +1,85 @@
+{
+  "checks": {
+    "lock_original_missing_domain_rejected": true,
+    "lock_sealed_contract_domain": true,
+    "lock_actual_exe_ready": true,
+    "lock_http_schema_domain": true,
+    "lock_enum_predictions_equal_original": true,
+    "lock_price_model_unchanged": true,
+    "product_original_missing_domain_rejected": true,
+    "product_sealed_contract_domain": true,
+    "product_actual_exe_ready": true,
+    "product_http_schema_domain": true,
+    "product_enum_predictions_equal_original": true,
+    "product_price_model_unchanged": true,
+    "pump_original_missing_domain_rejected": true,
+    "pump_sealed_contract_domain": true
+  },
+  "win7_tested": false,
+  "cases": {
+    "lock": [
+      {
+        "enum": "1",
+        "expected": 100.0,
+        "actual": 100.0
+      },
+      {
+        "enum": "2",
+        "expected": 100.0,
+        "actual": 100.0
+      },
+      {
+        "enum": "1",
+        "expected": 74.14,
+        "actual": 74.14
+      },
+      {
+        "enum": "2",
+        "expected": 74.14,
+        "actual": 74.14
+      },
+      {
+        "enum": "1",
+        "expected": 75.0,
+        "actual": 75.0
+      },
+      {
+        "enum": "2",
+        "expected": 75.0,
+        "actual": 75.0
+      }
+    ],
+    "product": [
+      {
+        "enum": "1",
+        "expected": 100.0,
+        "actual": 100.0
+      },
+      {
+        "enum": "2",
+        "expected": 100.0,
+        "actual": 100.0
+      },
+      {
+        "enum": "1",
+        "expected": 77.0,
+        "actual": 77.0
+      },
+      {
+        "enum": "2",
+        "expected": 77.0,
+        "actual": 77.0
+      },
+      {
+        "enum": "1",
+        "expected": 55.0,
+        "actual": 55.0
+      },
+      {
+        "enum": "2",
+        "expected": 55.0,
+        "actual": 55.0
+      }
+    ]
+  }
+}

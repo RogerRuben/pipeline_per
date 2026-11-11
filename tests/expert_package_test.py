@@ -1,4 +1,4 @@
-import io,json,sys,tempfile,unittest,zipfile,hashlib,subprocess
+import io,json,sys,tempfile,unittest,zipfile,hashlib,subprocess,os
 from pathlib import Path
 from types import SimpleNamespace
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
@@ -34,7 +34,8 @@ class ExpertTests(unittest.TestCase):
  def test_actual_frozen_expert_engine_loads_and_scores(self):
   with tempfile.TemporaryDirectory(dir=str(ROOT/'outputs')) as tmp:
    report=Path(tmp)/'report.json'
-   p=subprocess.run([str(ROOT/'outputs/r12_expert_release/effect_worker.exe'),'--asset-check','effectiveness',str(ROOT/'outputs/r12_pump_acceptance/model.json'),'-',str(report)],timeout=60)
+   engine=os.environ.get('PIPELINE_TEST_EXPERT_EXE',str(ROOT/'outputs/r12_expert_release/effect_worker.exe'))
+   p=subprocess.run([engine,'--asset-check','effectiveness',str(ROOT/'outputs/r12_pump_acceptance/model.json'),'-',str(report)],timeout=60)
    self.assertEqual(p.returncode,0);d=read_json(report);self.assertEqual(d['status'],'pass');self.assertTrue(d['probe']['raw_expert_result'])
  def test_model_library_installs_export_data_without_python_source(self):
   with tempfile.TemporaryDirectory(dir=str(ROOT/'outputs')) as tmp:

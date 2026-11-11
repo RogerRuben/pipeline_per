@@ -1,0 +1,8 @@
+{
+  "version": "r12.1-enum-pump",
+  "application_commit": "3d50bd492d4704bd34541dd9063553de6e83dbb1",
+  "product_exe_sha256": "5eba48349dbde95979d9a58216f140402765c4d33534e3a028f8b581c1e17989",
+  "expert_exe_sha256": "451f8e6b2f832548f1efdd4691b8eaa99938ced01c13cd684f57beeb6a22d6ea",
+  "price_model_sha256": "71d3afd6c30e0d5027f7a9696be541a2d2719351ac86ea72863538412b57a43d",
+  "effectiveness_model_sha256": "2739d0d3dd4266d9663ddb47261b63bf7cea0136bf081949f188442bd332ebb6"
+}

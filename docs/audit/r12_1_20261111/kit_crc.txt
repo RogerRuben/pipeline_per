@@ -1,0 +1,22 @@
+
+7-Zip 26.02 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-06-25
+
+Scanning the drive for archives:
+1 file, 73502079 bytes (71 MiB)
+
+Testing archive: D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\CB12B.7z
+--
+Path = D:\pycodes\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\pipeline_per\deliverables\CB12B.7z
+Type = 7z
+Physical Size = 73502079
+Headers Size = 78176
+Method = ARM64 LZMA2:27 LZMA:20 BCJ2
+Solid = +
+Blocks = 3
+
+Everything is Ok
+
+Folders: 584
+Files: 5607
+Size:       576157006
+Compressed: 73502079
