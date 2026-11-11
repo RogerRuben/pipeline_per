@@ -174,8 +174,22 @@ def effectiveness_schema_from_document(raw):
         raise ValueError('效能模型没有可校验的输入字段')
     if raw.get('model_format')=='lock-product-reuse-model-17.0' or raw.get('model_format_version') in ('system-effectiveness-frozen-model-13.0','effectiveness-frozen-model-15.0'):
         source=raw.get('schema') or raw.get('product_schema') or raw.get('project_schema') or {}
-        fields=[{'field_name':a['key'],'dtype':{'continuous':'number','integer':'integer','categorical':'enum'}.get(a['data_type'],a['data_type']),'unit':a.get('unit') or '', 'required':True} for a in source.get('attributes',[])]
+        # Frozen AttributeSpec contains identity/type/unit. Preserve any explicit
+        # model enum domain as well; business values or one baseline value are
+        # not evidence of the model's complete accepted domain.
+        domain_rows=[row for row in source.get('fields') or []
+                     if isinstance(row,dict) and row.get('field_name')]
+        domains={row['field_name']:row for row in domain_rows}
+        if len(domains)!=len(domain_rows):raise ValueError('Effectiveness enum domain has duplicate fields')
+        fields=[]
+        for attribute in source.get('attributes',[]):
+            spec=dict(attribute,field_name=attribute['key'],
+                      allowed_values=attribute.get('allowed_values') or attribute.get('categories') or [],
+                      dtype={'continuous':'number','integer':'integer','categorical':'enum'}.get(attribute['data_type'],attribute['data_type']))
+            fields.append(_effect_field(spec,domains.get(attribute['key']) or {}))
         if not fields:raise ValueError('专家效能导出模型缺少属性')
+        if len({f['field_name'] for f in fields})!=len(fields):
+            raise ValueError('Effectiveness schema has duplicate fields')
         return {'feature_order':[f['field_name'] for f in fields],'fields':sorted(fields,key=lambda x:x['field_name'])}
     features, bindings = _effect_sources(raw)
     fields = []

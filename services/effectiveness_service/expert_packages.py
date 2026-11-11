@@ -67,7 +67,8 @@ def read_export(content):
     sources.add(PurePosixPath(rel).name)
   if manifest['model'] not in declared:raise ValueError('效能清单未校验模型文件')
   required=set(REQUIRED[model_kind])
-  if not required<=sources:raise ValueError('效能导出包缺少原运行时文件')
+  verified_names={PurePosixPath(rel).name for rel in declared}
+  if not {n for n in required if n.endswith('.py')}<=sources or not required<=verified_names:raise ValueError('效能导出包缺少原运行时文件')
   for key in ('model_digest','model_version','algorithm_version'):
    if manifest.get(key) is not None and manifest[key]!=document.get(key):raise ValueError('效能导出清单标识不一致：'+key)
   return data
@@ -85,6 +86,11 @@ class ExpertBackend:
   profiles=(self.raw.get('evaluation_baselines') or [self.raw.get('baseline',{})]) if self.lock else self.raw.get('system_contract',{}).get('tasks',[]) if self.system else []
   reference=(self.raw.get('baseline') or {}).get('params',{}) if self.lock else (self.raw.get('product_schema') or self.raw.get('project_schema') or {}).get('reference_params',{})
   fields=[{'field_name':a.key,'field_label':a.label,'dtype':{'continuous':'number','integer':'integer','categorical':'enum'}.get(a.data_type,'number'),'required':True,'default_value':reference.get(a.key),'unit':a.unit,'generation_min':a.generation_min,'generation_max':a.generation_max,'missing_policy':'reject'} for a in self.project.attributes]
+  from product.compatibility import effectiveness_schema_from_document
+  contracts={f['field_name']:f for f in effectiveness_schema_from_document(self.raw)['fields']}
+  for field in fields:
+   for key in ('allowed_values','categories','category_mapping'):
+    field[key]=contracts[field['field_name']][key]
   ids=[{'id':p.get('profile_id') or p.get('task_id'),'profile_id':p.get('profile_id') or p.get('task_id'),'profile_name':p.get('profile_name') or p.get('task_name'),'name':p.get('profile_name') or p.get('task_name'),'requirements':p.get('requirements',[])} for p in profiles]
   active=(self.raw.get('baseline') or {}).get('profile_id') if self.lock else self.runtime.state.get('active_system_task_id') if self.system else self.runtime.app.active_requirement_profile(self.runtime.state).id
   return {'product_code':self.project.product_code,'product_name':self.project.project_name,'model_version':self.model_version,'algorithm_version':self.algorithm_version,'profile_version':17 if self.lock else 13 if self.system else 15,'backend':self.name,'fields':fields,'reference_parameters':reference,'protocol_profiles':ids,'active_protocol':{'id':active,'profile_id':active},'capabilities':{'physical_feasibility':not self.lock,'dynamic_target_protocol':False,'counterfactual_improvement':False},'target_protocol_contract':{'supported':True,'mode':'exported_profiles_only','accepted':['profile_id','task_id'],'changes_learning_state':False},'state_sha256':self.raw['model_digest'],'training_summary':self.raw.get('training_summary',{}),'privacy':self.raw.get('privacy',{}),'learning_fingerprint':self.project.learning_fingerprint}
