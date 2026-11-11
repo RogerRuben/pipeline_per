@@ -1,0 +1,22 @@
+{
+  "checks": {
+    "archive": true,
+    "extract": true,
+    "under_100_MB": true,
+    "all_files_match": true,
+    "offline_price_environment": true,
+    "repack_with_original_expert_zip": true,
+    "actual_exe_smoke": true,
+    "original_expert_preloaded": true,
+    "expert_binary_included": true,
+    "price_release_not_retrained": true,
+    "immutable_kit_not_modified": true
+  },
+  "win7_tested": false,
+  "status": "pass",
+  "package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\k12\\CB12\\project\\deliverables\\client-v3-20261111_144559-ea6c",
+  "source_sha": "d1be837db408b4df934c0b3179a7b953b712f7b3",
+  "immutable_files": 5402,
+  "archive_sha256": "c3937ec824cd86860d4e84eca10398cf3cf8e6bfe0bbb4a011192faae9a6f778",
+  "archive_bytes": 74510989
+}

@@ -1,0 +1,22 @@
+
+7-Zip 26.02 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-06-25
+
+Scanning the drive for archives:
+1 file, 74510989 bytes (72 MiB)
+
+Testing archive: deliverables\CB12.7z
+--
+Path = deliverables\CB12.7z
+Type = 7z
+Physical Size = 74510989
+Headers Size = 75248
+Method = ARM64 LZMA2:27 LZMA:20 BCJ2
+Solid = +
+Blocks = 3
+
+Everything is Ok
+
+Folders: 562
+Files: 5408
+Size:       576410037
+Compressed: 74510989

@@ -1,0 +1,150 @@
+{
+  "scope": "R12 duplicate builds, extracted acceptance copies and intermediate archives only",
+  "files": [
+    {
+      "path": "outputs/r12_engine",
+      "bytes": 351550339
+    },
+    {
+      "path": "outputs/r12_engine_work",
+      "bytes": 237653645
+    },
+    {
+      "path": "outputs/r12_expert_engine",
+      "bytes": 152423862
+    },
+    {
+      "path": "outputs/r12_expert_engine_work",
+      "bytes": 170865090
+    },
+    {
+      "path": "outputs/r12_expert_final",
+      "bytes": 152424274
+    },
+    {
+      "path": "outputs/r12_expert_final_work",
+      "bytes": 170866710
+    },
+    {
+      "path": "outputs/r12_expert_ship",
+      "bytes": 152424525
+    },
+    {
+      "path": "outputs/r12_expert_ship_work",
+      "bytes": 170867683
+    },
+    {
+      "path": "outputs/r12_engine_release_work",
+      "bytes": 237653966
+    },
+    {
+      "path": "outputs/r12_expert_release_work",
+      "bytes": 179056494
+    },
+    {
+      "path": "outputs/r12_engine_size.7z",
+      "bytes": 54115390
+    },
+    {
+      "path": "outputs/r12_import_demo",
+      "bytes": 352377204
+    },
+    {
+      "path": "outputs/r12_import_demo_build",
+      "bytes": 145601
+    },
+    {
+      "path": "outputs/r12_import_demo.zip",
+      "bytes": 125048100
+    },
+    {
+      "path": "outputs/r12_import_demo.zip.sha256",
+      "bytes": 87
+    },
+    {
+      "path": "outputs/r12_import_release",
+      "bytes": 354424216
+    },
+    {
+      "path": "outputs/r12_import_release_build",
+      "bytes": 145610
+    },
+    {
+      "path": "outputs/r12_import_release.zip",
+      "bytes": 127101919
+    },
+    {
+      "path": "outputs/r12_import_release.zip.sha256",
+      "bytes": 90
+    },
+    {
+      "path": "outputs/r12_relocated",
+      "bytes": 354833807
+    },
+    {
+      "path": "outputs/k12",
+      "bytes": 1195651977
+    },
+    {
+      "path": "outputs/r12_deps",
+      "bytes": 923616
+    },
+    {
+      "path": "outputs/r12_expert_deps",
+      "bytes": 181905384
+    },
+    {
+      "path": "deliverables/PipelinePer_R12_PumpExport_20261111",
+      "bytes": 352786788
+    },
+    {
+      "path": "deliverables/PipelinePer_R12_PumpExport_20261111_build",
+      "bytes": 235150
+    },
+    {
+      "path": "deliverables/PipelinePer_R12_PumpExport_20261111.zip",
+      "bytes": 125131422
+    },
+    {
+      "path": "deliverables/PipelinePer_R12_PumpExport_20261111.zip.sha256",
+      "bytes": 107
+    },
+    {
+      "path": "deliverables/PipelinePer_R12_PumpExport_20261111.7z",
+      "bytes": 54209347
+    },
+    {
+      "path": "deliverables/PipelinePer_R12A_PumpExport_20261111_build",
+      "bytes": 235331
+    },
+    {
+      "path": "deliverables/PipelinePer_R12A_PumpExport_20261111.zip",
+      "bytes": 127180888
+    },
+    {
+      "path": "deliverables/PipelinePer_R12A_PumpExport_20261111.zip.sha256",
+      "bytes": 108
+    },
+    {
+      "path": "deliverables/CB12",
+      "bytes": 576410037
+    },
+    {
+      "path": "deliverables/CB12.zip",
+      "bytes": 201918876
+    },
+    {
+      "path": "deliverables/CB12.zip.sha256",
+      "bytes": 76
+    },
+    {
+      "path": "deliverables/CB12_build.json",
+      "bytes": 498
+    },
+    {
+      "path": "product/_frozen_resources.py",
+      "bytes": 5894311
+    }
+  ],
+  "bytes_freed": 6166462528
+}

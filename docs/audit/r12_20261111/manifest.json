@@ -1,0 +1,27 @@
+{
+  "application_commit": "d1be837db408b4df934c0b3179a7b953b712f7b3",
+  "artifacts": [
+    {
+      "name": "PipelinePer_R12A_PumpExport_20261111.7z",
+      "bytes": 54233920,
+      "sha256": "772c074809f3ef851671b6c0163a225f08ae2926d71d0ec0acfbb24e7f4036c2"
+    },
+    {
+      "name": "PumpV13_OriginalExport_Demo_20261111.zip",
+      "bytes": 233916,
+      "sha256": "3120fc7e010195328dda6d8d0df920f2c688e20003e02b0b7a4cc47407736e05"
+    },
+    {
+      "name": "CB12.7z",
+      "bytes": 74510989,
+      "sha256": "c3937ec824cd86860d4e84eca10398cf3cf8e6bfe0bbb4a011192faae9a6f778"
+    }
+  ],
+  "import_checks": 30,
+  "preloaded_checks": 23,
+  "algorithm_files_byte_identical": 19,
+  "win7_tested": false,
+  "relocated_checks": 23,
+  "cleanup_bytes": 6166462528,
+  "evidence_note": "Native reports record each score twice; unique checks expert_score_0 through expert_score_5 cover six original cases. The recorder is now deduplicated."
+}

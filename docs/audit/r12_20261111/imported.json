@@ -1,0 +1,98 @@
+{
+  "checks": {
+    "initial_ready": true,
+    "original_zip_import_and_activate_in_browser": true,
+    "only_effect_worker_restarted": true,
+    "expert_binary_is_running": true,
+    "installed_asset_has_no_source": true,
+    "library_reexport_is_data_only": true,
+    "original_pump_backend": true,
+    "expert_score_0": true,
+    "raw_expert_result_0": true,
+    "recommendation_score_0": true,
+    "expert_score_1": true,
+    "raw_expert_result_1": true,
+    "recommendation_score_1": true,
+    "expert_score_2": true,
+    "raw_expert_result_2": true,
+    "recommendation_score_2": true,
+    "expert_score_3": true,
+    "raw_expert_result_3": true,
+    "recommendation_score_3": true,
+    "expert_score_4": true,
+    "raw_expert_result_4": true,
+    "recommendation_score_4": true,
+    "expert_score_5": true,
+    "raw_expert_result_5": true,
+    "recommendation_score_5": true,
+    "price_model_unchanged": true,
+    "active_model_persists": true,
+    "expert_loads_after_restart": true,
+    "can_restore_trial_backend": true,
+    "preferences_unchanged": true
+  },
+  "win7_tested": false,
+  "scores": [
+    {
+      "expected": 97.09,
+      "actual": 97.09,
+      "task": "TASK_0"
+    },
+    {
+      "expected": 97.09,
+      "actual": 97.09,
+      "task": "TASK_0"
+    },
+    {
+      "expected": 97.09,
+      "actual": 97.09,
+      "task": "TASK_1"
+    },
+    {
+      "expected": 97.09,
+      "actual": 97.09,
+      "task": "TASK_1"
+    },
+    {
+      "expected": 86.86,
+      "actual": 86.86,
+      "task": "TASK_0"
+    },
+    {
+      "expected": 86.86,
+      "actual": 86.86,
+      "task": "TASK_0"
+    },
+    {
+      "expected": 88.56,
+      "actual": 88.56,
+      "task": "TASK_1"
+    },
+    {
+      "expected": 88.56,
+      "actual": 88.56,
+      "task": "TASK_1"
+    },
+    {
+      "expected": 71.95,
+      "actual": 71.95,
+      "task": "TASK_0"
+    },
+    {
+      "expected": 71.95,
+      "actual": 71.95,
+      "task": "TASK_0"
+    },
+    {
+      "expected": 71.95,
+      "actual": 71.95,
+      "task": "TASK_1"
+    },
+    {
+      "expected": 71.95,
+      "actual": 71.95,
+      "task": "TASK_1"
+    }
+  ],
+  "status": "pass"
+}
