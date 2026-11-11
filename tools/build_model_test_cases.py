@@ -70,8 +70,10 @@ D_effectiveness_demo.json 选择“效能模型”导入，验证独立切换、
 恢复时切回 A 或“使用预装模型”；退出软件并重开，模型库与当前选择应保留。若在已修改过的同字段数据上测试，模型预测以当前实际属性为准。
 ''',encoding='utf-8')
  with (out/'使用说明.md').open('a',encoding='utf-8') as guide:
+  guide.write('\n本演示中 numeric_00 的中文名为“'+defs['numeric_00']['label']+'”，所在分组为“'+str(defs['numeric_00'].get('parameter_group') or '其他')+'”。若改过显示名，以当前数据管理中心的英文字段对应关系为准。\n')
   guide.write('\n| 成品编号 | numeric_00 改为 | A 预测 | B 预测 | C 预测 |\n| --- | ---: | ---: | ---: | ---: |\n')
   for row in rows:guide.write('| '+row['product_id']+' | '+('%.5f'%row['modified_parameters']['numeric_00']).rstrip('0').rstrip('.')+' | '+' | '.join('%.4f'%row['modified_prices_wan'][k] for k in ('A','B','C'))+' |\n')
+ (out/'使用说明.txt').write_text((out/'使用说明.md').read_text(encoding='utf-8'),encoding='utf-8-sig')
  files=[p for p in out.iterdir() if p.is_file()];write_json(out/'CASE_MANIFEST.json',{'classification':'synthetic','compatible_product_code':document['product_code'],'files':{p.name:sha(p) for p in files}})
  archive=out.with_suffix('.zip')
  with zipfile.ZipFile(archive,'x',zipfile.ZIP_DEFLATED) as z:
