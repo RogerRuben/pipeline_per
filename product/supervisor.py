@@ -181,9 +181,9 @@ class Supervisor:
             while time.monotonic()<deadline and not self.stopping.is_set():
                 if process.poll() is not None:raise RuntimeError('%s 服务启动失败；端口 %d；日志 %s'%(role,self.ports[role],logfile))
                 if ready.exists():
-                    value=read_json(ready)
-                    if value['pid']==process.pid and value['generation']==self.generation:
-                        try:
+                    try:
+                        value=read_json(ready)
+                        if value['pid']==process.pid and value['generation']==self.generation:
                             health=fetch(value['url']+('/api/health' if role=='web' else '/health'),timeout=1)
                             if health.get('status')=='ok':
                                 with self.lock:
@@ -195,11 +195,15 @@ class Supervisor:
                                     self.web_started=True
                                     if moved and not self.no_browser:webbrowser.open(value['url']+'/portal')
                                 return value['url']
-                        except (OSError,ValueError):pass
+                    except (OSError,ValueError):pass
                 self.stopping.wait(.1)
             raise RuntimeError(role+' 启动超时或已取消；请查看 '+str(logfile))
         finally:
-            if ready.exists():ready.unlink()
+            # The generation-specific record is disposable. A Windows sharing
+            # lock must not turn a successfully healthy service into a failure.
+            try:
+                if ready.exists():ready.unlink()
+            except OSError:pass
 
     def stop_worker(self,role):
         with self.lock:item=self.workers.get(role)
@@ -226,7 +230,7 @@ class Supervisor:
             except Exception as exc:
                 logging.exception('Service startup failed: %s',role)
                 self.errors[role]=str(exc);self.blocked.add(role);self.stop_worker(role)
-        self.settle();logging.info('All services ready generation=%s',self.generation)
+        self.settle();logging.info('Service startup %s generation=%s',self.phase,self.generation)
 
     def execute(self,operation):
         role,action=operation['role'],operation['action'];operation['status']='running'
