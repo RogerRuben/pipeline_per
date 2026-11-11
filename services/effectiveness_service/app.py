@@ -686,6 +686,7 @@ class EffectivenessService(ServiceApplication):
             "request_id": request.get("request_id"), "candidate_id": request.get("candidate_id"), "success": True,
             "evaluation": {
                 "effectiveness_score": result.get("effectiveness_score"), "capability_score": result.get("capability_score"),
+                "physical_feasibility_evaluated":result.get('physical_feasibility_evaluated',True),
                 "conservative_capability_score": result.get("conservative_capability_score"),
                 "protocol_score_interval": result.get("protocol_score_interval"),
                 "support_at_80": result.get("support_at_80"), "support_at_100": result.get("support_at_100"),
@@ -704,6 +705,7 @@ class EffectivenessService(ServiceApplication):
             "learned_boundary_violations": result.get("learned_boundary_violations") or [],
             "experience_extrapolations": result.get("experience_extrapolations") or [], "coupling_assessments": result.get("coupling_assessments") or [],
             "requirement_assessment": result.get("requirement_assessment"),
+            "raw_expert_result":result.get('raw_expert_result'),
             "capability_contributors": result.get("capability_contributors") or [],
             "protocol": result.get("protocol"),
             "model": {"service_version": self.service_version, "model_version": self.schema().get("model_version"), "product_code": self.schema().get("product_code"), "backend": self.backend.name,

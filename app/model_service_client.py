@@ -443,7 +443,7 @@ class ModelServiceGateway(object):
         if conservative_raw is None:
             conservative_raw = requirement.get("robust_p10")
         conservative_score = float(score if conservative_raw is None else conservative_raw)
-        feasibility = float(evaluation.get("feasibility_probability"))
+        feasibility = None if evaluation.get('physical_feasibility_evaluated') is False else float(evaluation.get("feasibility_probability"))
         experience = list(effect.get("experience_extrapolations") or [])
         hard = list(effect.get("hard_violations") or [])
         hard_details = []
@@ -456,6 +456,8 @@ class ModelServiceGateway(object):
             detail.setdefault("source", "effectiveness_service")
             hard_details.append(detail)
         physical_gate = dict(effect.get("physical_gate") or {})
+        if not physical_gate and feasibility is None:
+            physical_gate={'passed':None,'decision':'not_evaluated','probability':None}
         if not physical_gate:
             physical_gate = {
                 "passed": not hard and feasibility >= 0.65,
@@ -470,6 +472,7 @@ class ModelServiceGateway(object):
         gate_rejected = physical_gate.get("passed") is False
         combined_status = "out_of_domain" if hard or gate_rejected else "caution" if domain_warnings or experience else "in_domain"
         confidence = "low" if combined_status == "out_of_domain" else "medium" if combined_status == "caution" else "high"
+        if feasibility is None:confidence='unverified'
         coupling = []
         for item in effect.get("coupling_assessments") or []:
             converted = dict(item)
@@ -519,7 +522,7 @@ class ModelServiceGateway(object):
             "feasibility_status": evaluation.get("feasibility_status"),
             "physical_gate": physical_gate,
             "prediction_confidence": confidence,
-            "anomaly_assessment": {"status": combined_status, "is_anomaly": combined_status != "in_domain", "score": 1.0 - feasibility, "items": experience, "price_feature_anomalies": domain_warnings, "message": "模型服务评价完成。" if combined_status == "in_domain" else "至少一个模型服务报告边界、外推或硬风险。"},
+            "anomaly_assessment": {"status": combined_status, "is_anomaly": combined_status != "in_domain", "score": None if feasibility is None else 1.0 - feasibility, "items": experience, "price_feature_anomalies": domain_warnings, "message": "模型服务评价完成。" if combined_status == "in_domain" else "至少一个模型服务报告边界、外推或硬风险。"},
             "effectiveness_anomaly_assessment": {"status": "caution" if experience else "in_domain", "is_anomaly": bool(experience), "items": experience},
             "price_anomaly_assessment": {"status": "caution" if domain_warnings else "in_domain", "is_anomaly": bool(domain_warnings), "items": domain_warnings},
             "price_imputed_features": price_imputed_features,

@@ -24,7 +24,7 @@ def audit_runtime(out):
     for directory in ('payload','project','runtime/python38','app','tools','automl_pipeline'):
         if (Path(out)/directory).exists():raise ValueError('Development directory in runtime: '+directory)
 
-def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None):
+def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None,effectiveness_package=None):
     if sys.version_info[:3]!=(3,8,10) or sys.maxsize<=2**32:
         raise ValueError('Use the pinned CPython 3.8.10 x64 builder')
     if not bootstrap:raise ValueError('A precompiled full software engine is required')
@@ -35,6 +35,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     if read_json(bootstrap/'BOOTSTRAP_SOURCE.json')!=sources:
         raise ValueError('Frozen software engine differs from the current application sources')
     if sha(bootstrap/'product.exe')!=meta['exe_sha256']:raise ValueError('Engine EXE hash changed')
+    if meta.get('expert_runtime') and sha(bootstrap/'expert/effect_worker.exe')!=meta['expert_runtime']['exe_sha256']:raise ValueError('Expert EXE hash changed')
     manifest,artifacts,source,environment=preflight(release_dir,'unconfirmed')
     out=Path(out).resolve()
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
@@ -50,6 +51,16 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
         name={'price_model':('ds_release.json' if manifest['price_engine']=='ds_three_layer' else 'price_native_bundle.pkl'),'effectiveness_model':'effectiveness_bundle.json',
               'business_package':'business_release.iprelease.json'}[key]
         shutil.copy2(str(path),str(release/name));paths[key]='release/'+name
+    if effectiveness_package:
+        from services.effectiveness_service.expert_packages import read_export
+        raw=read_export(Path(effectiveness_package).read_bytes())
+        if raw is None:raise ValueError('请选择原效能程序的一键冻结导出 ZIP')
+        (out/paths['effectiveness_model']).write_bytes(raw)
+        from product.expert_process import clean_env
+        import subprocess
+        checked=stamp/'expert_preflight.json'
+        done=subprocess.run([str(out/'expert/effect_worker.exe'),'--asset-check','effectiveness',str(out/paths['effectiveness_model']),'-',str(checked)],env=clean_env(),creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0),timeout=90)
+        if done.returncode or read_json(checked).get('status')!='pass':raise ValueError('专家效能模型不能在当前软件加载：'+str(read_json(checked)))
     if manifest['price_engine']=='ds_three_layer':
         shutil.copy2(str(artifacts['price_model'].parent/'evaluation_metadata.json'),str(release/'evaluation_metadata.json'))
     else:
@@ -64,11 +75,11 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     service=PriceService(out/paths['price_model'],None,evaluation_metadata=release/'evaluation_metadata.json')
     observed={'health':service.health(),'schema':service.schema()}
     write_json(stamp/'model_preflight.json',observed)
-    effect_raw=read_json(artifacts['effectiveness_model'])
+    effect_raw=read_json(out/paths['effectiveness_model'])
     contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
                            {'unit':'wan_yuan','scale':1.0},
                            effectiveness_schema=effectiveness_schema_from_document(effect_raw),
-                           effectiveness_model_sha=sha(artifacts['effectiveness_model']))
+                           effectiveness_model_sha=sha(out/paths['effectiveness_model']))
     for legacy_dir in legacy_packages:
         old=verify_package(legacy_dir,True)
         if old['files'][old['release']['price_model']]!=contract['model_sha256'] or old['files'][old['release']['business_package']]!=sha(artifacts['business_package']):
@@ -77,7 +88,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(release/'delivery_contract.json',contract)
     paths.update(price_backend=manifest['price_engine'],evaluation_metadata='release/evaluation_metadata.json',product_code=manifest['product_code'],
                  product_name=manifest['product_name'],classification=classification,
-                 effectiveness='trial_snapshot',virtual_data=manifest.get('virtual_data'),
+                 effectiveness='original_frozen_expert' if effectiveness_package else 'trial_snapshot',virtual_data=manifest.get('virtual_data'),
                  delivery_contract='release/delivery_contract.json')
     defaults=out/'defaults';defaults.mkdir()
     shutil.copy2(str(ROOT/'app/defaults/scenario_config.json'),str(defaults/'scenario_config.json'))
@@ -109,6 +120,6 @@ if __name__=='__main__':
     p=argparse.ArgumentParser()
     for flag in ('release-dir','python-runtime','build-tools','out','version','bootstrap'):p.add_argument('--'+flag,required=True)
     p.add_argument('--legacy-package',action='append',default=[]);p.add_argument('--desktop-config')
-    a=p.parse_args()
-    print(json.dumps(build(a.release_dir,a.python_runtime,a.build_tools,a.out,a.version,a.bootstrap,a.legacy_package,a.desktop_config),indent=2))
+    p.add_argument('--effectiveness-package');a=p.parse_args()
+    print(json.dumps(build(a.release_dir,a.python_runtime,a.build_tools,a.out,a.version,a.bootstrap,a.legacy_package,a.desktop_config,a.effectiveness_package),indent=2))
 

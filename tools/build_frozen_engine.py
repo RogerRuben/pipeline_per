@@ -16,7 +16,7 @@ def engine_sources():
     for folder in ('app','product','cost_effectiveness_analysis','services/common','services/price_service','services/effectiveness_service'):
         for path in sorted((ROOT/folder).rglob('*')):
             rel=path.relative_to(ROOT).as_posix()
-            if folder.startswith('services/') and '/' in path.relative_to(ROOT/folder).as_posix() and not rel.startswith('services/price_service/optuna_v2/'):
+            if folder.startswith('services/') and '/' in path.relative_to(ROOT/folder).as_posix() and not rel.startswith(('services/price_service/optuna_v2/','services/effectiveness_service/expert_runtime/')):
                 continue
             if not path.is_file() or set(path.relative_to(ROOT).parts)&{'__pycache__','tests','test','benchmarks'} or path.name=='_frozen_resources.py':continue
             if path.suffix=='.py' or rel.startswith(('app/static/','cost_effectiveness_analysis/static/')) or '/defaults/' in rel or rel=='product/control.html':
@@ -25,7 +25,7 @@ def engine_sources():
     records['services/__init__.py']=sha(ROOT/'services/__init__.py')
     return records
 
-def build(out,tools):
+def build(out,tools,expert_engine=None):
     out=Path(out).resolve();tools=Path(tools).resolve()
     if out.exists() or ROOT/'outputs' not in out.parents:raise ValueError('Choose new outputs directory')
     sources=engine_sources()
@@ -62,16 +62,21 @@ def build(out,tools):
     if result.returncode:raise RuntimeError('Freeze failed: '+str(work/'freeze.log'))
     import shutil
     shutil.copytree(str(work/'dist/product'),str(out))
+    expert_meta=None
+    if expert_engine:
+        expert_engine=Path(expert_engine).resolve();expert_meta=json.loads((expert_engine/'EXPERT_RUNTIME.json').read_text(encoding='utf-8-sig'))
+        if sha(expert_engine/'effect_worker.exe')!=expert_meta['exe_sha256']:raise ValueError('Expert engine changed')
+        shutil.copytree(str(expert_engine),str(out/'expert'))
     forbidden=[str(p) for p in out.rglob('*') if p.is_file() and p.suffix.lower() in ('.py','.pyw','.ipynb','.pdb','.c','.cpp','.h','.bat')]
     if forbidden:raise ValueError('Source/build files leaked: '+str(forbidden))
     if sources!=engine_sources():raise ValueError('Application sources changed during freeze')
     write_json(out/'BOOTSTRAP_SOURCE.json',sources)
     write_json(out/'BOOTSTRAP_META.json',{'kind':'pyinstaller-full-app-onedir','exe_sha256':sha(out/'product.exe'),
                'runtime_python':'3.8.10','source_files_distributed':False,'ui_resources':'embedded',
-               'win7_machine_tested':False,'pyinstaller':'5.13.2'})
+               'win7_machine_tested':False,'pyinstaller':'5.13.2','expert_runtime':expert_meta})
     return {'engine':str(out),'files':len(list(out.rglob('*'))),'exe_sha256':sha(out/'product.exe')}
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--out',required=True);p.add_argument('--build-tools',required=True)
-    a=p.parse_args();print(json.dumps(build(a.out,a.build_tools),indent=2))
+    p.add_argument('--expert-engine');a=p.parse_args();print(json.dumps(build(a.out,a.build_tools,a.expert_engine),indent=2))
 

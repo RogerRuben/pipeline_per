@@ -104,7 +104,7 @@ def main():
         app.portal_config['services']['desktop_control'] = {
             'label':'软件运行管理','description':'查看运行状态、重启或停止软件',
             'url':read_json(data/'runtime/control.json')['url'],'visible':True,'enabled':True}
-        app.portal_config['services']['effectiveness']['label']='试用效能评价'
+        app.portal_config['services']['effectiveness']['label']='效能评价'
         class WebHandler(Handler):
             def sync_addresses(self):
                 from product.ports import sync_addresses
@@ -142,8 +142,9 @@ def main():
             from services.price_service.ds_backend import load_price_service as PriceService
             app = PriceService(selected_models['price'],None,**({'evaluation_metadata':selected_models['price_metadata']} if selected_models['price_metadata'] else {}))
         else:
-            from services.effectiveness_service.app import EffectivenessService,SnapshotBackend
-            app = EffectivenessService(SnapshotBackend(selected_models['effectiveness']))
+            from services.effectiveness_service.app import EffectivenessService
+            from services.effectiveness_service.expert_packages import load_backend
+            app = EffectivenessService(load_backend(selected_models['effectiveness']))
         handler = make_handler(app)
     from product.ports import bind_server
     server = bind_server(ThreadingHTTPServer,args.port,handler,[int(p) for p in args.reserved_ports.split(',') if p])

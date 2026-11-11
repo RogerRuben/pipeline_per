@@ -1,0 +1,43 @@
+HASHES = {
+  "pump/regional_context.py": "b5d161b1c752b6dfa6e1f1d87d3cad6a2b914949b874c6a65ea8106690c8b49b",
+  "pump/frozen_system_model.py": "b426637ba6e2aaba1f0b72d3de623cb8e295de369a2ea22f7670450e0d8df80e",
+  "lock/preference_models.py": "09daece603fef88cbee1787c61623d0e59503e5b58f843aa0df1a7d27ef0e2d8",
+  "pump/formula_constraints.py": "36344c0e04f93f2e35549d762ca9fcd835dc4320fd8a25e178d0eed4c974efeb",
+  "pump/project_excel.py": "85afa6f0444c036ba054a28cc0494815435c2d60f6a6083aefea018a724f6933",
+  "pump/system_excel.py": "1309417dbc5f4b2559f40e9649dafa2e22f37ec1709e211a3af7fda8eb2b90ee",
+  "pump/frozen_effectiveness_model.py": "b29369bc04596939bee72f423722bf0b3825ae7d4168e1f79c2c1dd38ea84254",
+  "pump/preference_models.py": "09daece603fef88cbee1787c61623d0e59503e5b58f843aa0df1a7d27ef0e2d8",
+  "pump/requirement_model.py": "ebfb3bd98ee04d920c9d136de9c93ed725e898742412b551cc88bc9ac83aef36",
+  "lock/frozen_lock_model.py": "f7620bd4071f4f9e41b3491d17a749c4858fa1098f39fcc948ed6bebbe4ea2ba",
+  "pump/interactive_project_app.py": "ef4338046fc1b3305b7d3fe3ad92654da58e165bab8d975d11ee921b0c84ce0e",
+  "pump/frontier_model.py": "4f40db141b6ed51aaade54b524d9093b16d1b70649812a40965ad1e2bf0b4c51",
+  "lock/lock_utility_model.py": "07cf473cf004df575e6c2a7f7f120cbd90dea9277c91cf1bb4d0d22816b517ec",
+  "pump/hierarchical_uta.py": "2869439162638188dbd342e286b4deda4fd3d7c1962e35e7a9b04586b8a89536",
+  "pump/coupling_model.py": "11e4a8bdfaece57904b03368fc9a52670ea360b2b318b21dd851a878cbe31248",
+  "lock/lock_v17_app.py": "ae37f2f0a4c4d6e29440f2bb5fc596b09db98d40fa1399c58bb14a8797ff54b4",
+  "pump/feasibility_model.py": "d8d55fe8c2a5a8a8d47f9554443820b3705ee2b4aadb0c1b008ae844059f789e",
+  "pump/system_app.py": "6b30e7ed2642ce523702146e59582dfdfdec6293c94615b2b5660f3f2d8e508c",
+  "lock/project_excel.py": "105671080803b475f814bba7f38315e0680c441557760aa98515f36d95e0ec72"
+}
+NORM_HASHES = {
+  "pump/interactive_project_app.py": "dc2f118c17fd6ffd8bb5eeb63589fe33b93f89c1ffdb44ed11aace01bfadd487",
+  "lock/frozen_lock_model.py": "080897f01eea1717ece208d9f4d932207e55c6abf58b08cc7e572d4f6bb05c59",
+  "lock/preference_models.py": "9a0a25037300972d3b7abcf94c353a4a63df2bdbfda6280e56a50ed4da52ccb2",
+  "pump/regional_context.py": "324cb99bb5b641c253bef853792dec1b3394fa355a59ecde86ddad32f71149cc",
+  "lock/project_excel.py": "31ca1474f172239d8bcf2c945cb2542819f1e7dee914b64d8e7a27f6b85c87b8",
+  "pump/frozen_system_model.py": "671df196d129b4700efdcbe7f0cc95724560f76817255c33ecf515b3627857ee",
+  "pump/system_excel.py": "9d29f202c1006de49b7517a0a774ca2b99f100a9ee477271b714de3df60ac751",
+  "pump/project_excel.py": "11860b7fe4eaffc08cbe23de8d2f28863bbe6e0afd6b6aa866061eaa1242a817",
+  "lock/lock_utility_model.py": "d186dccde1c592e47d2983e30ff28267e1954094d02be907bea451c9c34d1ded",
+  "pump/preference_models.py": "9a0a25037300972d3b7abcf94c353a4a63df2bdbfda6280e56a50ed4da52ccb2",
+  "pump/formula_constraints.py": "f0eca27076b7dd23856465c1c236b741e4dcb7b8a23f8fba0c841684cb60b9ce",
+  "lock/lock_v17_app.py": "2c3308b3dd324521863fd2df2f63324bf1b35f7e4891eb0eba028a7020fba374",
+  "pump/coupling_model.py": "a0c8f4c2011a744342db94d26e253b04193c15b48491c36d2183de8284b2f1c4",
+  "pump/frozen_effectiveness_model.py": "e5418e34b2c6683bbb1d47d4877dc3894a66844b9a6e6dfb28ce44b5162bed0c",
+  "pump/system_app.py": "3acc03aad8e85cc3cbc957c3678cc7dd357f2aa4c9bab0508a2afa3579901f43",
+  "pump/requirement_model.py": "d1626b5bb0aef2f4544556d29aa4e792969d74fa9ddb0ec65de5b2421fd14716",
+  "pump/hierarchical_uta.py": "95fd325e70b3ededcb51f7726fac5160821452a7152093fe728f709485d20cc9",
+  "pump/frontier_model.py": "d3fcce1f211150d3b81c59fd766e5766f48fd7060dacfd7fb0bcf5862732128f",
+  "pump/feasibility_model.py": "eb1d4667e95e25d8cb1cd4f24254959e42ad3bd60cb5de3091b4eb96e2c4c161"
+}
+REQUIRED = {'lock-product-reuse-model-17.0': ('frozen_lock_model.py', 'lock_utility_model.py', 'preference_models.py', 'project_excel.py'), 'system-effectiveness-frozen-model-13.0': ('coupling_model.py', 'feasibility_model.py', 'frontier_model.py', 'interactive_project_app.py', 'preference_models.py', 'project_excel.py', 'requirement_model.py', 'frozen_effectiveness_model.py', 'system_excel.py', 'hierarchical_uta.py', 'regional_context.py', 'frozen_system_model.py', 'formula_constraints.py'), 'effectiveness-frozen-model-15.0': ['coupling_model.py', 'feasibility_model.py', 'frontier_model.py', 'frozen_effectiveness_model.py', 'interactive_project_app.py', 'product_ui.html', 'preference_models.py', 'project_excel.py', 'requirement_model.py']}

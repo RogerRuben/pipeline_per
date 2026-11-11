@@ -172,6 +172,11 @@ def effectiveness_schema_from_document(raw):
     """Read V3 features or a V4 feature_schema. A bundle with no fields is an error."""
     if not isinstance(raw, dict):
         raise ValueError('效能模型没有可校验的输入字段')
+    if raw.get('model_format')=='lock-product-reuse-model-17.0' or raw.get('model_format_version') in ('system-effectiveness-frozen-model-13.0','effectiveness-frozen-model-15.0'):
+        source=raw.get('schema') or raw.get('product_schema') or raw.get('project_schema') or {}
+        fields=[{'field_name':a['key'],'dtype':{'continuous':'number','integer':'integer','categorical':'enum'}.get(a['data_type'],a['data_type']),'unit':a.get('unit') or '', 'required':True} for a in source.get('attributes',[])]
+        if not fields:raise ValueError('专家效能导出模型缺少属性')
+        return {'feature_order':[f['field_name'] for f in fields],'fields':sorted(fields,key=lambda x:x['field_name'])}
     features, bindings = _effect_sources(raw)
     fields = []
     seen = set()

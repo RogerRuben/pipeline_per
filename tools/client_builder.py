@@ -80,7 +80,7 @@ def environment_check():
 
 def settings():
     raw=read_json(KIT/'settings/project.json')
-    if set(raw)-{'product_code','product_name','input_file','data_kind','price_backend'} or not {'product_code','input_file','data_kind'}<=set(raw):raise ValueError('project.json 配置项不完整或存在未知项目')
+    if set(raw)-{'product_code','product_name','input_file','data_kind','price_backend','effectiveness_package'} or not {'product_code','input_file','data_kind'}<=set(raw):raise ValueError('project.json 配置项不完整或存在未知项目')
     if not re.fullmatch('[A-Za-z][A-Za-z0-9_]*',raw['product_code']):raise ValueError('产品编码须使用英文字母、数字和下划线，以字母开头')
     if raw['data_kind'] not in ('synthetic','customer'):raise ValueError('data_kind 只能是 synthetic 或 customer')
     source=Path(raw['input_file']);source=source if source.is_absolute() else KIT/source
@@ -152,7 +152,12 @@ def package_release(train,job,desktop_file):
     from tools.build_product_exe import build
     version=('client-ds-' if read_json(train/'prototype_manifest.json')['price_engine']=='ds_three_layer' else 'client-v3-')+datetime.now().strftime('%Y%m%d_%H%M%S')+'-'+uuid.uuid4().hex[:4]
     package=ROOT/'deliverables'/version
-    report=build(train,KIT/'runtime/python38',KIT/'bootstrap',package,version,KIT/'bootstrap',(),desktop_file)
+    configured=read_json(KIT/'settings/project.json').get('effectiveness_package')
+    expert=None
+    if configured:
+        expert=Path(configured);expert=expert if expert.is_absolute() else KIT/expert
+        saved=job/'expert_export.zip';shutil.copy2(str(expert),str(saved));expert=saved
+    report=build(train,KIT/'runtime/python38',KIT/'bootstrap',package,version,KIT/'bootstrap',(),desktop_file,expert)
     smoke(package,job)
     destination=KIT/'deliverables';destination.mkdir(exist_ok=True)
     archive=Path(report['archive']);published=destination/archive.name

@@ -157,6 +157,13 @@ class Supervisor:
         stream=logfile.open('ab',buffering=0);self.logs[role]=stream
         entry=[sys.executable,'--worker'] if getattr(sys,'frozen',False) else [
               str(self.package/'runtime/python38/pythonw.exe'),'-I','-B','-X','utf8',str(self.package/'payload/product/worker.py')]
+        if role=='effectiveness':
+            from product.model_library import active_paths
+            from services.effectiveness_service.expert_packages import kind,FORMATS
+            selected=active_paths(self.package,self.data,self.manifest['release'],'effectiveness')
+            if kind(read_json(selected['effectiveness'])) in FORMATS:
+                from product.expert_process import executable
+                entry=executable(self.package)+['--worker']
         args=entry+['--package',str(self.package),
               '--data-dir',str(self.data),'--role',role,'--ready',str(ready),'--generation',self.generation,
               '--parent',str(os.getpid()),'--port',str(self.ports[role]),

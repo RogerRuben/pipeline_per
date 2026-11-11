@@ -30,8 +30,13 @@ def inspect_asset(role,path,metadata,report):
             from services.price_service.ds_backend import load_price_service
             service=load_price_service(path,None,**({'evaluation_metadata':metadata} if metadata else {}))
         elif role=='effectiveness':
-            from services.effectiveness_service.app import EffectivenessService,SnapshotBackend
-            service=EffectivenessService(SnapshotBackend(path))
+            from services.effectiveness_service.expert_packages import kind,FORMATS
+            if kind(read_json(path)) in FORMATS:
+                from product.expert_process import inspect_command,clean_env
+                return subprocess.run(inspect_command(path,report),env=clean_env(),timeout=85,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0)).returncode
+            from services.effectiveness_service.app import EffectivenessService
+            from services.effectiveness_service.expert_packages import load_backend
+            service=EffectivenessService(load_backend(path))
         else:raise ValueError('不支持的模型类型')
         schema=service.schema();health=service.health()
         write_json(report,{'status':'pass','schema':schema,'health':health})
@@ -76,14 +81,18 @@ class ModelLibrary:
         if role not in ('price','effectiveness'):raise ValueError('模型类型不正确')
         if not isinstance(content,bytes) or len(content)>100*1024*1024:raise ValueError('模型文件过大')
         with LOCK,tempfile.TemporaryDirectory(prefix='install-',dir=str(self.root)) as temp:
-            temp=Path(temp);files={}
+            temp=Path(temp);files={};verified_export=False
             if filename.lower().endswith('.zip'):
+                if role=='effectiveness':
+                    from services.effectiveness_service.expert_packages import read_export
+                    exported=read_export(content)
+                    if exported is not None:files['effectiveness_bundle.json']=exported;verified_export=True
                 with zipfile.ZipFile(io.BytesIO(content)) as z:
                     if len(z.infolist())>2000 or sum(i.file_size for i in z.infolist())>400*1024*1024:raise ValueError('模型包解压体积过大')
                     for entry in z.infolist():
                         p=Path(entry.filename.replace('\\','/'))
                         if p.is_absolute() or '..' in p.parts or ':' in entry.filename:raise ValueError('模型包路径不安全')
-                        if p.suffix.lower() in ('.json','.pkl'):
+                        if p.suffix.lower() in ('.json','.pkl') and not verified_export:
                             if p.name in files:raise ValueError('模型包存在重复文件名：'+p.name)
                             files[p.name]=z.read(entry)
             else:
@@ -107,7 +116,8 @@ class ModelLibrary:
                         if not k.endswith('.json'):continue
                         try:d=json.loads(v.decode('utf-8-sig'))
                         except Exception:continue
-                        if isinstance(d,dict) and ('capability_model' in d or 'recommendation_contract_version' in d):candidates.append(k)
+                        from services.effectiveness_service.expert_packages import kind,FORMATS
+                        if isinstance(d,dict) and ('capability_model' in d or 'recommendation_contract_version' in d or kind(d) in FORMATS):candidates.append(k)
             if len(candidates)!=1:raise ValueError('需要一个明确的模型文件，找到：'+','.join(candidates))
             source_name=candidates[0];raw=files[source_name];model_name='model.pkl' if source_name.endswith('.pkl') else 'model.json'
             if role=='price' and model_name.endswith('.json'):

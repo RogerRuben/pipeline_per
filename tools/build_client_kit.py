@@ -42,6 +42,7 @@ def build(out,runtime,bootstrap,example,model_cases=None):
         (project/directory).mkdir(parents=True,exist_ok=True)
         for path in (ROOT/directory).glob('*.py'):shutil.copy2(str(path),str(project/directory/path.name))
     copy_tree(ROOT/'services/price_service/optuna_v2',project/'services/price_service/optuna_v2')
+    copy_tree(ROOT/'services/effectiveness_service/expert_runtime',project/'services/effectiveness_service/expert_runtime')
     shutil.copy2(str(ROOT/'services/__init__.py'),str(project/'services/__init__.py'))
     (project/'tools').mkdir()
     for name in TOOLS:shutil.copy2(str(ROOT/'tools'/name),str(project/'tools'/name))
@@ -67,7 +68,7 @@ def build(out,runtime,bootstrap,example,model_cases=None):
     write_json(out/'examples/PROVENANCE.json',{'classification':'synthetic','source_sha256':sha(example),
                'purpose':'Offline pipeline software acceptance; no real business accuracy certification'})
     write_json(out/'settings/project.json',{'product_code':'CLIENT_PRODUCT','product_name':'甲方成品',
-               'input_file':'input/products.xlsx','data_kind':'synthetic','price_backend':'optuna_v3'})
+               'input_file':'input/products.xlsx','data_kind':'synthetic','price_backend':'optuna_v3','effectiveness_package':''})
     cfg=read_json(ROOT/'automl_pipeline/configs/price_optuna_v3.json')
     cfg['v3']['warm_start'].update(auto_history=False,history_file=None,config_file=None)
     write_json(out/'settings/v3.json',cfg)
