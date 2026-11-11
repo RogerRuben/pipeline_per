@@ -186,7 +186,11 @@ def effectiveness_schema_from_document(raw):
             spec=dict(attribute,field_name=attribute['key'],
                       allowed_values=attribute.get('allowed_values') or attribute.get('categories') or [],
                       dtype={'continuous':'number','integer':'integer','categorical':'enum'}.get(attribute['data_type'],attribute['data_type']))
-            fields.append(_effect_field(spec,domains.get(attribute['key']) or {}))
+            domain=domains.get(attribute['key']) or {}
+            # This auxiliary table supplies only enum metadata, never a second
+            # authority for an original AttributeSpec's unit or requiredness.
+            binding={key:domain[key] for key in ('allowed_values','categories','category_mapping') if key in domain}
+            fields.append(_effect_field(spec,binding))
         if not fields:raise ValueError('专家效能导出模型缺少属性')
         if len({f['field_name'] for f in fields})!=len(fields):
             raise ValueError('Effectiveness schema has duplicate fields')

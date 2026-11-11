@@ -24,7 +24,7 @@ def audit_runtime(out):
     for directory in ('payload','project','runtime/python38','app','tools','automl_pipeline'):
         if (Path(out)/directory).exists():raise ValueError('Development directory in runtime: '+directory)
 
-def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None,effectiveness_package=None):
+def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None,effectiveness_package=None,archive=True):
     if sys.version_info[:3]!=(3,8,10) or sys.maxsize<=2**32:
         raise ValueError('Use the pinned CPython 3.8.10 x64 builder')
     if not bootstrap:raise ValueError('A precompiled full software engine is required')
@@ -106,20 +106,21 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
                'runtime_python':'3.8.10','architecture':'x64','python_source_included':False,'ui_resources':'embedded','configurable_files':['defaults/desktop.json'],
                'default_data_dir':'%LOCALAPPDATA%/PipelinePer/products/<product-code-sha256-prefix32>',
                'external_python_required':False,'training_on_start':False,'win7_validated':False,'code_signed':False})
-    archive=Path(str(out)+'.zip')
-    with zipfile.ZipFile(str(archive),'x',zipfile.ZIP_DEFLATED,compresslevel=6) as bundle:
-        for p in sorted(out.rglob('*')):
-            if p.is_file():bundle.write(str(p),out.name+'/'+p.relative_to(out).as_posix())
-    result={'status':'built','package':str(out),'archive':str(archive),'archive_sha256':sha(archive),
-            'archive_bytes':archive.stat().st_size,'files':len(files),'model_sha256':sha(artifacts['price_model']),
+    archive_path=Path(str(out)+'.zip') if archive else None
+    if archive_path:
+        with zipfile.ZipFile(str(archive_path),'x',zipfile.ZIP_DEFLATED,compresslevel=6) as bundle:
+            for p in sorted(out.rglob('*')):
+                if p.is_file():bundle.write(str(p),out.name+'/'+p.relative_to(out).as_posix())
+    result={'status':'built','package':str(out),'archive':str(archive_path) if archive_path else None,'archive_sha256':sha(archive_path) if archive_path else None,
+            'archive_bytes':archive_path.stat().st_size if archive_path else 0,'files':len(files),'model_sha256':sha(artifacts['price_model']),
             'source_sha':source_sha,'python_source_included':False,'win7_validated':False}
-    Path(str(archive)+'.sha256').write_text(result['archive_sha256']+'  '+archive.name+'\n',encoding='ascii')
+    if archive_path:Path(str(archive_path)+'.sha256').write_text(result['archive_sha256']+'  '+archive_path.name+'\n',encoding='ascii')
     write_json(stamp/'build_report.json',result);return result
 
 if __name__=='__main__':
     p=argparse.ArgumentParser()
     for flag in ('release-dir','python-runtime','build-tools','out','version','bootstrap'):p.add_argument('--'+flag,required=True)
     p.add_argument('--legacy-package',action='append',default=[]);p.add_argument('--desktop-config')
-    p.add_argument('--effectiveness-package');a=p.parse_args()
-    print(json.dumps(build(a.release_dir,a.python_runtime,a.build_tools,a.out,a.version,a.bootstrap,a.legacy_package,a.desktop_config,a.effectiveness_package),indent=2))
+    p.add_argument('--effectiveness-package');p.add_argument('--no-archive',action='store_true');a=p.parse_args()
+    print(json.dumps(build(a.release_dir,a.python_runtime,a.build_tools,a.out,a.version,a.bootstrap,a.legacy_package,a.desktop_config,a.effectiveness_package,archive=not a.no_archive),indent=2))
 

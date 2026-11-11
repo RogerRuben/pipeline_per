@@ -90,6 +90,16 @@ class ExpertEnumTests(unittest.TestCase):
             effectiveness_schema_from_document(raw)
             self.assertEqual(raw, before)
 
+    def test_domain_table_cannot_override_original_field_contract(self):
+        for fmt in FORMATS:
+            raw = document(fmt)
+            raw[fmt[2]]['fields'] = [{'field_name': 'connector', 'allowed_values': ['A'],
+                                     'required': False, 'unit': 'wrong-unit', 'missing_policy': 'default',
+                                     'dtype': 'number'}]
+            field = contract(raw, ['A'])['effectiveness_schema']['fields'][0]
+            self.assertTrue(field['required'])
+            self.assertEqual((field['dtype'], field['unit'], field['missing_policy']), ('enum', '', 'reject'))
+
     def test_duplicate_attributes_and_domain_ids_are_rejected(self):
         for fmt in FORMATS:
             raw = document(fmt)

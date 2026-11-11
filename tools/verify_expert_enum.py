@@ -5,7 +5,6 @@ as unchanged original exports, nor infer their domains from workbook samples.
 """
 import argparse
 import copy
-import io
 import json
 import shutil
 import subprocess
@@ -44,7 +43,8 @@ def prepare(out):
         declared['model_version'] += '-declared-enum-fixture'
         model_bytes = json.dumps(declared, ensure_ascii=False, indent=2).encode('utf-8')
         with zipfile.ZipFile(original) as src:
-            contents = {n: src.read(n) for n in src.namelist()}
+            original_contents = {n: src.read(n) for n in src.namelist()}
+        contents = dict(original_contents)
         manifest_name = next(n for n in contents if n.endswith('_manifest.json'))
         manifest = json.loads(contents[manifest_name].decode('utf-8'))
         manifest.update(model_digest=declared['model_digest'], model_version=declared['model_version'])
@@ -65,7 +65,7 @@ def prepare(out):
             'declared_domain_test_sha256': sha(target / 'declared_domain_test.zip'),
             'explicit_test_domain': ['1', '2'],
             'domain_in_original_export': False,
-            'algorithm_sources_unchanged': all(contents[n] == zipfile.ZipFile(original).read(n) for n in contents if n.endswith('.py')),
+            'algorithm_sources_unchanged': all(contents[n] == original_contents[n] for n in contents if n.endswith('.py')),
             'v15_ui_asset': 'original embedded HTML copied into required export filename' if family == 'product' else None})
     # Existing price release remains immutable; only the isolated test business
     # adds an expert-only enum field, with no additional price input or training.
@@ -122,7 +122,7 @@ def package(out, bootstrap):
         destination = target / 'software'
         build(release, ROOT / 'deliverables/CB8/runtime/python38', ROOT / 'outputs/p4_build_tools',
               destination, 'r12.1-enum-' + family, bootstrap=bootstrap,
-              effectiveness_package=target / 'declared_domain_test.zip')
+              effectiveness_package=target / 'declared_domain_test.zip', archive=False)
         audit_runtime(destination)
         field = next(f for f in read_json(destination / 'release/delivery_contract.json')['effectiveness_schema']['fields']
                      if f['field_name'] == 'expert_category')

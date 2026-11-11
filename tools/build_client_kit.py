@@ -30,7 +30,7 @@ def copy_tree(source,target):
             shutil.copy2(str(path),str(destination))
 
 
-def build(out,runtime,bootstrap,example,model_cases=None):
+def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
     out,runtime,bootstrap,example=map(lambda p:Path(p).resolve(),(out,runtime,bootstrap,example))
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
         raise ValueError('Choose a new project outputs/ or deliverables/ directory')
@@ -106,17 +106,18 @@ def build(out,runtime,bootstrap,example,model_cases=None):
                'compiler_on_client_required':False,'network_required':False,'win7_machine_validated':False,
                'path_policy':{'max_root_utf16_chars':MAX_KIT_ROOT_CHARS,'recommended_root':'C:\\CB6'},
                'mutable_directories':['input','settings','logs','deliverables','builder_state','project/outputs','project/deliverables']})
-    archive=Path(str(out)+'.zip')
-    with zipfile.ZipFile(str(archive),'x',zipfile.ZIP_DEFLATED,compresslevel=6) as bundle:
-        for path in sorted(out.rglob('*')):
-            if path.is_file():bundle.write(str(path),out.name+'/'+path.relative_to(out).as_posix())
-    checksum=sha(archive);Path(str(archive)+'.sha256').write_text(checksum+'  '+archive.name+'\n',encoding='ascii')
-    report={'status':'built','source_sha':source,'kit':str(out),'archive':str(archive),'sha256':checksum,
-            'archive_bytes':archive.stat().st_size,'immutable_files':len(files),'win7_machine_validated':False}
+    archive_path=Path(str(out)+'.zip') if archive else None
+    if archive_path:
+        with zipfile.ZipFile(str(archive_path),'x',zipfile.ZIP_DEFLATED,compresslevel=6) as bundle:
+            for path in sorted(out.rglob('*')):
+                if path.is_file():bundle.write(str(path),out.name+'/'+path.relative_to(out).as_posix())
+        checksum=sha(archive_path);Path(str(archive_path)+'.sha256').write_text(checksum+'  '+archive_path.name+'\n',encoding='ascii')
+    report={'status':'built','source_sha':source,'kit':str(out),'archive':str(archive_path) if archive_path else None,'sha256':sha(archive_path) if archive_path else None,
+               'archive_bytes':archive_path.stat().st_size if archive_path else 0,'immutable_files':len(files),'win7_machine_validated':False}
     write_json(Path(str(out)+'_build.json'),report);return report
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--out',required=True);p.add_argument('--runtime',required=True)
-    p.add_argument('--bootstrap',required=True);p.add_argument('--example',required=True);p.add_argument('--model-cases');a=p.parse_args()
-    print(json.dumps(build(a.out,a.runtime,a.bootstrap,a.example,a.model_cases),ensure_ascii=True,indent=2))
+    p.add_argument('--bootstrap',required=True);p.add_argument('--example',required=True);p.add_argument('--model-cases');p.add_argument('--no-archive',action='store_true');a=p.parse_args()
+    print(json.dumps(build(a.out,a.runtime,a.bootstrap,a.example,a.model_cases,archive=not a.no_archive),ensure_ascii=True,indent=2))
