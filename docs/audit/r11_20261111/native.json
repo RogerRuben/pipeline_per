@@ -1,0 +1,11 @@
+{
+  "checks": {
+    "web_port_fallback_retained": true,
+    "actual_browser_ui_and_all_model_cases": true,
+    "model_choices_persist_after_restart": true,
+    "preferences_not_overwritten": true,
+    "portal_ready_after_restart": true
+  },
+  "win7_tested": false,
+  "status": "pass"
+}

@@ -1,0 +1,179 @@
+{
+  "status": "pass",
+  "scope": "R11 intermediate artifacts only",
+  "deleted": [
+    {
+      "bytes": 198761762.0,
+      "path": "outputs/r11_engine"
+    },
+    {
+      "bytes": 235963314.0,
+      "path": "outputs/r11_engine_work"
+    },
+    {
+      "bytes": 198761769.0,
+      "path": "outputs/r11_engine_final"
+    },
+    {
+      "bytes": 235963521.0,
+      "path": "outputs/r11_engine_final_work"
+    },
+    {
+      "bytes": 198761787.0,
+      "path": "outputs/r11_engine_ship"
+    },
+    {
+      "bytes": 235963565.0,
+      "path": "outputs/r11_engine_ship_work"
+    },
+    {
+      "bytes": 235963570.0,
+      "path": "outputs/r11_engine_release_work"
+    },
+    {
+      "bytes": 1113673472.0,
+      "path": "outputs/r11check"
+    },
+    {
+      "bytes": 420113807.0,
+      "path": "outputs/r11finalcheck"
+    },
+    {
+      "bytes": 11239268.0,
+      "path": "outputs/R11_ModelCases"
+    },
+    {
+      "bytes": 1170749,
+      "path": "outputs/R11_ModelCases.zip"
+    },
+    {
+      "bytes": 11240661.0,
+      "path": "outputs/R11_TestModels"
+    },
+    {
+      "bytes": 1171156,
+      "path": "outputs/R11_TestModels.zip"
+    },
+    {
+      "bytes": 11247271.0,
+      "path": "outputs/R11_DemoModels"
+    },
+    {
+      "bytes": 1171638,
+      "path": "outputs/R11_DemoModels.zip"
+    },
+    {
+      "bytes": 11247256.0,
+      "path": "outputs/R11_ModelSamples"
+    },
+    {
+      "bytes": 1171629,
+      "path": "outputs/R11_ModelSamples.zip"
+    },
+    {
+      "bytes": 11250195.0,
+      "path": "outputs/R11_SampleModels"
+    },
+    {
+      "bytes": 1173470,
+      "path": "outputs/R11_SampleModels.zip"
+    },
+    {
+      "bytes": 420114193.0,
+      "path": "deliverables/CB11"
+    },
+    {
+      "bytes": 145748477,
+      "path": "deliverables/CB11.zip"
+    },
+    {
+      "bytes": 76,
+      "path": "deliverables/CB11.zip.sha256"
+    },
+    {
+      "bytes": 82164568,
+      "path": "deliverables/CB11.7z"
+    },
+    {
+      "bytes": 498,
+      "path": "deliverables/CB11_build.json"
+    },
+    {
+      "bytes": 420114130.0,
+      "path": "deliverables/CB11A"
+    },
+    {
+      "bytes": 145758837,
+      "path": "deliverables/CB11A.zip"
+    },
+    {
+      "bytes": 77,
+      "path": "deliverables/CB11A.zip.sha256"
+    },
+    {
+      "bytes": 82164225,
+      "path": "deliverables/CB11A.7z"
+    },
+    {
+      "bytes": 76,
+      "path": "deliverables/CB11A.7z.sha256"
+    },
+    {
+      "bytes": 500,
+      "path": "deliverables/CB11A_build.json"
+    },
+    {
+      "bytes": 420113807.0,
+      "path": "deliverables/CB11B"
+    },
+    {
+      "bytes": 145758552,
+      "path": "deliverables/CB11B.zip"
+    },
+    {
+      "bytes": 77,
+      "path": "deliverables/CB11B.zip.sha256"
+    },
+    {
+      "bytes": 500,
+      "path": "deliverables/CB11B_build.json"
+    },
+    {
+      "bytes": 199568947.0,
+      "path": "deliverables/PipelinePer_R11_AutoML_20261111"
+    },
+    {
+      "bytes": 145662.0,
+      "path": "deliverables/PipelinePer_R11_AutoML_20261111_build"
+    },
+    {
+      "bytes": 71296663,
+      "path": "deliverables/PipelinePer_R11_AutoML_20261111.zip"
+    },
+    {
+      "bytes": 103,
+      "path": "deliverables/PipelinePer_R11_AutoML_20261111.zip.sha256"
+    },
+    {
+      "bytes": 198898777.0,
+      "path": "deliverables/PipelinePer_R11_DS_20261111"
+    },
+    {
+      "bytes": 4866.0,
+      "path": "deliverables/PipelinePer_R11_DS_20261111_build"
+    },
+    {
+      "bytes": 71215007,
+      "path": "deliverables/PipelinePer_R11_DS_20261111.zip"
+    },
+    {
+      "bytes": 99,
+      "path": "deliverables/PipelinePer_R11_DS_20261111.zip.sha256"
+    },
+    {
+      "bytes": 5893065,
+      "path": "product/_frozen_resources.py"
+    }
+  ],
+  "bytes": 5544971642.0
+}

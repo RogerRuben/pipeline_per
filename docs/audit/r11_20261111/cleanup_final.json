@@ -1,0 +1,10 @@
+{
+  "scope": "R11 final duplicate extraction only",
+  "deleted": [
+    {
+      "bytes": 1113672975.0,
+      "path": "outputs/k11"
+    }
+  ],
+  "status": "pass"
+}

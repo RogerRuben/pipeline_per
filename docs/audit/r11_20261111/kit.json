@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "checks": {
+    "under_100_decimal_MB": true,
+    "archive_test": true,
+    "extract": true,
+    "complete_manifest": true,
+    "offline_environment": true,
+    "input_and_workbook_scores": true,
+    "v3_repack_actual_exe": true,
+    "v3_http_and_exe_consistency": true,
+    "v3_no_retraining": true,
+    "ds_repack_actual_exe": true,
+    "ds_http_and_exe_consistency": true,
+    "ds_no_retraining": true,
+    "immutable_files_unchanged": true
+  },
+  "archive_sha256": "46ebb4d1d3e653a0448f36b699aafd20d621f0f9a89443ea8f689d65dab209b3",
+  "archive_bytes": 82162125,
+  "win7_machine_validated": false,
+  "immutable_files": 5194,
+  "source_sha": "6ef9f86817016c477f904180bbbcf37f2f20686a",
+  "v3_package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\k11\\CB11B\\project\\deliverables\\client-v3-20261111_102328-6bd2",
+  "ds_package": "D:\\pycodes\\IndustrialProtocolDemo_V19_6_Codex_Baseline_Hotfixed\\pipeline_per\\outputs\\k11\\CB11B\\project\\deliverables\\client-ds-20261111_102443-d966"
+}

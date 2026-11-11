@@ -31,6 +31,8 @@ def build(out,release,trained_b=None):
  model['catalog']['features']={'尺寸加工量':feature}
  categories=json.loads(defs['category_00']['allowed_values_json']);template=copy.deepcopy(next(iter(model['catalog']['sensors'].values())))
  model['catalog']['sensors']={name:dict(template,name=name,value=20000.+i*5000,low=20000.+i*5000,high=20000.+i*5000) for i,name in enumerate(categories)}
+ model['validation']={};model['training_ids']=[]
+ model['coverage']={'sensor_types':categories,'count_min':defs['integer_00']['min_value'],'count_max':defs['integer_00']['max_value'],'weight_min':None,'weight_max':None}
  required=json.loads(_DSModel(model).schema_json())['required'];assert len(required)==3,required
  mapping={'category_00':required[0]['name'],'integer_00':required[1]['name'],'numeric_00':'尺寸加工量'}
  fields=[]

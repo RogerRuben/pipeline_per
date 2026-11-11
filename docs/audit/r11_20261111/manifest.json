@@ -1,0 +1,28 @@
+{
+  "application_commit": "6ef9f86817016c477f904180bbbcf37f2f20686a",
+  "ui_checks": 27,
+  "native_checks": 5,
+  "files": [
+    {
+      "name": "PipelinePer_R11A_AutoML_20261111.zip",
+      "bytes": 71298479,
+      "sha256": "659ffbc405b935a45915d9bd14bae6397b348335d9a3f1b871f23c72cc930d27"
+    },
+    {
+      "name": "PipelinePer_R11A_DS_20261111.zip",
+      "bytes": 71216816,
+      "sha256": "cfd0472c3ced4da2d281578d5890791361392904a275ab2e1d18b10d5756408c"
+    },
+    {
+      "name": "CB11B.7z",
+      "bytes": 82162125,
+      "sha256": "46ebb4d1d3e653a0448f36b699aafd20d621f0f9a89443ea8f689d65dab209b3"
+    },
+    {
+      "name": "R11_ModelCases_20261111.zip",
+      "bytes": 1173168,
+      "sha256": "3a08dff073809203994139bb229a92113945b9bc3b229a527d2672f61e08b83a"
+    }
+  ],
+  "win7_tested": false
+}
