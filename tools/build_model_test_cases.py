@@ -71,7 +71,7 @@ D_effectiveness_demo.json 选择“效能模型”导入，验证独立切换、
 ''',encoding='utf-8')
  with (out/'使用说明.md').open('a',encoding='utf-8') as guide:
   guide.write('\n| 成品编号 | numeric_00 改为 | A 预测 | B 预测 | C 预测 |\n| --- | ---: | ---: | ---: | ---: |\n')
-  for row in rows:guide.write('| '+row['product_id']+' | '+str(row['modified_parameters']['numeric_00'])+' | '+' | '.join('%.4f'%row['modified_prices_wan'][k] for k in ('A','B','C'))+' |\n')
+  for row in rows:guide.write('| '+row['product_id']+' | '+('%.5f'%row['modified_parameters']['numeric_00']).rstrip('0').rstrip('.')+' | '+' | '.join('%.4f'%row['modified_prices_wan'][k] for k in ('A','B','C'))+' |\n')
  files=[p for p in out.iterdir() if p.is_file()];write_json(out/'CASE_MANIFEST.json',{'classification':'synthetic','compatible_product_code':document['product_code'],'files':{p.name:sha(p) for p in files}})
  archive=out.with_suffix('.zip')
  with zipfile.ZipFile(archive,'x',zipfile.ZIP_DEFLATED) as z:
