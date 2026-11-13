@@ -29,8 +29,18 @@ def module(family,name):
    if key in sys.modules:raise ValueError('专家模块名称已被其他运行时占用：'+key)
   sys.meta_path.insert(0,finder);_family=family
  return importlib.import_module('services.effectiveness_service.expert_runtime.'+family+'.'+name)
+def source_difference(family,rel,raw):
+ """Compare one exported source file with the builtin runtime. Never executes it."""
+ key=family+'/'+PurePosixPath(rel).name
+ norm=hashlib.sha256(raw.replace(b'\r\n',b'\n')).hexdigest()
+ if key not in NORM_HASHES:
+  return {'path':rel,'status':'unknown_runtime_file','consistency':'unverified'}
+ if NORM_HASHES[key]!=norm:
+  return {'path':rel,'status':'source_differs_from_builtin','consistency':'unverified'}
+ return {'path':rel,'status':'matches_builtin','consistency':'verified'}
 def read_export(content):
  """Return raw frozen JSON, or None for a non-expert ZIP. No code is executed."""
+ read_export.source_report=[]
  with zipfile.ZipFile(io.BytesIO(content)) as z:
   entries=z.infolist()
   if len(entries)>2000 or sum(e.file_size for e in entries)>400*1024*1024:raise ValueError('效能导出包体积超限')
@@ -61,11 +71,12 @@ def read_export(content):
    if hashlib.sha256(raw).hexdigest()!=item['sha256'] or item.get('size',len(raw))!=len(raw):raise ValueError('效能原包文件校验失败：'+rel)
    declared.add(rel)
    if rel.endswith('.py'):
-    key=family+'/'+PurePosixPath(rel).name
-    norm=hashlib.sha256(raw.replace(b'\r\n',b'\n')).hexdigest()
-    if key not in NORM_HASHES or NORM_HASHES[key]!=norm:raise ValueError('当前软件未内置该版本专家运行时，请升级软件：'+rel)
+    read_export.source_report.append(source_difference(family,rel,raw))
     sources.add(PurePosixPath(rel).name)
   if manifest['model'] not in declared:raise ValueError('效能清单未校验模型文件')
+  if any(item.get('consistency')=='unverified' for item in read_export.source_report):
+   read_export.consistency='unverified'
+  else:read_export.consistency='verified'
   required=set(REQUIRED[model_kind])
   verified_names={PurePosixPath(rel).name for rel in declared}
   if not {n for n in required if n.endswith('.py')}<=sources or not required<=verified_names:raise ValueError('效能导出包缺少原运行时文件')

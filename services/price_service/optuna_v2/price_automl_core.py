@@ -152,16 +152,40 @@ def safe_mape(y_true, y_pred):
     return float(np.mean(np.abs(y_pred - y_true) / y_true))
 
 
+def search_objectives(scores):
+    """Return finite Optuna objectives, or raise when R² cannot be defined."""
+    if not isinstance(scores, dict):
+        raise ValueError("评估结果无效")
+    r2 = scores.get("r2")
+    mape = scores.get("mape")
+    if r2 is None or mape is None or scores.get("r2_status") == "undefined":
+        raise ValueError("R²不可定义。该候选不进入优化，也不记为 R²=0。")
+    if not (np.isfinite(r2) and np.isfinite(mape)):
+        raise ValueError("Nonfinite metric")
+    return float(r2), float(mape)
+
+
 def regression_metrics(y, pred):
     y = np.asarray(y, dtype=float)
     pred = np.asarray(pred, dtype=float)
     if not np.all(np.isfinite(pred)):
         raise ValueError("non-finite prediction")
+    # Constant prices make R² undefined. A tiny but non-zero range stays defined.
+    if len(y) < 2 or not np.isfinite(y).all() or float(np.ptp(y)) == 0.0:
+        r2, r2_status = None, "undefined"
+    else:
+        r2 = float(r2_score(y, pred))
+        r2_status = "defined" if np.isfinite(r2) else "undefined"
+        if r2_status != "defined":
+            r2 = None
     return {
-        "r2": float(r2_score(y, pred)),
+        "r2": r2,
+        "r2_status": r2_status,
         "mape": safe_mape(y, pred),
         "mae": float(np.mean(np.abs(y - pred))),
         "rmse": float(np.sqrt(np.mean((y - pred) ** 2))),
+        "objective": "r2_and_mape",
+        "recorded_only": ["mae", "rmse"],
     }
 
 

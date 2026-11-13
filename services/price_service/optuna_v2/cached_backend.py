@@ -41,7 +41,9 @@ class CachedBackend(TypedBackend):
         self._check_metrics(scores,detail[3],detail[6],detail[7],detail[5],cfg)
         return result
     def _check_metrics(self,scores,actual,prediction,components,validation_rows,cfg):
-        bad=[name for name in ('r2','mape','mae','rmse') if not np.isfinite(scores[name])]
+        if scores.get('r2') is None or scores.get('r2_status')=='undefined':
+            raise ValueError('验证价格没有可计算的 R²。跳过该候选，不记为 R²=0。')
+        bad=[name for name in ('r2','mape','mae','rmse') if scores.get(name) is None or not np.isfinite(scores[name])]
         if not bad:return
         weights=core.normalized_weights(cfg)
         magnitudes={name:float(np.max(np.abs(components[name].values)))*float(weights[j]) for j,name in enumerate(core.MODEL_NAMES)}
