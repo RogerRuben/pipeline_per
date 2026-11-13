@@ -1,6 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo 使用上一次训练结果打包，不重新训练。
-runtime\python38\python.exe project\tools\client_builder.py repack
+set PY=runtime\python38\python.exe
+if not exist "%PY%" set PY=python
+"%PY%" tools\package_existing_model.py %*
 exit /b %ERRORLEVEL%

@@ -18,7 +18,8 @@ from tools.client_kit_paths import batch_entry,MAX_KIT_ROOT_CHARS
 SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
 TOOLS=('ds_examples.py','build_ds_release.py','ds_client_config.py','product_identity.py','client_builder.py','client_kit_paths.py','client_workbook.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
-       'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py')
+       'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py',
+       'train_price_only.py','package_existing_model.py','rebuild_engine_cli.py')
 
 
 def copy_tree(source,target):
@@ -48,7 +49,7 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
     shutil.copy2(str(ROOT/'services/__init__.py'),str(project/'services/__init__.py'))
     (project/'tools').mkdir()
     for name in TOOLS:shutil.copy2(str(ROOT/'tools'/name),str(project/'tools'/name))
-    for name in ('product_entry.py',):shutil.copy2(str(ROOT/name),str(project/name))
+    for name in ('product_entry.py','run_app.py'):shutil.copy2(str(ROOT/name),str(project/name))
     (project/'docs').mkdir()
     for name in ('P4_DESKTOP_USAGE.md','P4_1_TARGET_MACHINE.md','NATIVE_DESKTOP_USAGE.md','NATIVE_TARGET_CHECK.md','CLIENT_BUILD_KIT.md'):
         shutil.copy2(str(ROOT/'docs'/name),str(project/'docs'/name))
@@ -94,6 +95,15 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
               'SELF_TEST.bat':'self-test','SELF_TEST_DS.bat':'self-test-ds','REPACK_LAST.bat':'repack'}
     for filename,command in commands.items():
         (out/filename).write_bytes(batch_entry(command))
+    kit_python=r'runtime\python38\python.exe'
+    kit_bats={
+        'TRAIN_PRICE_ONLY.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\train_price_only.py %*\r\nexit /b %ERRORLEVEL%\r\n',
+        'PACKAGE_EXISTING_MODEL.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\package_existing_model.py %*\r\nexit /b %ERRORLEVEL%\r\n',
+        'RUN_DEV.bat':'@echo off\r\ncd /d "%~dp0"\r\nset PIPELINE_STATIC_DIR=%~dp0page_overrides\r\n'+kit_python+' project\\run_app.py --no-browser %*\r\nexit /b %ERRORLEVEL%\r\n',
+        'REBUILD_ENGINE.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\rebuild_engine_cli.py %*\r\nexit /b %ERRORLEVEL%\r\n',
+    }
+    for filename,text in kit_bats.items():
+        (out/filename).write_bytes(text.encode('ascii'))
     source=source_commit(ROOT)
     source_files={path.relative_to(project).as_posix():sha(path) for path in sorted(project.rglob('*')) if path.is_file()}
     write_json(project/'SOURCE_BUILD.json',{'format':'pipeline-source-distribution-1.0','source_sha':source,'files':source_files})

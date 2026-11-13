@@ -1,12 +1,13 @@
 {
   "source_archive_sha256": "531ed2fe033b1178910aeda812e35edac8c2f93057af158c82bafd282292947c",
-  "original_core_sha256": "f8f9877029e13535b97b40c429fb4afe6b5d613db635b6bee83307fca30b2899",
-  "original_optimizer_sha256": "7dcbf268c44b11c34f64f7401bb5ed7064204b40b9787cd7476961be7fc9d820",
-  "core_unchanged": true,
+  "original_core_sha256": "727352345fc84a48b002b2f259b0867ab7b05f4500136b7e03cda5d4dbb814e3",
+  "original_optimizer_sha256": "18f7b13635db63d9dd2d4e251e4600a63bfb65a40a66215ecece5a4c292cdd54",
+  "core_unchanged": false,
   "adapter_changes": [
     "relative module import",
     "prepared table/expert scores input",
     "progress and optional timeout",
-    "persist existing selected-split bundle"
+    "persist existing selected-split bundle",
+    "undefined R2 is withheld from Optuna instead of being treated as zero"
   ]
 }
