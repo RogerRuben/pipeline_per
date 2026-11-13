@@ -44,26 +44,69 @@ def overrides_for(backend, trials):
     return common
 
 
+def load_input_table(path, backend, product_code='R13_TRAIN', product_name='独立训练'):
+    """Read a dual-header Excel or CSV the same way the AutoML pipeline does."""
+    from automl_pipeline.__main__ import config_loader
+    from app.historical_onboarding import HistoricalProductOnboarding
+    from app.product_table import product_table_rows
+    from automl_pipeline.product_price_optuna_v2 import workbook_config, apply_attribute_groups
+    from services.price_service.optuna_v2.typed_features import apply_types, restore_configurations
+    from tools.product_identity import workbook_product_name
+    source = Path(path)
+    raw = source.read_bytes()
+    loader = config_loader(backend)
+    cfg = loader()
+    table = product_table_rows(source.name, raw, require_dual_header=True)
+    product_name = workbook_product_name(source, product_name)
+    analyzed = HistoricalProductOnboarding().analyze(
+        source.name, raw, product_code, product_name, cfg['input']['missing_tokens'], require_dual_header=True)
+    if not analyzed['price_column_detected']:
+        raise ValueError('成品表须包含价格列 price_wan')
+    data = analyzed['data']
+    cfg = workbook_config(source, cfg, {p['parameter_id'] for p in data['parameters']}, loader=loader)
+    restore_configurations(data, table, cfg['expert']['field_types'], cfg['input']['missing_tokens'])
+    apply_types(data, cfg['expert']['field_types'])
+    if backend in ('optuna_v2', 'optuna_v3'):
+        apply_attribute_groups(data, cfg)
+    return data
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='单独训练价格模型，不生成整套软件')
     parser.add_argument('--backend', default='optuna_v3', choices=tuple(TRAINERS))
     parser.add_argument('--output', required=True)
+    parser.add_argument('--input', help='双行表头的 Excel 或 CSV')
+    parser.add_argument('--config', help='可选训练配置 JSON')
+    parser.add_argument('--product-code', default='R13_TRAIN')
+    parser.add_argument('--product-name', default='独立训练')
     parser.add_argument('--trials', type=int, default=2)
-    parser.add_argument('--smoke', action='store_true', help='用内置小样本真正训练一次，写出模型文件')
+    parser.add_argument('--smoke', action='store_true', help='不用外部表格，用内置小样本训练')
     args = parser.parse_args(argv)
     if args.trials < 1:
         raise SystemExit('试验次数至少为 1')
+    if args.smoke and args.input:
+        raise SystemExit('--input 与 --smoke 请只选一个')
+    if not args.smoke and not args.input:
+        raise SystemExit('请用 --input 指定成品表，或用 --smoke 做内置小样本训练')
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
-    if not args.smoke:
-        raise SystemExit('请提供已整理的数据接口，或使用 --smoke 做一次真实小样本训练。当前没有静默成功。')
     import importlib
     module_name, function_name = TRAINERS[args.backend]
     train = getattr(importlib.import_module(module_name), function_name)
+    data = smoke_data() if args.smoke else load_input_table(args.input, args.backend, args.product_code, args.product_name)
     kwargs = {'overrides': overrides_for(args.backend, args.trials), 'progress': lambda _line: None}
+    if args.config:
+        kwargs['config_path'] = args.config
+    if args.input:
+        kwargs['input_path'] = str(Path(args.input).resolve())
     if args.backend == 'optuna_v2':
         kwargs['engine'] = args.backend
-    _, report = train(smoke_data(), output, **kwargs)
+    _, report = train(data, output, **kwargs)
+    if args.input:
+        import shutil
+        saved = output / 'input' / Path(args.input).name
+        saved.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(args.input), str(saved))
     summary = {'backend': args.backend, 'trials': args.trials, 'training_rows': report.get('training_rows'),
                'model': str(output / 'price_native_bundle.pkl'), 'engine': report.get('engine', args.backend)}
     (output / 'train_price_only.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')

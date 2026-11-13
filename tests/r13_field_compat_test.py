@@ -51,6 +51,12 @@ class R13CompatTests(unittest.TestCase):
         self.assertAlmostEqual(varied['r2'], 1.0)
         small = regression_metrics([1e-8, 2e-8, 3e-8], [1e-8, 2e-8, 3e-8])
         self.assertEqual(small['r2_status'], 'defined')
+        # A real zero is the mean predictor on varying prices. It is not the undefined case.
+        zero = regression_metrics([10, 20, 30], [20, 20, 20])
+        self.assertEqual(zero['r2_status'], 'defined')
+        self.assertAlmostEqual(zero['r2'], 0.0)
+        self.assertEqual(zero['recorded_only'], ['mae', 'rmse'])
+        self.assertGreater(zero['mae'], 0)
 
     def test_builtin_hash_roundtrip_uses_normalized_newlines(self):
         key = 'pump/regional_context.py'

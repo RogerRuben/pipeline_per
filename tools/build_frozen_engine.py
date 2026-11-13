@@ -16,7 +16,8 @@ def engine_sources():
     for folder in ('app','product','cost_effectiveness_analysis','services/common','services/price_service','services/effectiveness_service'):
         for path in sorted((ROOT/folder).rglob('*')):
             rel=path.relative_to(ROOT).as_posix()
-            if folder.startswith('services/') and '/' in path.relative_to(ROOT/folder).as_posix() and not rel.startswith(('services/price_service/optuna_v2/','services/effectiveness_service/expert_runtime/')):
+            nested=('services/price_service/optuna_v2/','services/price_service/optuna_v4/','services/price_service/optuna_v5/','services/price_service/optuna_v6/','services/price_service/optuna_v7/','services/effectiveness_service/expert_runtime/')
+            if folder.startswith('services/') and '/' in path.relative_to(ROOT/folder).as_posix() and not rel.startswith(nested):
                 continue
             if not path.is_file() or set(path.relative_to(ROOT).parts)&{'__pycache__','tests','test','benchmarks'} or path.name=='_frozen_resources.py':continue
             if path.suffix=='.py' or rel.startswith(('app/static/','cost_effectiveness_analysis/static/')) or '/defaults/' in rel or rel=='product/control.html':
@@ -47,6 +48,9 @@ def build(out,tools,expert_engine=None):
                    'cost_effectiveness_analysis.db_reader','cost_effectiveness_analysis.model_client',
                    'cost_effectiveness_analysis.analysis','services.price_service.optuna_v2.typed_features',
                    'services.price_service.optuna_v2.native_member','services.price_service.optuna_v2.price_automl_core',
+                   'services.price_service.optuna_v4.native_member','services.price_service.optuna_v4.backend',
+                   'services.price_service.optuna_v5.trace','services.price_service.optuna_v5.persistence',
+                   'services.price_service.optuna_v6.backend','services.price_service.optuna_v7.backend',
                    'sklearn.ensemble._forest','sklearn.tree._tree','sklearn.neighbors._typedefs',
                    'sklearn.utils._weight_vector','sklearn.utils._cython_blas','sklearn.svm._libsvm',
                    'sklearn.svm._libsvm_sparse','scipy.special._ufuncs_cxx','scipy.linalg.cython_blas',

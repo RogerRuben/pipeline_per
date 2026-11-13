@@ -14,9 +14,11 @@
 
 ## 开发包
 
-训练源码会带上已有的 optuna_v2、v4、v5、v6、v7 目录。完整封装入口默认仍是 optuna_v3。其他版本用 `TRAIN_PRICE_ONLY.bat` 单独训练，再用 `PACKAGE_EXISTING_MODEL.bat` 打包。
+训练源码会带上已有的 optuna_v2、v4、v5、v6、v7 目录。`TRAIN_PRICE_ONLY.bat` 可以读双行表头的 Excel 或 CSV，也可以继续用 `--smoke` 做小样本。缺了必填数值时，仍按原来的规则停止，不会自动补数。
 
-页面文字可放到 `PIPELINE_STATIC_DIR` 指向的目录，重启 Web 后生效，不必重编译。Python 逻辑变更必须用 `REBUILD_ENGINE.bat` 重新冻结，不能只改已封进 EXE 的旧文件。
+`PACKAGE_EXISTING_MODEL.bat` 会把指定的价格模型、业务发布包、效能快照和交付清单放在一起。加上冻结引擎后，会写出带 `PACKAGE_MANIFEST.json` 的可启动目录。封装不重新训练。
+
+重新冻结后，下一次封装会使用这次的新引擎，并更新开发包里项目源码的校验摘要。页面文字仍可放到 `PIPELINE_STATIC_DIR`，不必为改文字重编译。
 
 ## 评价指标
 
@@ -31,16 +33,18 @@ V3 优化目标仍是 R² 和 MAPE。MAE、RMSE 只记录。价格没有变化�
 
 ## 本机已执行
 
-- 用模拟数据分别训练 optuna_v2、v3、v4、v5、v6、v7，都写出 `price-native-bundle-1.0`，并重新加载后做了一次预测。这不是甲方历史文件的一致性验收。
-- 从解压后的 `outputs/CB13` 执行 `TRAIN_PRICE_ONLY.bat`，得到模型文件。
-- `PACKAGE_EXISTING_MODEL.bat` 封装的是指定的 v5 目录，不是上一次训练目录。
-- `REBUILD_ENGINE.bat` 在该开发包里生成了新的 `product.exe`（sha256 `55d790bb63d5eea7af4c52c96b3c5a78df2b485f10175dabf875cf094c400124`）。单独的引擎目录没有 `PACKAGE_MANIFEST.json`，所以不能把它当成已经装好的客户包直接启动。
+- 用模拟数据分别训练 optuna_v2、v3、v4、v5、v6、v7，都写出 `price-native-bundle-1.0`。随后在新的冻结程序里，这六套模型都完成了模型库导入、切换、预测和进程重启。服务返回的模型摘要与文件摘要一致。这不是甲方历史文件的一致性验收。
+- 仓库里的示例成品表 `virtual_products_dual_header.xlsx` 有缺失的“响应时间”。训练入口按原规则拒绝，没有补值。
+- 从新复制的 `D:\CB13_fresh` 用一份填完整的 CSV 训练 optuna_v3（12 条、4 个属性、2 次试验），再封装成可启动目录。`PACKAGE_MANIFEST.json` 记录 878 个文件。引擎 `product.exe` 的 sha256 是 `b9d844ed39a3a9f7bf1e9bab314abf2cf6fadf46d04d0ce48ef771ba256139f4`。
+- 该程序启动后，门户、价格和效能都可以访问。深度、简易、推荐三个价格都是 28.158527 万元。退出后再次启动，模型摘要和价格不变。
+- 指定的 V5 模拟模型也打成了另一份带清单的运行包，并在其中切换了 V2–V7。
 - 设置 `PIPELINE_STATIC_DIR` 后，首页返回的是覆盖文件里的文字，没有重新冻结。
 - 用内置专家导出函数生成了模拟泵 ZIP，导出脚本报告 6 组对照通过。这不是甲方原始泵包。
+- V3 指标说明见 `docs/R13_V3_R2_DIAGNOSIS.md`。价格不变时 R² 仍是不可定义；价格有变化时，R² 可以真实等于 0。搜索目标没有改成四指标。
 
 ## 未验证
 
 - Windows 7
 - 甲方原始效能包与内置源码的逐行差异，以及同一输入的六组评分
-- 甲方手里的 V4–V7 历史模型文件。本仓库训练写出的仍是统一 native bundle，不能据此称为旧版本文件已全部导入验证
+- 甲方手里的 V4–V7 历史模型文件。本次只验证了本仓库新训练出的六套模拟模型；冻结程序已带上这些模型依赖的自定义模块，不能据此称为甲方旧文件已全部导入验证
 - 无网络整包重建 EXE

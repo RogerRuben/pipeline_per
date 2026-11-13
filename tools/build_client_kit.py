@@ -19,7 +19,7 @@ SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
 TOOLS=('ds_examples.py','build_ds_release.py','ds_client_config.py','product_identity.py','client_builder.py','client_kit_paths.py','client_workbook.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py',
-       'train_price_only.py','package_existing_model.py','rebuild_engine_cli.py')
+       'train_price_only.py','package_existing_model.py','rebuild_engine_cli.py','engine_pointer.py')
 
 
 def copy_tree(source,target):

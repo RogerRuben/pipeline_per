@@ -148,16 +148,20 @@ def smoke(package,job):
         except subprocess.TimeoutExpired:process.kill();process.wait(timeout=10)
 
 
-def package_release(train,job,desktop_file):
+def package_release(train,job,desktop_file,bootstrap=None):
     from tools.build_product_exe import build
-    version=('client-ds-' if read_json(train/'prototype_manifest.json')['price_engine']=='ds_three_layer' else 'client-v3-')+datetime.now().strftime('%Y%m%d_%H%M%S')+'-'+uuid.uuid4().hex[:4]
+    from tools.engine_pointer import resolve_engine
+    engine=resolve_engine(bootstrap)
+    if engine is None:raise ValueError('没有可用的冻结引擎。请先重新冻结，再生成完整运行包。')
+    price_engine=read_json(train/'prototype_manifest.json')['price_engine']
+    version=('client-ds-' if price_engine=='ds_three_layer' else 'client-'+price_engine+'-')+datetime.now().strftime('%Y%m%d_%H%M%S')+'-'+uuid.uuid4().hex[:4]
     package=ROOT/'deliverables'/version
     configured=read_json(KIT/'settings/project.json').get('effectiveness_package')
     expert=None
     if configured:
         expert=Path(configured);expert=expert if expert.is_absolute() else KIT/expert
         saved=job/'expert_export.zip';shutil.copy2(str(expert),str(saved));expert=saved
-    report=build(train,KIT/'runtime/python38',KIT/'bootstrap',package,version,KIT/'bootstrap',(),desktop_file,expert)
+    report=build(train,KIT/'runtime/python38',engine,package,version,engine,(),desktop_file,expert)
     smoke(package,job)
     destination=KIT/'deliverables';destination.mkdir(exist_ok=True)
     archive=Path(report['archive']);published=destination/archive.name

@@ -42,7 +42,9 @@ def main(argv=None):
         return 0
     from tools.build_frozen_engine import build
     result = build(args.out, args.build_tools, args.expert_engine)
+    from tools.engine_pointer import remember_engine
     result['source_files'] = len(digest)
+    result['engine_pointer'] = remember_engine(result['engine'])
     print(json.dumps(result, ensure_ascii=False))
     return 0
 
