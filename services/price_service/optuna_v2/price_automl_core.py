@@ -157,11 +157,19 @@ def regression_metrics(y, pred):
     pred = np.asarray(pred, dtype=float)
     if not np.all(np.isfinite(pred)):
         raise ValueError("non-finite prediction")
+    variance = float(np.var(y))
+    if len(y) < 2 or variance <= 1e-12:
+        r2, r2_status = None, "undefined"
+    else:
+        r2, r2_status = float(r2_score(y, pred)), "defined"
     return {
-        "r2": float(r2_score(y, pred)),
+        "r2": r2,
+        "r2_status": r2_status,
         "mape": safe_mape(y, pred),
         "mae": float(np.mean(np.abs(y - pred))),
         "rmse": float(np.sqrt(np.mean((y - pred) ** 2))),
+        "objective": "r2_and_mape",
+        "recorded_only": ["mae", "rmse"],
     }
 
 
