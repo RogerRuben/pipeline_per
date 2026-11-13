@@ -44,8 +44,8 @@ def overrides_for(backend, trials):
     return common
 
 
-def load_input_table(path, backend, product_code='R13_TRAIN', product_name='独立训练'):
-    """Read a dual-header Excel or CSV the same way the AutoML pipeline does."""
+def load_input_table(path, backend, product_code='R13_TRAIN', product_name='独立训练', config_path=None, overrides=None):
+    """Read a dual-header Excel or CSV with the same config the trainer will use."""
     from automl_pipeline.__main__ import config_loader
     from app.historical_onboarding import HistoricalProductOnboarding
     from app.product_table import product_table_rows
@@ -55,7 +55,7 @@ def load_input_table(path, backend, product_code='R13_TRAIN', product_name='独�
     source = Path(path)
     raw = source.read_bytes()
     loader = config_loader(backend)
-    cfg = loader()
+    cfg = loader(config_path, overrides)
     table = product_table_rows(source.name, raw, require_dual_header=True)
     product_name = workbook_product_name(source, product_name)
     analyzed = HistoricalProductOnboarding().analyze(
@@ -93,8 +93,10 @@ def main(argv=None):
     import importlib
     module_name, function_name = TRAINERS[args.backend]
     train = getattr(importlib.import_module(module_name), function_name)
-    data = smoke_data() if args.smoke else load_input_table(args.input, args.backend, args.product_code, args.product_name)
-    kwargs = {'overrides': overrides_for(args.backend, args.trials), 'progress': lambda _line: None}
+    overrides = overrides_for(args.backend, args.trials)
+    data = smoke_data() if args.smoke else load_input_table(
+        args.input, args.backend, args.product_code, args.product_name, args.config, overrides)
+    kwargs = {'overrides': overrides, 'progress': lambda _line: None}
     if args.config:
         kwargs['config_path'] = args.config
     if args.input:
@@ -107,8 +109,16 @@ def main(argv=None):
         saved = output / 'input' / Path(args.input).name
         saved.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(str(args.input), str(saved))
+    import hashlib
+    model_path = output / 'price_native_bundle.pkl'
     summary = {'backend': args.backend, 'trials': args.trials, 'training_rows': report.get('training_rows'),
-               'model': str(output / 'price_native_bundle.pkl'), 'engine': report.get('engine', args.backend)}
+               'model': str(model_path), 'model_sha256': hashlib.sha256(model_path.read_bytes()).hexdigest() if model_path.is_file() else None,
+               'engine': report.get('engine', args.backend), 'config': str(Path(args.config).resolve()) if args.config else None,
+               'input': str(Path(args.input).resolve()) if args.input else None}
+    requested = output / 'requested_config.json'
+    if requested.is_file():
+        from tools.package_existing_model import preprocessing_view
+        summary['preprocess'] = preprocessing_view(json.loads(requested.read_text(encoding='utf-8-sig')))
     (output / 'train_price_only.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
     if not (output / 'price_native_bundle.pkl').is_file():
         raise SystemExit('训练结束但没有写出价格模型文件')
