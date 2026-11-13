@@ -86,7 +86,7 @@ def settings():
     source=Path(raw['input_file']);source=source if source.is_absolute() else KIT/source
     if not source.is_file() or source.suffix.lower() not in ('.xlsx','.csv'):raise ValueError('请提供存在的双行表头 products.xlsx 或 CSV')
     raw['price_backend']=raw.get('price_backend','optuna_v3')
-    if raw['price_backend'] not in ('optuna_v3','ds_three_layer'):raise ValueError('price_backend 只能是 optuna_v3 或 ds_three_layer')
+    if raw['price_backend'] not in ('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7','ds_three_layer'):raise ValueError('price_backend 不在已携带的训练版本中')
     from tools.product_identity import workbook_product_name
     raw['product_name']=workbook_product_name(source,raw.get('product_name') or '')
     if not isinstance(raw['product_name'],str) or not raw['product_name'].strip():raise ValueError('请在产品信息表填写产品名称，或配置 product_name')
@@ -191,6 +191,8 @@ def build_job(quick=False,self_test=False,repack=False,backend_override=None):
                 raise ValueError('当前仍是虚拟示例表，请替换为甲方真实数据或标记为 synthetic')
             snapshot=job/'input'/raw['source'].name;snapshot.parent.mkdir();shutil.copy2(str(raw['source']),str(snapshot))
             backend=raw.get('price_backend','optuna_v3')
+            if backend not in ('optuna_v3','ds_three_layer'):
+                raise ValueError(backend+' 请用 TRAIN_PRICE_ONLY.bat 单独训练，再用 PACKAGE_EXISTING_MODEL.bat 打包。完整封装入口仍默认 optuna_v3。')
             status.update(product_code=raw['product_code'],product_name=raw['product_name'],source_sha256=sha(snapshot),
                           classification='synthetic' if raw['data_kind']=='synthetic' else 'unconfirmed',engine=backend)
             train=job/'trained_release'

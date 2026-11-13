@@ -41,7 +41,9 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
     for directory in ('services/common','services/price_service','services/effectiveness_service'):
         (project/directory).mkdir(parents=True,exist_ok=True)
         for path in (ROOT/directory).glob('*.py'):shutil.copy2(str(path),str(project/directory/path.name))
-    copy_tree(ROOT/'services/price_service/optuna_v2',project/'services/price_service/optuna_v2')
+    for name in ('optuna_v2','optuna_v4','optuna_v5','optuna_v6','optuna_v7'):
+        source=ROOT/'services/price_service'/name
+        if source.is_dir():copy_tree(source,project/'services/price_service'/name)
     copy_tree(ROOT/'services/effectiveness_service/expert_runtime',project/'services/effectiveness_service/expert_runtime')
     shutil.copy2(str(ROOT/'services/__init__.py'),str(project/'services/__init__.py'))
     (project/'tools').mkdir()
