@@ -22,10 +22,21 @@
 
 V3 优化目标仍是 R² 和 MAPE。MAE、RMSE 只记录。价格没有变化时，R² 记为不可定义，不再写成 0。旧 V3 搜索过程没有在这次改成四目标。
 
+## 本机环境
+
+- Python 3.8.10 x64（`D:\CB7\CB7\runtime\python38\python.exe`）
+- 构建目录 `D:\CB13_build_tools`：PyInstaller 5.13.2、pyinstaller-hooks-contrib 2023.8
+- 运行库补了 openpyxl 3.1.2、SciPy 1.7.3（专家运行时需要 `scipy.stats.qmc`）
+- 轮子缓存在 `D:\CB13_wheels`，安装时不访问外网也可以从这里装
+
 ## 本机已执行
 
-- Python 3.8.10 上，`optuna_v2` 小样本 1 次试验写出了 `price_native_bundle.pkl`，再按指定目录封装，并用加载器读回，格式为 `price-native-bundle-1.0`。
-- 当前这台机器没有 PyInstaller，重建命令停在依赖检查，没有生成 EXE。
+- 用模拟数据分别训练 optuna_v2、v3、v4、v5、v6、v7，都写出 `price-native-bundle-1.0`，并重新加载后做了一次预测。这不是甲方历史文件的一致性验收。
+- 从解压后的 `outputs/CB13` 执行 `TRAIN_PRICE_ONLY.bat`，得到模型文件。
+- `PACKAGE_EXISTING_MODEL.bat` 封装的是指定的 v5 目录，不是上一次训练目录。
+- `REBUILD_ENGINE.bat` 在该开发包里生成了新的 `product.exe`（sha256 `55d790bb63d5eea7af4c52c96b3c5a78df2b485f10175dabf875cf094c400124`）。单独的引擎目录没有 `PACKAGE_MANIFEST.json`，所以不能把它当成已经装好的客户包直接启动。
+- 设置 `PIPELINE_STATIC_DIR` 后，首页返回的是覆盖文件里的文字，没有重新冻结。
+- 用内置专家导出函数生成了模拟泵 ZIP，导出脚本报告 6 组对照通过。这不是甲方原始泵包。
 
 ## 未验证
 
