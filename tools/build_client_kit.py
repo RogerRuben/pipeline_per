@@ -100,10 +100,28 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
         'TRAIN_PRICE_ONLY.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\train_price_only.py %*\r\nexit /b %ERRORLEVEL%\r\n',
         'PACKAGE_EXISTING_MODEL.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\package_existing_model.py %*\r\nexit /b %ERRORLEVEL%\r\n',
         'RUN_DEV.bat':'@echo off\r\ncd /d "%~dp0"\r\nset PIPELINE_STATIC_DIR=%~dp0page_overrides\r\n'+kit_python+' project\\run_app.py --no-browser %*\r\nexit /b %ERRORLEVEL%\r\n',
-        'REBUILD_ENGINE.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\rebuild_engine_cli.py %*\r\nexit /b %ERRORLEVEL%\r\n',
     }
     for filename,text in kit_bats.items():
         (out/filename).write_bytes(text.encode('ascii'))
+    # cmd on the target machine reads this file as the system ANSI code page.
+    rebuild_bat=('@echo off\r\ncd /d "%~dp0"\r\n'
+                 'if "%~1"=="" (\r\n'
+                 '  echo 用法: REBUILD_ENGINE.bat 输出目录 构建工具目录 [--check-only]\r\n'
+                 '  echo 示例: REBUILD_ENGINE.bat project\\outputs\\engine_new D:\\CB13_build_tools\r\n'
+                 '  echo 输出目录必须是 project\\outputs 下面尚未存在的新文件夹。\r\n'
+                 '  exit /b 1\r\n'
+                 ')\r\n'
+                 'if /I "%~1"=="--out" (\r\n'
+                 '  '+kit_python+' project\\tools\\rebuild_engine_cli.py %*\r\n'
+                 '  exit /b %ERRORLEVEL%\r\n'
+                 ')\r\n'
+                 'if "%~2"=="" (\r\n'
+                 '  echo 还需要构建工具目录，例如 D:\\CB13_build_tools\r\n'
+                 '  exit /b 1\r\n'
+                 ')\r\n'
+                 +kit_python+' project\\tools\\rebuild_engine_cli.py --out "%~1" --build-tools "%~2" %3 %4\r\n'
+                 'exit /b %ERRORLEVEL%\r\n')
+    (out/'REBUILD_ENGINE.bat').write_bytes(rebuild_bat.encode('gbk'))
     source=source_commit(ROOT)
     source_files={path.relative_to(project).as_posix():sha(path) for path in sorted(project.rglob('*')) if path.is_file()}
     write_json(project/'SOURCE_BUILD.json',{'format':'pipeline-source-distribution-1.0','source_sha':source,'files':source_files})
