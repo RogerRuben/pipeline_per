@@ -19,7 +19,42 @@ SKIP={'__pycache__','tests','test','benchmarks','.git','Scripts'}
 TOOLS=('ds_examples.py','build_ds_release.py','ds_client_config.py','product_identity.py','client_builder.py','client_kit_paths.py','client_workbook.py','build_product_exe.py','build_frozen_engine.py','source_provenance.py',
        'verify_v3_release.py','bind_price_evaluation_metadata.py','release_analysis_metadata.py','build_v3_release.py',
        'product_price_automl.py','product_r4_input.py','price_attribute_input.py','product_saved_start.py',
-       'train_price_only.py','package_existing_model.py','rebuild_engine_cli.py','engine_pointer.py')
+       'train_price_only.py','package_existing_model.py','rebuild_engine_cli.py','engine_pointer.py',
+       'kit_entries.py','customer_package_cli.py','kit_self_export.py')
+
+
+def copy_payload(source, target):
+    source = Path(source)
+    if not source.is_dir():
+        raise ValueError('缺少目录：' + str(source))
+    copied = 0
+    for path in source.rglob('*'):
+        if not path.is_file():
+            continue
+        if path.is_symlink():
+            raise ValueError('不复制链接：' + str(path))
+        if '__pycache__' in path.parts or path.suffix.lower() in ('.pyc', '.pyo'):
+            continue
+        dest = Path(target) / path.relative_to(source)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(path), str(dest))
+        copied += 1
+    if copied == 0:
+        raise ValueError('目录是空的：' + str(source))
+    return copied
+
+
+def copy_wheels(source, target):
+    target = Path(target)
+    target.mkdir(parents=True, exist_ok=True)
+    names = []
+    for path in Path(source).rglob('*.whl'):
+        if path.name not in names:
+            shutil.copy2(str(path), str(target / path.name))
+            names.append(path.name)
+    if not names:
+        raise ValueError('轮子目录里没有 .whl 文件：' + str(source))
+    return len(names)
 
 
 def copy_tree(source,target):
@@ -31,7 +66,7 @@ def copy_tree(source,target):
             shutil.copy2(str(path),str(destination))
 
 
-def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
+def build(out,runtime,bootstrap,example,model_cases=None,archive=True,build_tools=None,wheels=None):
     out,runtime,bootstrap,example=map(lambda p:Path(p).resolve(),(out,runtime,bootstrap,example))
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
         raise ValueError('Choose a new project outputs/ or deliverables/ directory')
@@ -50,6 +85,8 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
     (project/'tools').mkdir()
     for name in TOOLS:shutil.copy2(str(ROOT/'tools'/name),str(project/'tools'/name))
     for name in ('product_entry.py','run_app.py'):shutil.copy2(str(ROOT/name),str(project/name))
+    if (ROOT/'data_master').is_dir():copy_tree(ROOT/'data_master',project/'data_master')
+    if (ROOT/'models').is_dir():copy_tree(ROOT/'models',project/'models')
     (project/'docs').mkdir()
     for name in ('P4_DESKTOP_USAGE.md','P4_1_TARGET_MACHINE.md','NATIVE_DESKTOP_USAGE.md','NATIVE_TARGET_CHECK.md','CLIENT_BUILD_KIT.md'):
         shutil.copy2(str(ROOT/'docs'/name),str(project/'docs'/name))
@@ -91,37 +128,25 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
         content=path.read_text(encoding='utf-8');path.write_text(content,encoding='utf-8-sig')
     shutil.copy2(str(ROOT/'docs/CLIENT_BUILD_KIT.md'),str(out/'先读我.md'))
     (out/'先读我.txt').write_text((ROOT/'docs/CLIENT_BUILD_KIT.md').read_text(encoding='utf-8'),encoding='utf-8-sig')
-    commands={'CHECK_ENVIRONMENT.bat':'check','CHECK_INPUT.bat':'inspect','TRAIN_AND_PACKAGE.bat':'build','BUILD_AND_PACKAGE.bat':'build',
-              'SELF_TEST.bat':'self-test','SELF_TEST_DS.bat':'self-test-ds','REPACK_LAST.bat':'repack'}
-    for filename,command in commands.items():
+    from tools.kit_entries import legacy_bat_names
+    for filename,command in legacy_bat_names().items():
         (out/filename).write_bytes(batch_entry(command))
     kit_python=r'runtime\python38\python.exe'
     kit_bats={
         'TRAIN_PRICE_ONLY.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\train_price_only.py %*\r\nexit /b %ERRORLEVEL%\r\n',
         'PACKAGE_EXISTING_MODEL.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\package_existing_model.py %*\r\nexit /b %ERRORLEVEL%\r\n',
-        'RUN_DEV.bat':'@echo off\r\ncd /d "%~dp0"\r\nset PIPELINE_STATIC_DIR=%~dp0page_overrides\r\n'+kit_python+' project\\run_app.py --no-browser %*\r\nexit /b %ERRORLEVEL%\r\n',
+        'RUN_DEV.bat':'@echo off\r\ncd /d "%~dp0"\r\nset PIPELINE_STATIC_DIR=%~dp0page_overrides\r\n'+kit_python+' project\\run_app.py %*\r\nexit /b %ERRORLEVEL%\r\n',
+        'REBUILD_ENGINE.bat':'@echo off\r\ncd /d "%~dp0"\r\n'+kit_python+' project\\tools\\rebuild_engine_cli.py %*\r\nexit /b %ERRORLEVEL%\r\n',
     }
     for filename,text in kit_bats.items():
         (out/filename).write_bytes(text.encode('ascii'))
-    # cmd on the target machine reads this file as the system ANSI code page.
-    rebuild_bat=('@echo off\r\ncd /d "%~dp0"\r\n'
-                 'if "%~1"=="" (\r\n'
-                 '  echo 用法: REBUILD_ENGINE.bat 输出目录 构建工具目录 [--check-only]\r\n'
-                 '  echo 示例: REBUILD_ENGINE.bat project\\outputs\\engine_new D:\\CB13_build_tools\r\n'
-                 '  echo 输出目录必须是 project\\outputs 下面尚未存在的新文件夹。\r\n'
-                 '  exit /b 1\r\n'
-                 ')\r\n'
-                 'if /I "%~1"=="--out" (\r\n'
-                 '  '+kit_python+' project\\tools\\rebuild_engine_cli.py %*\r\n'
-                 '  exit /b %ERRORLEVEL%\r\n'
-                 ')\r\n'
-                 'if "%~2"=="" (\r\n'
-                 '  echo 还需要构建工具目录，例如 D:\\CB13_build_tools\r\n'
-                 '  exit /b 1\r\n'
-                 ')\r\n'
-                 +kit_python+' project\\tools\\rebuild_engine_cli.py --out "%~1" --build-tools "%~2" %3 %4\r\n'
-                 'exit /b %ERRORLEVEL%\r\n')
-    (out/'REBUILD_ENGINE.bat').write_bytes(rebuild_bat.encode('gbk'))
+    from tools.kit_entries import write_complete_sample, write_operator_bats
+    write_complete_sample(out/'examples'/'complete_sample.csv')
+    write_operator_bats(out)
+    if build_tools:
+        copy_payload(build_tools, out/'build_tools')
+    if wheels:
+        copy_wheels(wheels, out/'wheels')
     source=source_commit(ROOT)
     source_files={path.relative_to(project).as_posix():sha(path) for path in sorted(project.rglob('*')) if path.is_file()}
     write_json(project/'SOURCE_BUILD.json',{'format':'pipeline-source-distribution-1.0','source_sha':source,'files':source_files})
@@ -134,6 +159,7 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
                'target':'Windows 7 SP1 x64','python':'3.8.10','files':files,'example_sha256':sha(example),
                'training_dependencies':dependencies,'external_python_required':False,'git_required':False,
                'compiler_on_client_required':False,'network_required':False,'win7_machine_validated':False,
+               'build_tools':'build_tools','wheels':'wheels','bootstrap':'bootstrap',
                'path_policy':{'max_root_utf16_chars':MAX_KIT_ROOT_CHARS,'recommended_root':'C:\\CB6'},
                'mutable_directories':['input','settings','logs','deliverables','builder_state','project/outputs','project/deliverables']})
     archive_path=Path(str(out)+'.zip') if archive else None
@@ -149,5 +175,7 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--out',required=True);p.add_argument('--runtime',required=True)
-    p.add_argument('--bootstrap',required=True);p.add_argument('--example',required=True);p.add_argument('--model-cases');p.add_argument('--no-archive',action='store_true');a=p.parse_args()
-    print(json.dumps(build(a.out,a.runtime,a.bootstrap,a.example,a.model_cases,archive=not a.no_archive),ensure_ascii=True,indent=2))
+    p.add_argument('--bootstrap',required=True);p.add_argument('--example',required=True)
+    p.add_argument('--build-tools',required=True);p.add_argument('--wheels',required=True)
+    p.add_argument('--model-cases');p.add_argument('--no-archive',action='store_true');a=p.parse_args()
+    print(json.dumps(build(a.out,a.runtime,a.bootstrap,a.example,a.model_cases,archive=not a.no_archive,build_tools=a.build_tools,wheels=a.wheels),ensure_ascii=True,indent=2))

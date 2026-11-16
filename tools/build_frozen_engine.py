@@ -30,7 +30,10 @@ def build(out,tools,expert_engine=None):
     out=Path(out).resolve();tools=Path(tools).resolve()
     if out.exists() or ROOT/'outputs' not in out.parents:raise ValueError('Choose new outputs directory')
     sources=engine_sources()
-    work=out.parent/(out.name+'_work');work.mkdir()
+    work=out.parent/(out.name+'_work')
+    work.parent.mkdir(parents=True, exist_ok=True)
+    if work.exists():raise ValueError('Choose new outputs directory')
+    work.mkdir()
     memory=io.BytesIO()
     with zipfile.ZipFile(memory,'w',zipfile.ZIP_DEFLATED) as bundle:
         for folder in ('app/static','app/defaults','product/defaults','cost_effectiveness_analysis/static'):

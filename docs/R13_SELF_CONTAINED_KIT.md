@@ -1,0 +1,26 @@
+# 自包含开发包验收
+
+这是脱敏记录。没有客户文件，也没有附带 EXE。Windows 7 没有在这台机器上验收。
+
+开发包根目录有四个入口，双击即可，不用填路径：
+
+- `① 启动开发模式.bat`
+- `② 重新编译软件.bat`
+- `③ 生成客户运行包.bat`
+- `④ 重新导出完整开发包.bat`
+
+PyInstaller 5.13.2 在包内 `build_tools/`。离线 wheel 在 `wheels/`。Python 3.8.10 在 `runtime/python38/`。当前可用引擎在 `bootstrap/`。再次编译的新引擎写到 `project/outputs/engines/`，成功后自动作为下一次封装使用的引擎。
+
+## 在新目录里做的事
+
+先把开发包解压到 `D:\CB_A\CB13_self`。编译使用的是这个目录里的 `build_tools`，不是外部构建目录。
+
+改了一处包内 Python 源码后重新编译。新引擎 SHA256 是 `4d12362568168494ad55f88bed8a36e0aa5422020f70872a7288d4870a5c4c89`。原来的 `bootstrap\product.exe` 还在。
+
+用包内示例表训练后，生成客户运行包。`PACKAGE_MANIFEST.json` 有 878 个文件。启动后三个价格入口都是 28.158527 万元。模型 SHA256 是 `bf20df9cd7d31b8ed184d568a23d72a368fcea3e15247ba717e4b70f1c6e456c`。
+
+再导出的开发包是 `开发包_20261116_121128.zip`，SHA256 `700ed72108e24c4dd4ef9b5a84e64fd1cad858c15b081db247b1aa547a193861`，204,304,618 字节。压缩包里没有 `project/outputs`、日志、用户目录，也没有把另一份开发包 ZIP 套进去。
+
+把这份 ZIP 解压到 `D:\CB_B`。开发模式页面返回正常。编译检查看到的 PyInstaller 是 5.13.2，路径在该解压目录的 `build_tools` 下。再次编译得到新引擎，SHA256 `de6f35b6b3bb13d1f7c155230c202005ce4b83bbafa19920247169a031bfe05e`。
+
+这次启动客户程序时指定了解压目录里的数据目录。默认 `%LOCALAPPDATA%\PipelinePer` 里最新文件仍是当天 10:43 的记录，12 点以后的验收没有再写它。

@@ -107,6 +107,36 @@ class R13CompatTests(unittest.TestCase):
         self.assertEqual(declared['grade'], 'enum')
         self.assertEqual(typed['agreements'][0]['params']['grade'], '1')
 
+    def test_reexport_keeps_tools_and_drops_outputs(self):
+        from tools.kit_entries import include_in_reexport
+        self.assertTrue(include_in_reexport('project/app/server.py'))
+        self.assertTrue(include_in_reexport('build_tools/PyInstaller/__init__.py'))
+        self.assertTrue(include_in_reexport('wheels/PyInstaller-5.13.2-py3-none-any.whl'))
+        self.assertTrue(include_in_reexport('runtime/python38/python.exe'))
+        self.assertTrue(include_in_reexport('runtime/python38/python38.zip'))
+        self.assertFalse(include_in_reexport('project/outputs/engines/engine_1/product.exe'))
+        self.assertFalse(include_in_reexport('logs/rebuild.log'))
+        self.assertFalse(include_in_reexport('deliverables/开发包.zip'))
+        self.assertFalse(include_in_reexport('input/products.xlsx'))
+        self.assertFalse(include_in_reexport('bootstrap/product.exe'))
+        self.assertFalse(include_in_reexport('LAST_ENGINE.json'))
+        self.assertFalse(include_in_reexport('userdata_customer/data/protocol_demo.db'))
+
+    def test_rebuild_without_arguments_uses_the_kit_tools(self):
+        import tempfile
+        from pathlib import Path
+        from tools.rebuild_engine_cli import resolve_rebuild_paths
+        folder = Path(tempfile.mkdtemp())
+        (folder / 'KIT_MANIFEST.json').write_text('{}', encoding='utf-8')
+        (folder / 'build_tools').mkdir()
+        project = folder / 'project'
+        out, tools = resolve_rebuild_paths(project, None, None, False)
+        self.assertIn('outputs/engines/engine_', out.replace('\\', '/'))
+        self.assertEqual(Path(tools).resolve(), (folder / 'build_tools').resolve())
+        check_out, check_tools = resolve_rebuild_paths(project, None, None, True)
+        self.assertTrue(check_out.replace('\\', '/').endswith('logs/compile_check'))
+        self.assertEqual(Path(check_tools).resolve(), (folder / 'build_tools').resolve())
+
     def test_builtin_hash_roundtrip_uses_normalized_newlines(self):
         key = 'pump/regional_context.py'
         if key not in NORM_HASHES:
