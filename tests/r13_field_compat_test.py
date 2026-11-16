@@ -123,6 +123,18 @@ class R13CompatTests(unittest.TestCase):
         self.assertFalse(include_in_reexport('KIT_MANIFEST.json'))
         self.assertFalse(include_in_reexport('userdata_customer/data/protocol_demo.db'))
 
+    def test_recompile_bakes_page_overrides_over_static(self):
+        import tempfile
+        from pathlib import Path
+        from tools.build_frozen_engine import overlay_static_files
+        folder = Path(tempfile.mkdtemp())
+        override = folder / 'page_overrides' / 'front_gate'
+        override.mkdir(parents=True)
+        (override / 'index.html').write_text('新门页', encoding='utf-8')
+        files = {'app/static/front_gate/index.html': '旧门页'.encode('utf-8')}
+        overlay_static_files(files, folder / 'page_overrides')
+        self.assertEqual(files['app/static/front_gate/index.html'], '新门页'.encode('utf-8'))
+
     def test_new_kit_manifest_does_not_hash_itself(self):
         import tempfile
         from pathlib import Path

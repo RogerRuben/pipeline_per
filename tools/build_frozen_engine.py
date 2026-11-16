@@ -24,7 +24,43 @@ def engine_sources():
                 records[rel]=sha(path)
     records['product_entry.py']=sha(ROOT/'product_entry.py')
     records['services/__init__.py']=sha(ROOT/'services/__init__.py')
+    override=page_override_root()
+    if override:
+        from product.static_override import override_file
+        for path in sorted(override.rglob('*')):
+            if not path.is_file():
+                continue
+            rel=path.relative_to(override).as_posix()
+            if override_file(override, rel) is None:
+                continue
+            records['page_overrides/'+rel]=sha(path)
     return records
+
+def page_override_root():
+    """Pages shown by dev mode. Recompile must bake the same files into the exe."""
+    import os
+    chosen=os.environ.get('PIPELINE_STATIC_DIR')
+    if chosen and Path(chosen).is_dir():
+        return Path(chosen)
+    kit=ROOT.parent
+    candidate=kit/'page_overrides'
+    if (kit/'KIT_MANIFEST.json').is_file() and candidate.is_dir():
+        return candidate
+    return None
+
+def overlay_static_files(files, override_root):
+    from product.static_override import override_file
+    if not override_root or not Path(override_root).is_dir():
+        return files
+    root=Path(override_root)
+    for path in sorted(root.rglob('*')):
+        if not path.is_file():
+            continue
+        rel=path.relative_to(root).as_posix()
+        if override_file(root, rel) is None:
+            continue
+        files['app/static/'+rel]=path.read_bytes()
+    return files
 
 def build(out,tools,expert_engine=None):
     out=Path(out).resolve();tools=Path(tools).resolve()
@@ -34,13 +70,21 @@ def build(out,tools,expert_engine=None):
     work.parent.mkdir(parents=True, exist_ok=True)
     if work.exists():raise ValueError('Choose new outputs directory')
     work.mkdir()
+    files={}
+    for folder in ('app/static','app/defaults','product/defaults','cost_effectiveness_analysis/static'):
+        for path in sorted((ROOT/folder).rglob('*')):
+            if path.is_file():files[path.relative_to(ROOT).as_posix()]=path.read_bytes()
+    files['product/control.html']=(ROOT/'product/control.html').read_bytes()
+    overlay_static_files(files, page_override_root())
     memory=io.BytesIO()
     with zipfile.ZipFile(memory,'w',zipfile.ZIP_DEFLATED) as bundle:
-        for folder in ('app/static','app/defaults','product/defaults','cost_effectiveness_analysis/static'):
-            for path in sorted((ROOT/folder).rglob('*')):
-                if path.is_file():bundle.writestr(path.relative_to(ROOT).as_posix(),path.read_bytes())
-        bundle.writestr('product/control.html',(ROOT/'product/control.html').read_bytes())
+        for name in sorted(files):
+            bundle.writestr(name, files[name])
     generated=ROOT/'product/_frozen_resources.py'
+    cache=ROOT/'product'/'__pycache__'
+    if cache.is_dir():
+        for stale in cache.glob('_frozen_resources*.pyc'):
+            stale.unlink()
     generated.write_text('import io,zipfile\nBLOB='+repr(memory.getvalue())+'\nARCHIVE=zipfile.ZipFile(io.BytesIO(BLOB))\ndef read(name):return ARCHIVE.read(name)\n',encoding='utf-8')
     hooks=work/'hooks';hooks.mkdir()
     (hooks/'hook-sklearn.py').write_text('from PyInstaller.utils.hooks import collect_dynamic_libs\nbinaries=collect_dynamic_libs("sklearn")\n',encoding='utf-8')
