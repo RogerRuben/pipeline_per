@@ -24,3 +24,9 @@ PyInstaller 5.13.2 在包内 `build_tools/`。离线 wheel 在 `wheels/`。Pytho
 把这份 ZIP 解压到 `D:\CB_B`。开发模式页面返回正常。编译检查看到的 PyInstaller 是 5.13.2，路径在该解压目录的 `build_tools` 下。再次编译得到新引擎，SHA256 `de6f35b6b3bb13d1f7c155230c202005ce4b83bbafa19920247169a031bfe05e`。
 
 这次启动客户程序时指定了解压目录里的数据目录。默认 `%LOCALAPPDATA%\PipelinePer` 里最新文件仍是当天 10:43 的记录，12 点以后的验收没有再写它。
+
+## 打包收尾
+
+重新编译时，如果开发包里已有 `bootstrap\expert\effect_worker.exe`，新引擎会自动带上这份专家效能运行时。当前工作区没有这份原始泵引擎文件，所以这里只核对了自动查找，没有拿真实泵包再冻一次。
+
+生成客户运行包时，除了可启动目录，还会在同一位置写出 ZIP 和同名 `.sha256` 文件。

@@ -137,6 +137,20 @@ class R13CompatTests(unittest.TestCase):
         self.assertTrue(check_out.replace('\\', '/').endswith('logs/compile_check'))
         self.assertEqual(Path(check_tools).resolve(), (folder / 'build_tools').resolve())
 
+    def test_rebuild_keeps_a_bundled_expert_engine(self):
+        import tempfile
+        from pathlib import Path
+        from tools.rebuild_engine_cli import resolve_expert_engine
+        folder = Path(tempfile.mkdtemp())
+        (folder / 'KIT_MANIFEST.json').write_text('{}', encoding='utf-8')
+        expert = folder / 'bootstrap' / 'expert'
+        expert.mkdir(parents=True)
+        (expert / 'effect_worker.exe').write_bytes(b'worker')
+        (expert / 'EXPERT_RUNTIME.json').write_text('{}', encoding='utf-8')
+        found = resolve_expert_engine(folder / 'project', None)
+        self.assertEqual(Path(found).resolve(), expert.resolve())
+        self.assertIsNone(resolve_expert_engine(Path(tempfile.mkdtemp()), None))
+
     def test_builtin_hash_roundtrip_uses_normalized_newlines(self):
         key = 'pump/regional_context.py'
         if key not in NORM_HASHES:

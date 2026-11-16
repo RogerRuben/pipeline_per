@@ -133,12 +133,15 @@ def main(argv=None):
     stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     exe_out = ROOT / 'deliverables' / ('product_' + stamp)
     version = 'client-' + stamp
-    built = package_exe(release, exe_out, engine, version, archive=False)
+    built = package_exe(release, exe_out, engine, version, archive=True)
     manifest = exe_out / 'PACKAGE_MANIFEST.json'
     record = {'status': 'pass', 'engine': str(engine), 'release': str(release), 'package': built['package'],
-              'manifest': str(manifest), 'files': built['files'], 'model_sha256': built.get('model_sha256')}
+              'manifest': str(manifest), 'files': built['files'], 'model_sha256': built.get('model_sha256'),
+              'archive': built.get('archive'), 'archive_sha256': built.get('archive_sha256')}
     print(json.dumps(record, ensure_ascii=False, indent=2))
-    print('客户运行包已生成：' + built['package'])
+    print('客户运行包目录：' + built['package'])
+    print('客户运行包压缩包：' + str(built.get('archive')))
+    print('SHA256：' + str(built.get('archive_sha256')))
     return 0
 
 
