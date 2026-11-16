@@ -19,7 +19,7 @@ SKIP_PREFIXES = (
     'project/outputs/', 'project/data/', 'project/runtime/', 'project/backups/',
     'project/deliverables/',
 )
-SKIP_NAMES = {'LAST_ENGINE.json', '_frozen_resources.py'}
+SKIP_NAMES = {'LAST_ENGINE.json', '_frozen_resources.py', 'KIT_MANIFEST.json'}
 
 
 def kit_root_from_project(project):

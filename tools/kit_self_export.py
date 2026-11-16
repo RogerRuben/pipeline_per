@@ -17,6 +17,22 @@ def _copy_file(source, target):
     shutil.copy2(str(source), str(target))
 
 
+def manifest_files(stage):
+    """Hash the sealed kit files. The manifest is written after this and is not in the list."""
+    from product.common import sha
+    stage = Path(stage)
+    mutable = {'input', 'settings', 'logs', 'deliverables'}
+    files = {}
+    for path in sorted(stage.rglob('*')):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(stage)
+        if relative.parts[0] in mutable or relative.as_posix() == 'KIT_MANIFEST.json':
+            continue
+        files[relative.as_posix()] = sha(path)
+    return files
+
+
 def _copy_filtered(source_root, target_root, predicate):
     source_root = Path(source_root)
     for path in source_root.rglob('*'):
@@ -89,8 +105,9 @@ def export_kit(kit, dest_zip=None):
             old_sha = read_json(old_seal).get('source_sha') or old_sha
         write_json(project / 'SOURCE_BUILD.json', {'format': 'pipeline-source-distribution-1.0', 'source_sha': old_sha, 'files': source_files})
         dependencies = read_json(kit / 'KIT_MANIFEST.json').get('training_dependencies') or {}
-        files = {path.relative_to(stage).as_posix(): sha(path) for path in sorted(stage.rglob('*')) if path.is_file()
-                 and path.relative_to(stage).parts[0] not in ('input', 'settings', 'logs', 'deliverables')}
+        files = manifest_files(stage)
+        if 'KIT_MANIFEST.json' in files:
+            raise RuntimeError('新清单不能引用自身')
         write_json(stage / 'KIT_MANIFEST.json', {
             'format': 'pipeline-client-build-kit-1.0', 'source_sha': old_sha, 'engine': 'optuna_v3',
             'target': 'Windows 7 SP1 x64', 'python': '3.8.10', 'files': files,

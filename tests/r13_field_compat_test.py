@@ -120,7 +120,34 @@ class R13CompatTests(unittest.TestCase):
         self.assertFalse(include_in_reexport('input/products.xlsx'))
         self.assertFalse(include_in_reexport('bootstrap/product.exe'))
         self.assertFalse(include_in_reexport('LAST_ENGINE.json'))
+        self.assertFalse(include_in_reexport('KIT_MANIFEST.json'))
         self.assertFalse(include_in_reexport('userdata_customer/data/protocol_demo.db'))
+
+    def test_new_kit_manifest_does_not_hash_itself(self):
+        import tempfile
+        from pathlib import Path
+        from product.common import sha
+        from tools.kit_self_export import manifest_files
+        stage = Path(tempfile.mkdtemp())
+        samples = {
+            'runtime/python38/python.exe': b'python',
+            'build_tools/PyInstaller/__init__.py': b'tool',
+            'wheels/pkg.whl': b'wheel',
+            'bootstrap/product.exe': b'engine',
+            'project/app/server.py': b'source',
+            'KIT_MANIFEST.json': b'{"files":{"KIT_MANIFEST.json":"stale"}}',
+            'input/products.xlsx': b'sheet',
+        }
+        for relative, content in samples.items():
+            path = stage / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        files = manifest_files(stage)
+        self.assertNotIn('KIT_MANIFEST.json', files)
+        self.assertNotIn('input/products.xlsx', files)
+        for relative in ('runtime/python38/python.exe', 'build_tools/PyInstaller/__init__.py',
+                         'wheels/pkg.whl', 'bootstrap/product.exe', 'project/app/server.py'):
+            self.assertEqual(files[relative], sha(stage / relative))
 
     def test_rebuild_without_arguments_uses_the_kit_tools(self):
         import tempfile
