@@ -98,7 +98,8 @@ def build(out,runtime,bootstrap,example,model_cases=None,archive=True,build_tool
             shutil.copy2(str(path),str(embedded/path.name))
     copy_tree(runtime/'Lib/site-packages',embedded/'Lib/site-packages')
     (embedded/'python38._pth').write_bytes(b'python38.zip\n.\nLib/site-packages\n../../project\nimport site\n')
-    for directory in ('input','examples','settings','logs','deliverables'): (out/directory).mkdir()
+    for directory in ('input','examples','settings','logs','deliverables','page_overrides'): (out/directory).mkdir()
+    (out/'page_overrides'/'说明.txt').write_text('把要替换的页面按 project\\\\app\\\\static 里的相对路径放在这里。例如 front_gate\\\\index.html。开发模式会先显示这些文件。重新编译成功后，它们会进入新的客户运行包。\n',encoding='utf-8')
     from tools.client_workbook import example_with_scores
     sample=example_with_scores(example.read_bytes())
     (out/'input/products.xlsx').write_bytes(sample)
