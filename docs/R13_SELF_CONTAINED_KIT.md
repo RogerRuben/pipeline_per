@@ -30,3 +30,5 @@ PyInstaller 5.13.2 在包内 `build_tools/`。离线 wheel 在 `wheels/`。Pytho
 重新编译时，如果开发包里已有 `bootstrap\expert\effect_worker.exe`，新引擎会自动带上这份专家效能运行时。当前工作区没有这份原始泵引擎文件，所以这里只核对了自动查找，没有拿真实泵包再冻一次。
 
 生成客户运行包时，除了可启动目录，还会在同一位置写出 ZIP 和同名 `.sha256` 文件。
+
+这次用已训练的模拟模型打出 `product_20261116_144503.zip`，SHA256 `d0a8e093680b0bcfdb3925201fe9bb29aa7c2a1d29600d7f687719108e1da7c0`，73,082,286 字节。校验文件和压缩包一致。解压到新目录后启动，门户产品是 `CLIENT_FILE`，价格 28.158527 万元，模型 SHA256 仍是 `bf20df9cd7d31b8ed184d568a23d72a368fcea3e15247ba717e4b70f1c6e456c`。
