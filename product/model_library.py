@@ -86,7 +86,10 @@ class ModelLibrary:
                 if role=='effectiveness':
                     from services.effectiveness_service.expert_packages import read_export
                     exported=read_export(content)
-                    if exported is not None:files['effectiveness_bundle.json']=exported;verified_export=True
+                    if exported is not None:
+                        files['effectiveness_bundle.json']=exported;verified_export=True
+                        source_report=list(getattr(read_export,'source_report',[]) or [])
+                        source_consistency=getattr(read_export,'consistency','verified')
                 with zipfile.ZipFile(io.BytesIO(content)) as z:
                     if len(z.infolist())>2000 or sum(i.file_size for i in z.infolist())>400*1024*1024:raise ValueError('模型包解压体积过大')
                     for entry in z.infolist():
@@ -149,6 +152,11 @@ class ModelLibrary:
             if metadata_name:asset_files[metadata_name]=sha(temp/metadata_name)
             meta={'id':asset_id,'role':role,'name':str(name or filename),'model_file':model_name,'metadata_file':metadata_name,
                   'files':asset_files,'schema':result['schema'],'health':result['health'],'bytes':sum((temp/n).stat().st_size for n in asset_files)}
+            if verified_export:
+                meta['source_diagnostics']=source_report
+                meta['runtime_consistency']=source_consistency
+                if source_consistency=='unverified':
+                    meta['consistency_note']='已加载，原算法一致性未验证。软件使用内置专家运行时，不执行压缩包里的 Python。'
             destination=self.root/asset_id
             with LOCK:
                 destination.mkdir(exist_ok=True)

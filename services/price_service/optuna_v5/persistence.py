@@ -8,7 +8,6 @@ import sys
 import time
 from pathlib import Path
 import numpy as np
-import optuna
 import sklearn
 import scipy
 import struct
@@ -30,7 +29,14 @@ def atomic_json(path,value):
     tmp.write_text(json.dumps(value,ensure_ascii=False,indent=2,allow_nan=False)+'\n',encoding='utf-8');replace_atomic(tmp,path)
 
 
-def environment():return {'python':list(sys.version_info[:3]),'bits':struct.calcsize('P')*8,'numpy':np.__version__,'scipy':scipy.__version__,'sklearn':sklearn.__version__,'optuna':optuna.__version__}
+def environment():
+    # Optuna is a training dependency. Loading a saved price model must not require it.
+    try:
+        import optuna
+        optuna_version=optuna.__version__
+    except Exception:
+        optuna_version=None
+    return {'python':list(sys.version_info[:3]),'bits':struct.calcsize('P')*8,'numpy':np.__version__,'scipy':scipy.__version__,'sklearn':sklearn.__version__,'optuna':optuna_version}
 
 
 def save_state(path,value,identity):

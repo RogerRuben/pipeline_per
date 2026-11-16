@@ -9,7 +9,9 @@ from app.model_service_client import ModelServiceGateway
 class ExpertTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
-  cls.package=next((ROOT/'outputs/r12_pump_acceptance').glob('*.zip'));cls.raw=cls.package.read_bytes()
+  matches=list((ROOT/'outputs/r12_pump_acceptance').glob('*.zip'))
+  if not matches:raise unittest.SkipTest('original pump export is not in this checkout')
+  cls.package=matches[0];cls.raw=cls.package.read_bytes()
  def test_original_zip_preserves_model_bytes_and_never_imports_expert_into_web(self):
   before=expert._family;model=expert.read_export(self.raw)
   self.assertEqual(model,(ROOT/'outputs/r12_pump_acceptance/model.json').read_bytes());self.assertEqual(expert._family,before)
@@ -28,7 +30,10 @@ class ExpertTests(unittest.TestCase):
    for row in d['files']:
     if row['path']==key:row.update(sha256=hashlib.sha256(f[key]).hexdigest(),size=len(f[key]))
    f[name]=json.dumps(d).encode()
-  with self.assertRaisesRegex(ValueError,'升级软件'):expert.read_export(self.mutate(change))
+  raw=expert.read_export(self.mutate(change))
+  self.assertTrue(raw)
+  self.assertEqual(expert.consistency,'unverified')
+  self.assertTrue(any(item['status']=='source_differs_from_builtin' for item in expert.read_export.source_report))
  def test_path_traversal_rejected_without_extracting(self):
   with self.assertRaisesRegex(ValueError,'路径不安全'):expert.read_export(self.mutate(lambda f:f.update({'../escape.py':b'x'})))
  def test_actual_frozen_expert_engine_loads_and_scores(self):

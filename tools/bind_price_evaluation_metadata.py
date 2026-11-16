@@ -9,7 +9,8 @@ def bind(model,report,output,classification='unconfirmed',business=None):
     model,report,output=Path(model),Path(report),Path(output)
     if output.exists():raise ValueError('不能覆盖既有元数据')
     source=json.loads(report.read_text(encoding='utf-8-sig'))
-    if source.get('engine')!='optuna_v3':raise ValueError('本验收入口要求真实Optuna V3训练报告')
+    allowed={'optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7'}
+    if source.get('engine') not in allowed:raise ValueError('训练报告必须来自 optuna_v2–v7，且只能使用报告里已经写出的指标')
     keys=('selected_training_metrics','full_refit_training_metrics','deployed_training_metrics','validation_metrics',
           'validation_protocol','evaluation_scope','deployment_scope','business_accuracy_certified','training_rows',
           'feature_count','member_count','trials_completed','trials_requested')

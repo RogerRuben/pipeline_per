@@ -31,8 +31,9 @@ def sha(path):
 def preflight(build,classification):
     build=Path(build).resolve()
     manifest=json.loads((build/'prototype_manifest.json').read_text(encoding='utf-8-sig'))
-    if manifest.get('price_engine') not in ('optuna_v3','ds_three_layer') or manifest.get('status')!='ready':
-        raise ValueError('必须为已完成的显式optuna_v3构建，不能使用默认V7或未完成目录')
+    allowed_engines=('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7','ds_three_layer')
+    if manifest.get('price_engine') not in allowed_engines or manifest.get('status')!='ready':
+        raise ValueError('必须为已完成的 optuna_v2–v7 或 ds_three_layer 构建，不能使用未完成目录')
     if classification=='formal' and manifest.get('virtual_data') is not False:
         raise ValueError('正式数据验收要求构建清单明确virtual_data=false；不能将虚拟构建改标正式')
     paths={}

@@ -20,7 +20,7 @@ from .training_observation import attach,ProgressBest
 from .price_automl_core import (
     EXPERT_MAP, MODEL_NAMES, TARGET_DEFAULT, fit_ensemble, load_bundle,
     load_training_data, model_params_from_trial, normalized_weights,
-    predict_bundle, read_table, regression_metrics, save_bundle, split_data,
+    predict_bundle, read_table, regression_metrics, save_bundle, search_objectives, split_data,
 )
 
 
@@ -176,13 +176,12 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 scores, _, _ = _evaluate(cfg, X, y, source_rows, expert_map, test_size, price_bins)
-            if not np.isfinite(scores["r2"]) or not np.isfinite(scores["mape"]):
-                raise ValueError("Nonfinite metric")
+            r2, mape = search_objectives(scores)
             trial.set_user_attr("valid", True)
             trial.set_user_attr("mae", scores["mae"])
             trial.set_user_attr("weights", normalized_weights(cfg).tolist())
-            return scores["r2"], scores["mape"]
-        except (ValueError, FloatingPointError, OverflowError, RuntimeError) as exc:
+            return r2, mape
+        except (ValueError, FloatingPointError, OverflowError, RuntimeError, TypeError) as exc:
             trial.set_user_attr("valid", False)
             trial.set_user_attr("error", repr(exc))
             return -1e6, 1e6
@@ -302,7 +301,7 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
     result['objective_contract']='joint_train_development_minimax_v1' if joint_train_development else 'development_only'
     result['search_identity']=history_identity
     tm=result['selected_training_metrics']
-    result['joint_targets_met']=bool(tm.get('r2') is not None and tm['r2']>=r2_target and tm['mape_percent']<=mape_target*100 and scores['r2']>=r2_target and scores['mape']<=mape_target)
+    result['joint_targets_met']=bool(tm.get('r2') is not None and scores.get('r2') is not None and tm['r2']>=r2_target and tm['mape_percent']<=mape_target*100 and scores['r2']>=r2_target and scores['mape']<=mape_target)
     from .training_observation import score as training_score
     final_training,_=predict_bundle(full_bundle,X)
     result['full_refit_training_metrics']=training_score(y,final_training)
@@ -311,9 +310,9 @@ def run_training(data_path, output_dir="optuna_results", n_trials=150,
         json.dump(_json_ready(result), f, ensure_ascii=False, indent=2)
     if verbose:
         print("\nSelected trial:", chosen.number, "| Split seed:", best_cfg["split_seed"])
-        print("Search-split R2: {:.6f} | MAPE: {:.2f}% | MAE: {:.6f}".format(
-            scores["r2"], scores["mape"] * 100, scores["mae"]))
-        print("Target reached:", result['joint_targets_met'] if joint_train_development else scores["r2"] >= r2_target and scores["mape"] <= mape_target)
+        print("Search-split R2:", "不可定义" if scores.get("r2") is None else "{:.6f}".format(scores["r2"]),
+              "| MAPE: {:.2f}% | MAE: {:.6f}".format(scores["mape"] * 100, scores["mae"]))
+        print("Target reached:", result['joint_targets_met'] if joint_train_development else scores.get("r2") is not None and scores["r2"] >= r2_target and scores["mape"] <= mape_target)
         print("Weights:", result["ensemble_weights"])
         print("Saved:", os.path.abspath(output_dir))
     return result

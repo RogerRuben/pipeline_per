@@ -2484,6 +2484,14 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/price", "/price/"): rel = "price.html"
         elif path in ("/price/deep", "/price/deep/"): rel = "deep_price/index.html"
         else: rel = "index.html" if path in ("", "/") else unquote(path.lstrip("/"))
+        override=os.environ.get('PIPELINE_STATIC_DIR')
+        if override:
+            from product.static_override import override_file
+            candidate=override_file(override, rel)
+            if candidate is not None:
+                data=candidate.read_bytes()
+                ctype=mimetypes.guess_type(rel)[0] or "application/octet-stream"
+                self.send_response(200);self.send_header("Content-Type",ctype+("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else ""));self.send_header("Content-Length",str(len(data)));self.send_header("Cache-Control","no-store");self.end_headers();self.wfile.write(data);return
         loader=getattr(self.app,'static_loader',None)
         if loader:
             data=loader(rel)

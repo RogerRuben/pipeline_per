@@ -1,0 +1,75 @@
+{
+  "record": "r13-closed-loop-acceptance",
+  "classification": "synthetic",
+  "customer_files_used": false,
+  "win7_validated": false,
+  "exe_rebuilt_for_this_note": false,
+  "host_run": {
+    "kit_copy": "D:\\CB13_fresh",
+    "python": "3.8.10",
+    "engine_exe_sha256": "b9d844ed39a3a9f7bf1e9bab314abf2cf6fadf46d04d0ce48ef771ba256139f4",
+    "package_version": "r13-file-loop",
+    "package_manifest_files": 878,
+    "package_manifest": "PACKAGE_MANIFEST.json"
+  },
+  "training": {
+    "backend": "optuna_v3",
+    "trials": 2,
+    "rows": 12,
+    "features": 4,
+    "product_code": "CLIENT_FILE",
+    "input_kind": "complete dual-header csv",
+    "input_sha256": "2be74fb779bed2b40ad5cd17bcd301964269921ccae364b2508ff2b31da1f129",
+    "preprocess": {"missing_tokens": [], "field_types": {}},
+    "model_sha256": "bf20df9cd7d31b8ed184d568a23d72a368fcea3e15247ba717e4b70f1c6e456c",
+    "sidecar_bundle_sha256": "bf20df9cd7d31b8ed184d568a23d72a368fcea3e15247ba717e4b70f1c6e456c",
+    "sidecar_matches_model": true
+  },
+  "startup": {
+    "portal_product": "CLIENT_FILE",
+    "effectiveness_backend": "snapshot_json",
+    "effectiveness_fields": 4,
+    "prices_wan": {
+      "deep": 28.158527,
+      "simple": 28.158527,
+      "recommendation": 28.158527,
+      "max_delta": 0
+    },
+    "after_process_restart": {
+      "model_sha256": "bf20df9cd7d31b8ed184d568a23d72a368fcea3e15247ba717e4b70f1c6e456c",
+      "price_wan": 28.158527,
+      "same_model": true
+    }
+  },
+  "library": {
+    "switched_inside_frozen_exe": true,
+    "models": [
+      {"name": "optuna_v2", "id": "537f623c495bb6079abbe81d8280b39738c8f442e9848715a83c4214c24016f6", "file_sha256": "708e49f58bfaa3b11aa9141296a039312b867d117e598622c0ce26ec9730dfd2", "served_sha256": "708e49f58bfaa3b11aa9141296a039312b867d117e598622c0ce26ec9730dfd2", "price_wan": 29.402619, "status": "pass"},
+      {"name": "optuna_v3", "id": "d6e7e9a77d59d29409941fd2b954abfd0e2a75dad467829d86c30b043440e3cc", "file_sha256": "6e0cd65fc2e87b75eb9bc2ab93044a051897b4259c930c19b8a746d0cc521457", "served_sha256": "6e0cd65fc2e87b75eb9bc2ab93044a051897b4259c930c19b8a746d0cc521457", "price_wan": 29.402619, "status": "pass"},
+      {"name": "optuna_v4", "id": "86ddc247604df5fbeea93d301ef4c65ae978a752a43984111a04327b7d37a631", "file_sha256": "e6c9b5498de258a07914f382edcc63dbe7cd67823b89e1b5a176ae8552ed8e84", "served_sha256": "e6c9b5498de258a07914f382edcc63dbe7cd67823b89e1b5a176ae8552ed8e84", "price_wan": 30.298541, "status": "pass"},
+      {"name": "optuna_v5", "id": "f2f682a64f0f92a681d867a3892cf391bcb86adc82200db6a3e2fe2e4e962e0c", "file_sha256": "a1e4f900b0008c826d78d2ab1c9d18c734bd6aa3712e2e6985af63964ff0f8db", "served_sha256": "a1e4f900b0008c826d78d2ab1c9d18c734bd6aa3712e2e6985af63964ff0f8db", "price_wan": 28.640473, "status": "pass"},
+      {"name": "optuna_v6", "id": "86a5bf13f68448b17f0fc89747bd45bdcf10db03ef5e10f3151ffaca1f7da6fa", "file_sha256": "0df15a2c9f9cccce3b86a2e5d2953e87f3d8d62114ba773a1635129ed770bbe0", "served_sha256": "0df15a2c9f9cccce3b86a2e5d2953e87f3d8d62114ba773a1635129ed770bbe0", "price_wan": 27.585744, "status": "pass"},
+      {"name": "optuna_v7", "id": "020a82d8bd7776d7c649c7985e983208f727b5565fa1b360722e7966ab7f0acf", "file_sha256": "a23bbe81fb154990f924863126ee896d4f1f59a9bec6f334ea0e362d7cd01662", "served_sha256": "a23bbe81fb154990f924863126ee896d4f1f59a9bec6f334ea0e362d7cd01662", "price_wan": 29.474107, "status": "pass"}
+    ],
+    "after_process_restart": {
+      "active_id": "020a82d8bd7776d7c649c7985e983208f727b5565fa1b360722e7966ab7f0acf",
+      "price_wan": 29.474107,
+      "same_model": true
+    }
+  },
+  "sha_recheck_without_new_exe": {
+    "file_model_bytes_unchanged_after_package": true,
+    "file_sidecar_bytes_unchanged_after_package": true,
+    "v5_model_bytes_unchanged_after_package": true,
+    "v5_sidecar_bytes_unchanged_after_package": true,
+    "mismatched_field_types_rejected": true,
+    "reordered_columns_rejected": true,
+    "rejected_package_directories_created": false
+  },
+  "userdata": {
+    "acceptance_dirs": ["D:\\CB13_fresh\\userdata_file", "D:\\CB13_fresh\\userdata_library"],
+    "file_run_database_present": true,
+    "library_active_price_id": "020a82d8bd7776d7c649c7985e983208f727b5565fa1b360722e7966ab7f0acf",
+    "default_localappdata_pipelineper_existed": false
+  }
+}

@@ -63,9 +63,15 @@ def save_bundle(path, bundle):
 def load_bundle(path, bundle_bytes=None):
     # A service may supply the exact bytes it hashed, binding identity to the
     # loaded instance even when the source path is replaced during runtime.
-    bundle = pickle.loads(Path(path).read_bytes() if bundle_bytes is None else bundle_bytes)
+    raw = Path(path).read_bytes() if bundle_bytes is None else bundle_bytes
+    try:
+        bundle = pickle.loads(raw)
+    except ModuleNotFoundError as exc:
+        missing = getattr(exc, "name", None) or str(exc)
+        raise ValueError("价格模型需要模块 %s。这不是文件损坏，请使用对应版本的推理运行时。" % missing)
     if not isinstance(bundle, dict) or bundle.get("format_version") != FORMAT_VERSION:
-        raise ValueError("价格模型文件不是%s格式" % FORMAT_VERSION)
+        found = bundle.get("format_version") if isinstance(bundle, dict) else type(bundle).__name__
+        raise ValueError("价格模型文件不是%s格式，实际为 %s" % (FORMAT_VERSION, found))
     validate_bundle(bundle)
     return bundle
 
