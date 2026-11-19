@@ -37,8 +37,8 @@ class SameOriginPageTests(unittest.TestCase):
         script = (ROOT / "app/static/deep_price/r6.js").read_text(encoding="utf-8")
         self.assertIn("['design','mechanism']", script)
         self.assertNotIn("['design','sensitivity','mechanism']", script)
-        self.assertIn("本次情景改动的单字段影响 Top5", script)
-        self.assertNotIn("<h3>单字段影响 Top5</h3>", script)
+        self.assertIn("hash==='#sensitivity'?['sensitivity']", script)
+        self.assertIn("if(hash==='#scenario'){hash='#sensitivity'", script)
 
 
 if __name__ == "__main__":

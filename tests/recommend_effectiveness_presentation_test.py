@@ -21,7 +21,7 @@ class RecommendationEffectivenessPresentationTests(unittest.TestCase):
 
     def test_detail_only_shows_center_effectiveness(self):
         self.assertIn('<span>中心效能分数</span><b id="detailCapability">', HTML)
-        self.assertIn('<span>预测价格</span><b id="detailPrice">', HTML)
+        self.assertIn('<span id="detailPriceLabel">预测价格</span><b id="detailPrice">', HTML)
         self.assertIn('<section class="metric-board compact-score-view">', HTML)
         self.assertIn('.metric-board.compact-score-view{grid-template-columns:repeat(2,minmax(0,1fr))}', CSS)
         self.assertIn('<div class="hidden"><span>效费比</span><b id="detailCE">', HTML)
