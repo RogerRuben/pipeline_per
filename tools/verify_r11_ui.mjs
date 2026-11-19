@@ -10,6 +10,10 @@ try{
  const gate=portal.frames().find(f=>f.url().includes('/portal/frame'));await gate.locator('.cost-prediction-home').waitFor();
  await check('default_is_home',gate.url().endsWith('#/')&&await gate.locator('.main-functions .function-card').count()===3);
  await portal.screenshot({path:out+'/home.png'});
+ const costCard=gate.locator('.main-functions .function-card').filter({hasText:'效能评估与效费分析'});
+ await costCard.getByRole('button',{name:'立即评估'}).click();
+ await gate.frameLocator('iframe').locator('#schemeList').waitFor();
+ await check('home_cost_effectiveness_opens_workbench',gate.url().endsWith('#/costPreEval2')&&gate.childFrames().some(f=>f.url()===base+'/cost-effectiveness/'));
  // Open supplied front-gate model overview; precision should be controlled in this view too.
  await gate.goto(base+'/portal/frame#/modelManage/main',{waitUntil:'networkidle'});
  // The supplied route name can differ; click its visible sidebar link if needed.
