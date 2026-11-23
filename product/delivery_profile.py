@@ -9,12 +9,22 @@ FULL = 'full'
 PRICE = 'price_only'
 RECOMMENDATION = 'recommendation'
 
-_PRICE_BLOCKED = (
-    '/effectiveness', '/recommendation', '/price/deep', '/portal',
-    '/cost-effectiveness', '/api/evaluate', '/api/effectiveness',
+_PRICE_ALLOWED = (
+    '/price', '/model-library', '/admin', '/login', '/login.html',
+    '/styles.css', '/ui-theme.css', '/price.js', '/price_ensemble.js', '/price_ensemble.css',
+    '/business-metadata.js', '/model-library.js', '/admin.js', '/login.js',
+    '/favicon.png', '/launcher.svg', '/launcher.ico',
+    '/api/price-workbench', '/api/model-library', '/api/admin', '/api/health',
+    '/api/desktop-status', '/api/business-labels', '/api/auth',
 )
-_RECOMMENDATION_BLOCKED = (
-    '/price', '/effectiveness', '/portal', '/cost-effectiveness', '/api/price-workbench',
+_RECOMMEND_ALLOWED = (
+    '/', '/index.html', '/recommendation', '/model-library', '/admin', '/login', '/login.html',
+    '/styles.css', '/ui-theme.css', '/app.js', '/business-metadata.js', '/model-library.js',
+    '/admin.js', '/login.js', '/favicon.png', '/launcher.svg', '/launcher.ico',
+    '/api/recommend', '/api/generation', '/api/generation-tasks', '/api/evaluate', '/api/improve',
+    '/api/bootstrap', '/api/agreements', '/api/saved', '/api/requirements', '/api/final-decisions',
+    '/api/save-scheme', '/api/clear-live-generated', '/api/model-library', '/api/admin',
+    '/api/health', '/api/desktop-status', '/api/business-labels', '/api/auth',
 )
 
 PROFILES = {
@@ -90,8 +100,12 @@ def open_path(manifest):
     return describe(manifest)['open_path']
 
 
-def _blocked(path, prefix):
-    return path == prefix or path.startswith(prefix + '/')
+def _allowed(path, prefix):
+    if prefix == '/':
+        return path == '/'
+    if prefix == '/price':
+        return path in ('/price', '/price/', '/price.html')
+    return path == prefix or path.startswith(prefix + '/') or path.startswith(prefix + '.')
 
 
 def request_allowed(profile, path):
@@ -99,13 +113,8 @@ def request_allowed(profile, path):
     if name == FULL:
         return True
     path = (path or '/').split('?', 1)[0] or '/'
-    if name == PRICE:
-        if path in ('/', '/index.html', '/recommendation'):
-            return False
-        return not any(_blocked(path, prefix) for prefix in _PRICE_BLOCKED)
-    if path == '/price.html' or _blocked(path, '/price') or path.startswith('/price.'):
-        return False
-    return not any(_blocked(path, prefix) for prefix in _RECOMMENDATION_BLOCKED if prefix != '/price')
+    allowed = _PRICE_ALLOWED if name == PRICE else _RECOMMEND_ALLOWED
+    return any(_allowed(path, prefix) for prefix in allowed)
 
 
 def data_token(product_code, profile):
@@ -117,7 +126,7 @@ def data_token(product_code, profile):
 
 def adjust_page(profile, relative, data):
     name = normalize(profile) if profile else FULL
-    if name == FULL or not relative:
+    if name == FULL or relative not in ('price.html', 'index.html'):
         return data
     text = data.decode('utf-8')
     if name == PRICE and relative == 'price.html':

@@ -149,7 +149,7 @@ def main(argv=None):
         table = input_table(model_dir, args.input)
         stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         release = ROOT / 'deliverables' / ('release_' + stamp)
-        assemble(model_dir, table, release, product_code=args.product_code, product_name=args.product_name, virtual_data=True)
+        assemble(model_dir, table, release, product_code=args.product_code, product_name=args.product_name, virtual_data=True, profile=profile)
     stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     folder = {'full': 'product_full_', 'price_only': 'product_price_', 'recommendation': 'product_recommendation_'}[profile]
     exe_out = ROOT / 'deliverables' / (folder + stamp)

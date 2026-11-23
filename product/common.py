@@ -88,11 +88,13 @@ def data_directory(package, override=None):
             profile = (saved.get('delivery_profile') or {}).get('id') or 'full'
         if code:
             # Full packages keep the historical directory. Other profiles stay separate.
-            from product.delivery_profile import data_token
+            from product.delivery_profile import data_token, normalize
+            profile = normalize(profile)
             key = hashlib.sha256(data_token(code, profile).encode('utf-8')).hexdigest()[:32]
             target = base/'products'/key
             legacy = base/'data/protocol_demo.db'
-            if not (target/'data/protocol_demo.db').exists() and legacy.exists():
+            # Only the historical full package may reopen the shared legacy directory.
+            if profile == 'full' and not (target/'data/protocol_demo.db').exists() and legacy.exists():
                 from product.compatibility import inspect_database
                 try:
                     previous = inspect_database(legacy)

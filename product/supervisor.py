@@ -291,7 +291,7 @@ class Supervisor:
                 if operation:self.execute(operation)
                 now=time.monotonic();probe=now>=next_probe
                 if probe:next_probe=now+5
-                for role in ROLES:
+                for role in self.active_roles():
                     if role in self.paused or role in self.blocked:continue
                     bad=not self.alive(role)
                     if probe and not bad:

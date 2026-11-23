@@ -104,7 +104,7 @@ def check_input_contract(field_ids, data, bundle):
     return order
 
 
-def assemble(model_dir, table, output, backend=None, product_code=None, product_name=None, virtual_data=True, config_path=None):
+def assemble(model_dir, table, output, backend=None, product_code=None, product_name=None, virtual_data=True, config_path=None, profile='full'):
     model_dir = Path(model_dir).resolve()
     output = Path(output).resolve()
     bundle = model_dir / 'price_native_bundle.pkl'
@@ -148,8 +148,11 @@ def assemble(model_dir, table, output, backend=None, product_code=None, product_
     saved.parent.mkdir(parents=True, exist_ok=True)
     if saved.resolve() != source.resolve():
         shutil.copy2(str(source), str(saved))
-    from automl_pipeline.product_effectiveness_bootstrap import build_effectiveness, load_config
-    build_effectiveness(data, output / 'effectiveness', load_config(saved, allow_legacy=False))
+    from product.delivery_profile import normalize as normalize_profile
+    profile = normalize_profile(profile)
+    if profile != 'price_only':
+        from automl_pipeline.product_effectiveness_bootstrap import build_effectiveness, load_config
+        build_effectiveness(data, output / 'effectiveness', load_config(saved, allow_legacy=False))
     from automl_pipeline.product_pipeline import stage_business
     draft, validation = stage_business(data, output)
     if not validation['valid']:
@@ -160,20 +163,22 @@ def assemble(model_dir, table, output, backend=None, product_code=None, product_
         'product_name': data['products'][0]['product_name'], 'source_filename': source.name,
         'source_sha256': hashlib.sha256(raw).hexdigest(), 'header_rows': 2,
         'price_model': 'price/price_native_bundle.pkl',
-        'effectiveness_model': 'effectiveness/effectiveness_bundle.json',
         'business_package': 'business_release.iprelease.json',
         'release_id': draft['release_id'], 'release_status': 'validated_draft',
         'price_engine': engine, 'targets_met': report.get('targets_met'),
         'packaged_from': str(model_dir), 'retrained': False,
         'model_sha256': digest, 'sidecar_matches_model': True, 'feature_order': fields,
+        'delivery_profile': profile,
     }
+    if profile != 'price_only':
+        manifest['effectiveness_model'] = 'effectiveness/effectiveness_bundle.json'
     if engine in ('optuna_v4', 'optuna_v5', 'optuna_v6', 'optuna_v7'):
         if report.get('quality_status') is not None:
             manifest['quality_status'] = report['quality_status']
         if report.get('search_mode') is not None:
             manifest['search_mode'] = report['search_mode']
-    manifest['artifact_sha256'] = {
-        key: _sha(output / manifest[key]) for key in ('price_model', 'effectiveness_model', 'business_package')}
+    artifact_keys = ('price_model', 'business_package') if profile == 'price_only' else ('price_model', 'effectiveness_model', 'business_package')
+    manifest['artifact_sha256'] = {key: _sha(output / manifest[key]) for key in artifact_keys}
     _write(output / 'prototype_manifest.json', manifest)
     return manifest
 
@@ -203,6 +208,7 @@ def main(argv=None):
     parser.add_argument('--bootstrap', help='新冻结的引擎目录。省略时使用最近一次冻结结果或开发包引擎')
     parser.add_argument('--exe-out', help='写出带 PACKAGE_MANIFEST.json 的可启动目录')
     parser.add_argument('--version', default='r13-closed-loop')
+    parser.add_argument('--profile', choices=('full', 'price_only', 'recommendation'), default='full')
     parser.add_argument('--no-archive', action='store_true')
     args = parser.parse_args(argv)
     release = Path(args.release)
@@ -217,19 +223,20 @@ def main(argv=None):
         if not args.input:
             raise SystemExit('请用 --input 指定训练时使用的成品表')
         manifest = assemble(release, args.input, output, args.backend, args.product_code, args.product_name,
-                            virtual_data=not args.customer, config_path=args.config)
+                            virtual_data=not args.customer, config_path=args.config, profile=args.profile)
         packaged = output
     record = {'release': str(packaged), 'price_engine': manifest.get('price_engine'), 'status': manifest.get('status'),
-              'retrained': False}
+              'retrained': False, 'delivery_profile': args.profile}
     if args.exe_out:
-        built = package_exe(packaged, args.exe_out, args.bootstrap, args.version, archive=not args.no_archive)
+        built = package_exe(packaged, args.exe_out, args.bootstrap, args.version, archive=not args.no_archive, profile=args.profile)
         record['package'] = built['package']
         record['manifest'] = str(Path(built['package']) / 'PACKAGE_MANIFEST.json')
         record['files'] = built['files']
     else:
         record['model'] = str(packaged / manifest['price_model'])
         record['business_package'] = str(packaged / manifest['business_package'])
-        record['effectiveness_model'] = str(packaged / manifest['effectiveness_model'])
+        if manifest.get('effectiveness_model'):
+            record['effectiveness_model'] = str(packaged / manifest['effectiveness_model'])
     _write(packaged / 'package_record.json', record)
     print(json.dumps(record, ensure_ascii=False))
     return 0
