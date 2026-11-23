@@ -178,7 +178,7 @@ def assemble(model_dir, table, output, backend=None, product_code=None, product_
     return manifest
 
 
-def package_exe(release_dir, exe_out, bootstrap=None, version='r13-closed-loop', archive=False):
+def package_exe(release_dir, exe_out, bootstrap=None, version='r13-closed-loop', archive=False, profile='full'):
     from tools.engine_pointer import resolve_engine
     from tools.build_product_exe import build
     engine = resolve_engine(bootstrap)
@@ -187,7 +187,7 @@ def package_exe(release_dir, exe_out, bootstrap=None, version='r13-closed-loop',
     runtime = ROOT.parent / 'runtime' / 'python38'
     if not (runtime / 'python.exe').is_file():
         runtime = Path(sys.executable).resolve().parent
-    return build(release_dir, runtime, engine, exe_out, version, engine, archive=archive)
+    return build(release_dir, runtime, engine, exe_out, version, engine, archive=archive, profile=profile)
 
 
 def main(argv=None):

@@ -28,7 +28,7 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def preflight(build,classification):
+def preflight(build,classification,required=None):
     build=Path(build).resolve()
     manifest=json.loads((build/'prototype_manifest.json').read_text(encoding='utf-8-sig'))
     allowed_engines=('optuna_v2','optuna_v3','optuna_v4','optuna_v5','optuna_v6','optuna_v7','ds_three_layer')
@@ -37,7 +37,10 @@ def preflight(build,classification):
     if classification=='formal' and manifest.get('virtual_data') is not False:
         raise ValueError('正式数据验收要求构建清单明确virtual_data=false；不能将虚拟构建改标正式')
     paths={}
-    for key in ('price_model','effectiveness_model','business_package'):
+    keys=required or ('price_model','effectiveness_model','business_package')
+    for key in keys:
+        if required is not None and key not in manifest:
+            raise ValueError('缺少交付必需文件：'+key+'。已停止打包。')
         p=(build/manifest[key]).resolve()
         if build not in p.parents or sha(p)!=manifest['artifact_sha256'][key]:
             raise ValueError('构建产物路径/哈希不匹配：'+key)

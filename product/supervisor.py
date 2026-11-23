@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 import webbrowser
 
 from product.common import read_json,write_json
+import product.delivery_profile
 from product.desktop_config import load_config,ROLES
 from product.recovery import backup_data
 from product.windows import WorkerJob
@@ -67,19 +68,26 @@ class Supervisor:
     def status(self):
         with self.lock:
             services={}
+            enabled=set(self.active_roles())
             for role in ROLES:
+                if role not in enabled:
+                    services[role]={'pid':None,'url':None,'alive':False,'paused':False,
+                       'state':'not_included','error':None}
+                    continue
                 item=self.workers.get(role);process=item['process'] if item else None
                 services[role]={'pid':process.pid if process and process.poll() is None else None,
                    'url':self.service_url(role),'alive':self.alive(role),'paused':role in self.paused,
                    'state':'running' if self.alive(role) else 'stopped' if role in self.paused else 'failed' if role in self.blocked else 'starting',
                    'error':self.errors.get(role)}
             web=self.service_url('web') if self.alive('web') else None
+            from product.delivery_profile import open_path
             return {'status':self.phase,'error':self.error,'instance_id':self.instance_id,
                     'pid':self.launcher_pid,'supervisor_pid':os.getpid(),'version':self.manifest['version'],
                     'package_dir':str(self.package),'data_dir':str(self.data),
                     'classification':self.manifest['release']['classification'],'price_backend':self.manifest['release'].get('price_backend','optuna_v3'),'win7_validated':False,
                     'generation':self.generation,'restart_count':self.restart_count,
-                    'portal_url':web+'/portal' if web else None,'control_url':self.service_url('control'),
+                    'portal_url':(web+open_path(self.manifest)) if web else None,'control_url':self.service_url('control'),
+                    'delivery_profile':(self.manifest.get('delivery_profile') or {}).get('id') or 'full',
                     'ports':dict(self.ports),'configured_ports':dict(self.config['ports']),
                     'port_fallbacks':{k:{'configured':v,'actual':self.ports[k]} for k,v in self.config['ports'].items() if v and v!=self.ports[k]},
                     'services':services,'operations':[dict(item) for item in self.operations],
@@ -142,6 +150,8 @@ class Supervisor:
                     if len(parts)!=5 or parts[:3]!=['','api','services'] or parts[3] not in ROLES or parts[4] not in ('start','stop','restart'):
                         return self.send(404,{'error':'not_found'})
                     role,action=parts[3:]
+                    if role not in supervisor.active_roles():
+                        return self.send(404,{'error':'not_in_package','message':'此交付包不包含该服务'})
                 operation={'id':secrets.token_hex(8),'role':role,'action':action,'status':'queued'}
                 try:supervisor.actions.put_nowait(operation)
                 except queue.Full:return self.send(429,{'error':'operation_queue_full'})
@@ -193,7 +203,9 @@ class Supervisor:
                                 if role=='web':
                                     moved=self.web_started and urlparse(value['url']).port!=int(args[args.index('--port')+1])
                                     self.web_started=True
-                                    if moved and not self.no_browser:webbrowser.open(value['url']+'/portal')
+                                    if moved and not self.no_browser:
+                                        from product.delivery_profile import open_path
+                                        webbrowser.open(value['url']+open_path(self.manifest))
                                 return value['url']
                     except (OSError,ValueError):pass
                 self.stopping.wait(.1)
@@ -219,13 +231,17 @@ class Supervisor:
     def stop_workers(self):
         for role in reversed(ROLES):self.stop_worker(role)
 
+    def active_roles(self):
+        from product.delivery_profile import service_roles
+        return tuple(role for role in ROLES if role in service_roles(self.manifest))
+
     def settle(self):
-        self.phase='ready' if all(self.alive(role) for role in ROLES) else 'degraded'
+        self.phase='ready' if all(self.alive(role) for role in self.active_roles()) else 'degraded'
         self.record_status()
 
     def start_workers(self):
         self.phase='starting';self.error=None;self.generation=secrets.token_hex(8)
-        for role in ROLES:
+        for role in self.active_roles():
             try:self.start_worker(role)
             except Exception as exc:
                 logging.exception('Service startup failed: %s',role)

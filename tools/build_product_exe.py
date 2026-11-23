@@ -24,7 +24,7 @@ def audit_runtime(out):
     for directory in ('payload','project','runtime/python38','app','tools','automl_pipeline'):
         if (Path(out)/directory).exists():raise ValueError('Development directory in runtime: '+directory)
 
-def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None,effectiveness_package=None,archive=True):
+def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_packages=(),desktop_config=None,effectiveness_package=None,archive=True,profile='full'):
     if sys.version_info[:3]!=(3,8,10) or sys.maxsize<=2**32:
         raise ValueError('Use the pinned CPython 3.8.10 x64 builder')
     if not bootstrap:raise ValueError('A precompiled full software engine is required')
@@ -34,9 +34,13 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     sources=engine_sources()
     if read_json(bootstrap/'BOOTSTRAP_SOURCE.json')!=sources:
         raise ValueError('Frozen software engine differs from the current application sources')
+    from product.delivery_profile import PROFILES, SHARED_ENGINE_NOTE, normalize
+    profile=normalize(profile)
+    spec=PROFILES[profile]
     if sha(bootstrap/'product.exe')!=meta['exe_sha256']:raise ValueError('Engine EXE hash changed')
     if meta.get('expert_runtime') and sha(bootstrap/'expert/effect_worker.exe')!=meta['expert_runtime']['exe_sha256']:raise ValueError('Expert EXE hash changed')
-    manifest,artifacts,source,environment=preflight(release_dir,'unconfirmed')
+    needed=('price_model','business_package') if profile=='price_only' else ('price_model','effectiveness_model','business_package')
+    manifest,artifacts,source,environment=preflight(release_dir,'unconfirmed',needed)
     out=Path(out).resolve()
     if out.exists() or ROOT not in out.parents or out.parts[len(ROOT.parts)] not in ('outputs','deliverables'):
         raise ValueError('Choose a new project outputs/ or deliverables/ path')
@@ -48,10 +52,12 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
         else:shutil.copy2(str(p),str(out/p.name))
     release=out/'release';release.mkdir();paths={}
     for key,path in artifacts.items():
+        if profile=='price_only' and key=='effectiveness_model':
+            continue
         name={'price_model':('ds_release.json' if manifest['price_engine']=='ds_three_layer' else 'price_native_bundle.pkl'),'effectiveness_model':'effectiveness_bundle.json',
               'business_package':'business_release.iprelease.json'}[key]
         shutil.copy2(str(path),str(release/name));paths[key]='release/'+name
-    if effectiveness_package:
+    if effectiveness_package and profile!='price_only':
         from services.effectiveness_service.expert_packages import read_export
         raw=read_export(Path(effectiveness_package).read_bytes())
         if raw is None:raise ValueError('请选择原效能程序的一键冻结导出 ZIP')
@@ -75,11 +81,15 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     service=PriceService(out/paths['price_model'],None,evaluation_metadata=release/'evaluation_metadata.json')
     observed={'health':service.health(),'schema':service.schema()}
     write_json(stamp/'model_preflight.json',observed)
-    effect_raw=read_json(out/paths['effectiveness_model'])
-    contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
-                           {'unit':'wan_yuan','scale':1.0},
-                           effectiveness_schema=effectiveness_schema_from_document(effect_raw),
-                           effectiveness_model_sha=sha(out/paths['effectiveness_model']))
+    if 'effectiveness_model' in paths:
+        effect_raw=read_json(out/paths['effectiveness_model'])
+        contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
+                               {'unit':'wan_yuan','scale':1.0},
+                               effectiveness_schema=effectiveness_schema_from_document(effect_raw),
+                               effectiveness_model_sha=sha(out/paths['effectiveness_model']))
+    else:
+        contract=make_contract(observed['schema'],read_json(artifacts['business_package']),sha(artifacts['price_model']),
+                               {'unit':'wan_yuan','scale':1.0})
     for legacy_dir in legacy_packages:
         old=verify_package(legacy_dir,True)
         if old['files'][old['release']['price_model']]!=contract['model_sha256'] or old['files'][old['release']['business_package']]!=sha(artifacts['business_package']):
@@ -88,7 +98,7 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(release/'delivery_contract.json',contract)
     paths.update(price_backend=manifest['price_engine'],evaluation_metadata='release/evaluation_metadata.json',product_code=manifest['product_code'],
                  product_name=manifest['product_name'],classification=classification,
-                 effectiveness='original_frozen_expert' if effectiveness_package else 'trial_snapshot',virtual_data=manifest.get('virtual_data'),
+                 effectiveness=('omitted' if profile=='price_only' else 'original_frozen_expert' if effectiveness_package else 'trial_snapshot'),virtual_data=manifest.get('virtual_data'),
                  delivery_contract='release/delivery_contract.json')
     defaults=out/'defaults';defaults.mkdir()
     shutil.copy2(str(ROOT/'app/defaults/scenario_config.json'),str(defaults/'scenario_config.json'))
@@ -96,7 +106,11 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
     write_json(defaults/'deep_price_adjustment.json',{'confirmed':False,'message':'未配置正式价格校正规则'})
     desktop=validate_config(read_json(desktop_config)) if desktop_config else template_config()
     write_json(defaults/'desktop.json',desktop)
-    (out/'使用说明.txt').write_text('完整解压后双击 product.exe。运行包无需安装 Python，也不含 Python 业务源码。\nPortal: http://127.0.0.1:%d/portal\nManagement: http://127.0.0.1:%d/\n首次端口配置：defaults/desktop.json；以后使用管理页显示的用户目录 config/desktop.json。\n退出软件请使用管理页。复制新版程序不会覆盖用户数据库。\nWindows 7 SP1 x64 尚待实机验证。\n'%(desktop['ports']['web'],desktop['ports']['control']),encoding='utf-8-sig')
+    if profile=='full':
+        notice='完整解压后双击 product.exe。运行包无需安装 Python，也不含 Python 业务源码。\nPortal: http://127.0.0.1:%d/portal\nManagement: http://127.0.0.1:%d/\n首次端口配置：defaults/desktop.json；以后使用管理页显示的用户目录 config/desktop.json。\n退出软件请使用管理页。复制新版程序不会覆盖用户数据库。\nWindows 7 SP1 x64 尚待实机验证。\n'%(desktop['ports']['web'],desktop['ports']['control'])
+    else:
+        notice='完整解压后双击 product.exe。运行包无需安装 Python，也不含 Python 业务源码。\n打开页面：%s\n交付类型：%s。\n%s\nWindows 7 SP1 x64 尚待实机验证。\n'%(spec['open_path'],spec['label'],SHARED_ENGINE_NOTE)
+    (out/'使用说明.txt').write_text(notice,encoding='utf-8-sig')
     audit_runtime(out)
     source_sha=source_commit(ROOT)
     files={p.relative_to(out).as_posix():sha(p) for p in sorted(out.rglob('*')) if p.is_file()}
@@ -104,7 +118,10 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
                'entrypoint':'product.exe','packaging':meta['kind'],'build_source_sha':source_sha,
                'launcher_source_sha256':sources,'files':files,'release':paths,'training_environment':environment,
                'runtime_python':'3.8.10','architecture':'x64','python_source_included':False,'ui_resources':'embedded','configurable_files':['defaults/desktop.json'],
-               'default_data_dir':'%LOCALAPPDATA%/PipelinePer/products/<product-code-sha256-prefix32>',
+               'default_data_dir':'%LOCALAPPDATA%/PipelinePer/products/<product-code-sha256-prefix32>' if profile=='full' else '%LOCALAPPDATA%/PipelinePer/products/<product-code-and-profile-sha256-prefix32>',
+               'delivery_profile':{'id':profile,'label':spec['label'],'services':list(spec['services']),
+                                   'models':list(spec['models']),'open_path':spec['open_path']},
+               'shared_engine_note':SHARED_ENGINE_NOTE,
                'external_python_required':False,'training_on_start':False,'win7_validated':False,'code_signed':False})
     archive_path=Path(str(out)+'.zip') if archive else None
     if archive_path:
@@ -113,7 +130,8 @@ def build(release_dir,runtime,tool_dir,out,version,bootstrap=None,legacy_package
                 if p.is_file():bundle.write(str(p),out.name+'/'+p.relative_to(out).as_posix())
     result={'status':'built','package':str(out),'archive':str(archive_path) if archive_path else None,'archive_sha256':sha(archive_path) if archive_path else None,
             'archive_bytes':archive_path.stat().st_size if archive_path else 0,'files':len(files),'model_sha256':sha(artifacts['price_model']),
-            'source_sha':source_sha,'python_source_included':False,'win7_validated':False}
+            'source_sha':source_sha,'python_source_included':False,'win7_validated':False,
+            'delivery_profile':profile,'services':list(spec['services']),'shared_engine_note':SHARED_ENGINE_NOTE}
     if archive_path:Path(str(archive_path)+'.sha256').write_text(result['archive_sha256']+'  '+archive_path.name+'\n',encoding='ascii')
     write_json(stamp/'build_report.json',result);return result
 

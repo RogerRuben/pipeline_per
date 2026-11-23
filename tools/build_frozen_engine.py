@@ -103,6 +103,7 @@ def build(out,tools,expert_engine=None):
                    'sklearn.svm._libsvm_sparse','scipy.special._ufuncs_cxx','scipy.linalg.cython_blas',
                    'scipy.linalg.cython_lapack','pandas._libs.tslibs.base','pkg_resources'):
         args+=['--hidden-import',module]
+    args+=['--hidden-import','product.delivery_profile']
     for module in ('optuna','automl_pipeline','matplotlib','tkinter','IPython','pytest','pip','notebook','torch',
                    'scipy.tests','numpy.tests','pandas.tests','sklearn.tests','tools','sqlalchemy','greenlet','alembic','mako','markupsafe'):
         args+=['--exclude-module',module]

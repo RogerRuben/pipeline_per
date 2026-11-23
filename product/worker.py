@@ -88,6 +88,7 @@ def main():
                           IPDEMO_DEMO_READ_ONLY='0')
         from app.server import Application,Handler
         app = Application(data)
+        app.delivery_profile = (manifest.get('delivery_profile') or {}).get('id') or 'full'
         app.static_dir = ROOT/'app/static'
         if getattr(sys,'frozen',False):
             from product.resources import read_asset
@@ -105,6 +106,15 @@ def main():
             'label':'软件运行管理','description':'查看运行状态、重启或停止软件',
             'url':read_json(data/'runtime/control.json')['url'],'visible':True,'enabled':True}
         app.portal_config['services']['effectiveness']['label']='效能评价'
+        hidden = {
+            'price_only': ('recommendation', 'advanced_price', 'effectiveness', 'cost_effectiveness_analysis'),
+            'recommendation': ('quick_price', 'advanced_price', 'effectiveness', 'cost_effectiveness_analysis'),
+        }.get(app.delivery_profile, ())
+        for key in hidden:
+            item = app.portal_config['services'].get(key)
+            if item:
+                item['visible'] = False
+                item['enabled'] = False
         class WebHandler(Handler):
             def sync_addresses(self):
                 from product.ports import sync_addresses

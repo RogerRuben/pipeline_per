@@ -2500,10 +2500,22 @@ class Handler(BaseHTTPRequestHandler):
             target = (self.app.static_dir / rel).resolve()
             if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return
             data=target.read_bytes()
+        from product.delivery_profile import adjust_page
+        data = adjust_page(getattr(self.app, 'delivery_profile', 'full'), rel, data)
         ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
         self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store, no-cache, must-revalidate"); self.send_header("Pragma","no-cache"); self.end_headers(); self.wfile.write(data)
 
+    def _profile_blocked(self):
+        from product.delivery_profile import request_allowed
+        path = urlparse(self.path).path
+        if request_allowed(getattr(self.app, 'delivery_profile', 'full'), path):
+            return False
+        self._json({'error': 'not_in_package', 'message': '此交付包不包含该功能'}, 404)
+        return True
+
     def do_GET(self):
+        if self._profile_blocked():
+            return
         if handle_deep_price_http(self, 'GET'):
             return
         parsed = urlparse(self.path); path, query = parsed.path, parse_qs(parsed.query)
@@ -2599,6 +2611,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc: traceback.print_exc(); self._json({"error":type(exc).__name__,"message":str(exc)},500)
 
     def do_POST(self):
+        if self._profile_blocked():
+            return
         if handle_deep_price_http(self, 'POST'):
             return
         path = urlparse(self.path).path

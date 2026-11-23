@@ -93,14 +93,34 @@ def input_table(model_dir, explicit=None):
     return candidates[0]
 
 
+def choose_profile(explicit):
+    from product.delivery_profile import normalize
+    if explicit:
+        return normalize(explicit)
+    if not sys.stdin.isatty():
+        return 'full'
+    print('请选择生成的客户运行包：')
+    print('')
+    print('1. 完整系统（默认）')
+    print('2. 仅价格预测')
+    print('3. 仅推荐系统')
+    print('')
+    raw = input('输入序号，直接回车选择 1：').strip()
+    if raw not in ('', '1', '2', '3'):
+        raise SystemExit('请输入 1、2 或 3')
+    return normalize(raw or '1')
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='用最近一次编译的引擎和已有模型生成客户运行包')
+    parser.add_argument('--profile', choices=('full', 'price_only', 'recommendation'))
     parser.add_argument('--choice', help='模型序号，从 1 开始')
     parser.add_argument('--release', help='直接指定模型目录')
     parser.add_argument('--input', help='成品表。默认使用模型目录里的表')
     parser.add_argument('--product-code')
     parser.add_argument('--product-name')
     args = parser.parse_args(argv)
+    profile = choose_profile(args.profile)
     kit = kit_root()
     if kit is None:
         raise SystemExit('请在完整开发包里运行。')
@@ -131,13 +151,16 @@ def main(argv=None):
         release = ROOT / 'deliverables' / ('release_' + stamp)
         assemble(model_dir, table, release, product_code=args.product_code, product_name=args.product_name, virtual_data=True)
     stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    exe_out = ROOT / 'deliverables' / ('product_' + stamp)
-    version = 'client-' + stamp
-    built = package_exe(release, exe_out, engine, version, archive=True)
+    folder = {'full': 'product_full_', 'price_only': 'product_price_', 'recommendation': 'product_recommendation_'}[profile]
+    exe_out = ROOT / 'deliverables' / (folder + stamp)
+    version = 'client-' + profile + '-' + stamp
+    built = package_exe(release, exe_out, engine, version, archive=True, profile=profile)
     manifest = exe_out / 'PACKAGE_MANIFEST.json'
     record = {'status': 'pass', 'engine': str(engine), 'release': str(release), 'package': built['package'],
               'manifest': str(manifest), 'files': built['files'], 'model_sha256': built.get('model_sha256'),
-              'archive': built.get('archive'), 'archive_sha256': built.get('archive_sha256')}
+              'archive': built.get('archive'), 'archive_sha256': built.get('archive_sha256'),
+              'delivery_profile': profile, 'services': built.get('services'),
+              'shared_engine_note': built.get('shared_engine_note')}
     print(json.dumps(record, ensure_ascii=False, indent=2))
     print('客户运行包目录：' + built['package'])
     print('客户运行包压缩包：' + str(built.get('archive')))
