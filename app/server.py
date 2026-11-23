@@ -2505,6 +2505,17 @@ class Handler(BaseHTTPRequestHandler):
         ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
         self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store, no-cache, must-revalidate"); self.send_header("Pragma","no-cache"); self.end_headers(); self.wfile.write(data)
 
+    def _default_home(self):
+        from product.delivery_profile import open_path
+        return open_path(getattr(self.app, 'delivery_profile', 'full'))
+
+    def _profile_safe_next(self, value):
+        from product.delivery_profile import request_allowed
+        target = self._safe_next(value)
+        if target and not request_allowed(getattr(self.app, 'delivery_profile', 'full'), target):
+            return None
+        return target
+
     def _profile_blocked(self):
         from product.delivery_profile import request_allowed
         path = urlparse(self.path).path
@@ -2521,7 +2532,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path); path, query = parsed.path, parse_qs(parsed.query)
         try:
             if path in ("/login", "/login.html") and self.app.auth_enabled and self._is_authenticated():
-                self._redirect(self._safe_next((query.get("next") or [""])[0]) or "/portal"); return
+                self._redirect(self._profile_safe_next((query.get("next") or [""])[0]) or self._default_home()); return
             if self._auth_required(path):
                 return
             from app.unified_portal import handle_portal
@@ -2632,7 +2643,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"error":"invalid_credentials","message":"账号或密码不正确。"}, 401); return
                 self.app.clear_login_failures(client_id)
                 token = self.app.make_auth_token(username)
-                redirect = self._safe_next(request.get("next")) or "/portal"
+                redirect = self._profile_safe_next(request.get("next")) or self._default_home()
                 data = json.dumps({"authenticated":True,"username":username,"redirect":redirect}, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")

@@ -90,6 +90,10 @@ def service_roles(manifest):
     return describe(manifest)['services']
 
 
+def model_roles(manifest_or_name):
+    return tuple(role for role in describe(manifest_or_name)['models'] if role in ('price', 'effectiveness'))
+
+
 def required_release_keys(manifest):
     if not isinstance(manifest, dict) or 'delivery_profile' not in manifest:
         return PROFILES[FULL]['required_release']
@@ -126,15 +130,36 @@ def data_token(product_code, profile):
 
 def adjust_page(profile, relative, data):
     name = normalize(profile) if profile else FULL
-    if name == FULL or relative not in ('price.html', 'index.html'):
+    if name == FULL or relative not in ('price.html', 'index.html', 'model-library.html', 'admin.html'):
         return data
     text = data.decode('utf-8')
-    if name == PRICE and relative == 'price.html':
-        text = text.replace(
-            '<a class="button secondary" href="/portal" target="_top">系统导航</a>'
-            '<a class="button secondary" href="/effectiveness">简易效能评价</a>'
-            '<a class="button secondary" href="/recommendation">智能推荐</a>',
-            '<a class="button secondary" href="/model-library">模型库</a>')
-    elif name == RECOMMENDATION and relative == 'index.html':
-        text = text.replace('<a class="button secondary" href="/portal" target="_top">系统导航</a>', '')
+    if name == PRICE:
+        if relative == 'price.html':
+            text = text.replace(
+                '<a class="button secondary" href="/portal" target="_top">系统导航</a>'
+                '<a class="button secondary" href="/effectiveness">简易效能评价</a>'
+                '<a class="button secondary" href="/recommendation">智能推荐</a>',
+                '<a class="button secondary" href="/model-library">模型库</a>')
+        elif relative == 'model-library.html':
+            text = text.replace(
+                '<a class="button" href="/portal" target="_top">返回系统导航</a>',
+                '<a class="button" href="/price" target="_top">返回价格预测</a>')
+            text = text.replace(
+                '<option value="effectiveness">效能模型（原导出包 / 快照）</option>',
+                '')
+        elif relative == 'admin.html':
+            text = text.replace(
+                '<a class="button secondary" href="/portal">系统导航</a>'
+                '<a class="button secondary" href="/">返回推荐系统</a>',
+                '<a class="button secondary" href="/price">返回价格预测</a>'
+                '<a class="button secondary" href="/model-library">模型库</a>')
+    elif name == RECOMMENDATION:
+        if relative == 'index.html':
+            text = text.replace('<a class="button secondary" href="/portal" target="_top">系统导航</a>', '')
+        elif relative == 'model-library.html':
+            text = text.replace(
+                '<a class="button" href="/portal" target="_top">返回系统导航</a>',
+                '<a class="button" href="/" target="_top">返回推荐系统</a>')
+        elif relative == 'admin.html':
+            text = text.replace('<a class="button secondary" href="/portal">系统导航</a>', '')
     return text.encode('utf-8')
