@@ -267,7 +267,7 @@ class DeliveryProfileTest(unittest.TestCase):
         from services.common.http_service import ServiceApplication, make_handler
         from services.price_service.ds_backend import load_price_service
 
-        temp = tempfile.TemporaryDirectory(prefix='r14_price_only_', dir=str(ROOT / 'outputs'))
+        temp = tempfile.TemporaryDirectory(prefix='r14_price_only_')
         self.addCleanup(temp.cleanup)
         base = Path(temp.name)
         package_dir = base / 'pkg'
@@ -469,7 +469,7 @@ class DeliveryProfileTest(unittest.TestCase):
         from product.common import sha, write_json
         from product.model_library import ModelLibrary
 
-        temp = tempfile.TemporaryDirectory(prefix='r14_dual_', dir=str(ROOT / 'outputs'))
+        temp = tempfile.TemporaryDirectory(prefix='r14_dual_')
         self.addCleanup(temp.cleanup)
         root = Path(temp.name)
         store = Store(root / 'data/protocol_demo.db', root / 'absent.csv', DegradedServiceRuntime(None, 'P', '产品'))
