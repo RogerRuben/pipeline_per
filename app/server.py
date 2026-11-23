@@ -2500,16 +2500,39 @@ class Handler(BaseHTTPRequestHandler):
             target = (self.app.static_dir / rel).resolve()
             if not str(target).startswith(str(self.app.static_dir.resolve())) or not target.is_file(): self._json({"error":"not_found"},404); return
             data=target.read_bytes()
+        from product.delivery_profile import adjust_page
+        data = adjust_page(getattr(self.app, 'delivery_profile', 'full'), rel, data)
         ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
         self.send_response(200); self.send_header("Content-Type",ctype + ("; charset=utf-8" if ctype.startswith("text/") or ctype in ("application/javascript","application/json") else "")); self.send_header("Content-Length",str(len(data))); self.send_header("Cache-Control","no-store, no-cache, must-revalidate"); self.send_header("Pragma","no-cache"); self.end_headers(); self.wfile.write(data)
 
+    def _default_home(self):
+        from product.delivery_profile import open_path
+        return open_path(getattr(self.app, 'delivery_profile', 'full'))
+
+    def _profile_safe_next(self, value):
+        from product.delivery_profile import request_allowed
+        target = self._safe_next(value)
+        if target and not request_allowed(getattr(self.app, 'delivery_profile', 'full'), target):
+            return None
+        return target
+
+    def _profile_blocked(self):
+        from product.delivery_profile import request_allowed
+        path = urlparse(self.path).path
+        if request_allowed(getattr(self.app, 'delivery_profile', 'full'), path):
+            return False
+        self._json({'error': 'not_in_package', 'message': '此交付包不包含该功能'}, 404)
+        return True
+
     def do_GET(self):
+        if self._profile_blocked():
+            return
         if handle_deep_price_http(self, 'GET'):
             return
         parsed = urlparse(self.path); path, query = parsed.path, parse_qs(parsed.query)
         try:
             if path in ("/login", "/login.html") and self.app.auth_enabled and self._is_authenticated():
-                self._redirect(self._safe_next((query.get("next") or [""])[0]) or "/portal"); return
+                self._redirect(self._profile_safe_next((query.get("next") or [""])[0]) or self._default_home()); return
             if self._auth_required(path):
                 return
             from app.unified_portal import handle_portal
@@ -2599,6 +2622,8 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc: traceback.print_exc(); self._json({"error":type(exc).__name__,"message":str(exc)},500)
 
     def do_POST(self):
+        if self._profile_blocked():
+            return
         if handle_deep_price_http(self, 'POST'):
             return
         path = urlparse(self.path).path
@@ -2618,7 +2643,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._json({"error":"invalid_credentials","message":"账号或密码不正确。"}, 401); return
                 self.app.clear_login_failures(client_id)
                 token = self.app.make_auth_token(username)
-                redirect = self._safe_next(request.get("next")) or "/portal"
+                redirect = self._profile_safe_next(request.get("next")) or self._default_home()
                 data = json.dumps({"authenticated":True,"username":username,"redirect":redirect}, ensure_ascii=False).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type","application/json; charset=utf-8")

@@ -61,7 +61,8 @@ def verify_package(root, full=False):
             validate_config(read_json(target))
         elif not target.is_file() or sha(target) != expected:
             raise ValueError('Package integrity check failed: '+relative)
-    for key in ('price_model', 'effectiveness_model', 'business_package', 'evaluation_metadata'):
+    from product.delivery_profile import required_release_keys
+    for key in required_release_keys(manifest):
         relative = manifest['release'][key]
         if relative not in records or not relative.startswith('release/'):
             raise ValueError('Unsealed release artifact: '+key)
@@ -79,13 +80,21 @@ def data_directory(package, override=None):
             raise ValueError('LOCALAPPDATA is unavailable; specify --data-dir')
         base = (Path(local)/'PipelinePer').resolve()
         manifest_path = Path(package)/'PACKAGE_MANIFEST.json'
-        code = read_json(manifest_path).get('release',{}).get('product_code') if manifest_path.exists() else None
+        code = None
+        profile = 'full'
+        if manifest_path.exists():
+            saved = read_json(manifest_path)
+            code = saved.get('release',{}).get('product_code')
+            profile = (saved.get('delivery_profile') or {}).get('id') or 'full'
         if code:
-            # Stable across repacks/model updates; never mix different products.
-            key = hashlib.sha256(str(code).encode('utf-8')).hexdigest()[:32]
+            # Full packages keep the historical directory. Other profiles stay separate.
+            from product.delivery_profile import data_token, normalize
+            profile = normalize(profile)
+            key = hashlib.sha256(data_token(code, profile).encode('utf-8')).hexdigest()[:32]
             target = base/'products'/key
             legacy = base/'data/protocol_demo.db'
-            if not (target/'data/protocol_demo.db').exists() and legacy.exists():
+            # Only the historical full package may reopen the shared legacy directory.
+            if profile == 'full' and not (target/'data/protocol_demo.db').exists() and legacy.exists():
                 from product.compatibility import inspect_database
                 try:
                     previous = inspect_database(legacy)

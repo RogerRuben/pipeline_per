@@ -964,6 +964,17 @@ class DegradedServiceRuntime(object):
         self.effectiveness = _RemoteBundleView(features=[])
         self.price = _RemoteBundleView(raw_contract=[])
         self.contract_version = "service-schema-unavailable"
+        self.price_schema = None
+
+    def update_price_schema(self, schema):
+        self.price_schema = dict(schema or {})
+        self.price = _RemoteBundleView(
+            raw_contract=[_remote_field(item) for item in self.price_schema.get("fields") or []]
+        )
+        if self.price_schema.get("product_code") and not self.product_code:
+            self.product_code = str(self.price_schema.get("product_code") or "")
+        if self.price_schema.get("product_name") and not self.product_name:
+            self.product_name = str(self.price_schema.get("product_name") or "")
 
     @property
     def schema(self):
@@ -976,6 +987,7 @@ class DegradedServiceRuntime(object):
         return []
 
     def manifest(self):
+        price_info = self.price_schema or {}
         return {
             "contract_version": self.contract_version,
             "supported_contract_versions": [],
@@ -984,8 +996,13 @@ class DegradedServiceRuntime(object):
             "product_code": self.product_code,
             "schema_keys": [],
             "feature_compatibility": {},
-            "price": {"model_kind": "price", "backend": "unavailable", "model_version": None,
-                      "product_code": None, "artifact_sha256": None},
+            "price": {
+                "model_kind": "price",
+                "backend": price_info.get("backend") or "unavailable",
+                "model_version": price_info.get("model_version"),
+                "product_code": price_info.get("product_code") or (self.product_code if price_info else None),
+                "artifact_sha256": price_info.get("model_sha256"),
+            },
             "effectiveness": {"model_kind": "effectiveness", "backend": "unavailable", "model_version": None,
                               "product_code": None, "artifact_sha256": None,
                               "target_protocol_contract": {}, "capabilities": {}},

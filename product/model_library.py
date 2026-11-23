@@ -48,17 +48,25 @@ class ModelLibrary:
     def __init__(self,app):
         self.app=app;self.data=Path(app.root);self.root=library_root(self.data);self.root.mkdir(parents=True,exist_ok=True)
         self.catalog=self.root/'catalog.json';self.active=self.data/'config/active_models.json'
+    def _profile(self):
+        from product.delivery_profile import normalize
+        return normalize(getattr(self.app,'delivery_profile',None))
+    def _allowed_roles(self):
+        from product.delivery_profile import model_roles
+        return model_roles(self._profile())
     def entries(self):return read_json(self.catalog) if self.catalog.exists() else []
     def list(self):
+        roles=self._allowed_roles()
         active=read_json(self.active) if self.active.exists() else {}
         from app.business_labels import overlay_labels
-        items=overlay_labels(self.entries(),self.app.store.parameter_map())
+        items=[m for m in overlay_labels(self.entries(),self.app.store.parameter_map()) if m.get('role') in roles]
         current={}
-        for role in ('price','effectiveness'):
+        for role in roles:
             try:current[role]={'schema':self.app.model_gateway.price_schema() if role=='price' else self.app.model_gateway.effectiveness_schema()}
             except Exception:current[role]={'schema':{},'status':'unavailable'}
         return {'current_metadata':current,'items':[dict(m,active=(active.get(m['role']) or {}).get('id')==m['id']) for m in items],
-                'active':{r:(active.get(r) or {}).get('id','default') for r in ('price','effectiveness')},'storage':str(self.root)}
+                'active':{r:(active.get(r) or {}).get('id','default') for r in roles},
+                'allowed_roles':list(roles),'delivery_profile':self._profile(),'storage':str(self.root)}
     def _prepare_ds(self,document,mapping):
         if document.get('format')=='pipeline-ds-release-1.0':return document
         if isinstance(document.get('model'),dict) and 'catalog' in document['model']:document=document['model']
@@ -79,6 +87,7 @@ class ModelLibrary:
                 'reference_parameters':(self.app.store.workbench_example() or {}).get('parameters',{})}
     def install(self,role,name,filename,content,mapping=None):
         if role not in ('price','effectiveness'):raise ValueError('模型类型不正确')
+        if role not in self._allowed_roles():raise ValueError('当前交付包不包含效能服务，禁止安装效能模型')
         if not isinstance(content,bytes) or len(content)>100*1024*1024:raise ValueError('模型文件过大')
         with LOCK,tempfile.TemporaryDirectory(prefix='install-',dir=str(self.root)) as temp:
             temp=Path(temp);files={};verified_export=False
@@ -177,9 +186,24 @@ class ModelLibrary:
             if operation.get('status')=='failed':raise ValueError(operation.get('error','服务未启动'))
             time.sleep(.2)
         raise ValueError('服务重启超时')
+    def _refresh_price_only(self):
+        schema=self.app.model_gateway.price_schema()
+        if not isinstance(schema,dict):raise ValueError('价格服务Schema无效')
+        if hasattr(self.app,'_sync_wire_product_code'):self.app._sync_wire_product_code()
+        elif schema.get('product_code'):self.app.model_gateway.product_code=schema.get('product_code')
+        runtime=getattr(self.app,'runtime',None)
+        if runtime is not None:
+            if hasattr(runtime,'update_price_schema'):runtime.update_price_schema(schema)
+            elif hasattr(runtime,'price') and hasattr(runtime.price,'raw_contract'):
+                from app.model_service_client import _remote_field
+                runtime.price.raw_contract=[_remote_field(item) for item in schema.get('fields') or []]
+                if isinstance(getattr(runtime,'schemas',None),dict):runtime.schemas['price']=schema
+        if hasattr(self.app,'_invalidate_runtime_caches'):self.app._invalidate_runtime_caches()
+        return schema
     def activate(self,role,asset_id):
         with LOCK:
             if role not in ('price','effectiveness'):raise ValueError('无效角色')
+            if role not in self._allowed_roles():raise ValueError('当前交付包不包含效能服务，禁止切换效能模型')
             old=read_json(self.active) if self.active.exists() else {};new=dict(old)
             if asset_id=='default':new.pop(role,None)
             else:
@@ -199,9 +223,12 @@ class ModelLibrary:
             write_json(self.active,new)
             try:
                 self._restart(role)
-                from app.model_service_client import ServiceBackedRuntime
-                self.app._bind_runtime(ServiceBackedRuntime(self.app.model_gateway,schemas=self.app.model_gateway.schemas(),local_runtime=getattr(self.app,'local_runtime',None)))
-                self.app.on_business_data_changed()
+                if self._profile()=='price_only':
+                    self._refresh_price_only()
+                else:
+                    from app.model_service_client import ServiceBackedRuntime
+                    self.app._bind_runtime(ServiceBackedRuntime(self.app.model_gateway,schemas=self.app.model_gateway.schemas(),local_runtime=getattr(self.app,'local_runtime',None)))
+                    self.app.on_business_data_changed()
             except Exception:
                 write_json(self.active,old)
                 try:self._restart(role)
@@ -211,14 +238,18 @@ class ModelLibrary:
             return self.list()
     def rename(self,asset_id,name):
         with LOCK:
+            roles=self._allowed_roles()
             entries=self.entries()
             for e in entries:
-                if e['id']==asset_id:e['name']=str(name).strip() or e['name'];write_json(self.root/asset_id/'asset.json',e)
+                if e['id']==asset_id:
+                    if e.get('role') not in roles:raise ValueError('当前交付包不支持修改该类型模型')
+                    e['name']=str(name).strip() or e['name'];write_json(self.root/asset_id/'asset.json',e)
             write_json(self.catalog,entries)
             return self.list()
     def export(self,asset_id):
         e=next((e for e in self.entries() if e['id']==asset_id),None)
         if not e:raise ValueError('模型不存在')
+        if e.get('role') not in self._allowed_roles():raise ValueError('当前交付包不支持导出该类型模型')
         stream=io.BytesIO()
         with zipfile.ZipFile(stream,'w',zipfile.ZIP_DEFLATED) as z:
             for name in e['files']:z.write(str(self.root/asset_id/name),name)
